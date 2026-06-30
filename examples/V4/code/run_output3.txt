@@ -1,0 +1,148 @@
+findfont: Failed to find font weight bold, now using 400.
+findfont: Failed to find font weight bold, now using 400.
+findfont: Failed to find font weight bold, now using 400.
+============================================================
+LOADING DATA
+============================================================
+Sheet 1: 58 artifacts
+Sheet 2: 69 composition rows
+Sheet 3: 8 unknown artifacts
+Valid composition sum (85-105%): 65/69
+Data preparation complete. All rows filled and normalized.
+
+============================================================
+ARTIFACT-LEVEL AGGREGATION
+============================================================
+Artifact-level data: 58 artifacts
+  High-K: 18
+  Pb-Ba: 40
+  Weathered: 34
+  Unweathered: 24
+
+============================================================
+Q1A: WEATHERING ASSOCIATION ANALYSIS
+============================================================
+Weathering x Type: chi2(1)=5.45, p=0.0195, V=0.307
+Weathering x Decoration: chi2(2)=4.96, p=0.0839, V=0.292
+Weathering x Color: chi2(6)=2.24, p=0.8966, V=0.196
+Figure 1 saved.
+
+============================================================
+Q1B: COMPOSITIONAL WEATHERING STATISTICS
+============================================================
+Significant elements (Holm-adjusted p < 0.05): 2/24
+  High-K SiO2: d=4.279, p_holm=0.0000
+  Pb-Ba SiO2: d=-1.458, p_holm=0.0105
+Figure 2 saved.
+
+============================================================
+Q1C: PRE-WEATHERING PREDICTION
+============================================================
+Calibration pairs: 2
+  49 (铅钡): Al2O3 w=5.60, u=6.60
+  50 (铅钡): Al2O3 w=2.06, u=4.27
+Reference Al2O3 -- High-K: 5.78, Pb-Ba: 3.22
+
+Method 1 MAE per element:
+  Na2O: 0.111%
+  K2O: 0.167%
+  MgO: 0.297%
+  Fe2O3: 0.415%
+  SrO: 0.465%
+  CuO: 0.633%
+  CaO: 1.458%
+  Al2O3: 2.217%
+  P2O5: 3.329%
+  BaO: 9.332%
+  PbO: 23.633%
+  SiO2: 26.741%
+Overall MAE: 5.733%
+Figure 3 saved.
+
+============================================================
+Q2: CLASSIFICATION & SUB-CLASSIFICATION
+============================================================
+Top discriminant elements:
+  PbO: avg_rank=1.0 (RF=1, t=1, MI=1)
+  BaO: avg_rank=2.0 (RF=2, t=2, MI=2)
+  K2O: avg_rank=3.3 (RF=3, t=4, MI=3)
+  SrO: avg_rank=4.0 (RF=5, t=3, MI=4)
+  SiO2: avg_rank=4.7 (RF=4, t=5, MI=5)
+  Fe2O3: avg_rank=7.3 (RF=8, t=6, MI=8)
+  Na2O: avg_rank=7.7 (RF=7, t=10, MI=6)
+  MgO: avg_rank=8.3 (RF=11, t=7, MI=7)
+
+Top 5 for sub-classification: ['PbO', 'BaO', 'K2O', 'SrO', 'SiO2']
+
+--- High-K Glass (n=18) ---
+  Best k=2 (silhouette=0.269)
+  ARI (Ward vs k-means): 0.750
+  Bootstrap median ARI: 0.708
+  Cluster 1: n=4
+  Cluster 2: n=14
+
+--- Pb-Ba Glass (n=40) ---
+  Best k=4 (silhouette=0.214)
+  ARI (Ward vs k-means): 0.797
+  Bootstrap median ARI: 0.567
+  Cluster 1: n=7
+  Cluster 2: n=10
+  Cluster 3: n=8
+  Cluster 4: n=15
+Figure 4 (High-K) saved.
+Figure 5 (Pb-Ba) saved.
+
+============================================================
+FIGURE 6: DECISION TREE
+============================================================
+Figure 6 saved.
+
+============================================================
+Q3: UNKNOWN CLASSIFICATION
+============================================================
+LOOCV accuracy -- RF: 1.000, k-NN(k=3): 1.000
+
+Q3 Classification Results:
+  A1 (无风化): 高钾 [SPLIT, conf=0.67] -> High-K-2
+  A2 (风化): 铅钡 [AGREED, conf=1.00] -> Pb-Ba-1
+  A3 (无风化): 铅钡 [AGREED, conf=1.00] -> Pb-Ba-3
+  A4 (无风化): 铅钡 [AGREED, conf=1.00] -> Pb-Ba-3
+  A5 (风化): 铅钡 [AGREED, conf=1.00] -> Pb-Ba-3
+  A6 (风化): 高钾 [SPLIT, conf=0.67] -> High-K-2
+  A7 (风化): 高钾 [SPLIT, conf=0.67] -> High-K-2
+  A8 (无风化): 铅钡 [AGREED, conf=1.00] -> Pb-Ba-4
+  +/-5% perturbation stability: 98.00%
+  +/-10% perturbation stability: 92.12%
+Figure 7 saved.
+Figure 8 saved.
+
+============================================================
+Q4: COMPOSITIONAL ASSOCIATION ANALYSIS
+============================================================
+Figure 9h (High-K) saved.
+Figure 9p (Pb-Ba) saved.
+Figure 10 saved.
+
+Permutation test: T_obs=4.514, p=0.0032 (n=5000)
+
+Top CLR correlations for High-K:
+  Na2O ↔ P2O5: r=-0.571
+  Fe2O3 ↔ SrO: r=-0.545
+  PbO ↔ BaO: r=0.544
+  K2O ↔ BaO: r=-0.540
+  SiO2 ↔ SrO: r=0.529
+
+Top CLR correlations for Pb-Ba:
+  Na2O ↔ P2O5: r=-0.767
+  SiO2 ↔ P2O5: r=-0.613
+  Fe2O3 ↔ BaO: r=-0.529
+  Al2O3 ↔ PbO: r=-0.519
+  Fe2O3 ↔ CuO: r=-0.518
+
+RESULTS_MANIFEST.json saved with 69 entries.
+
+============================================================
+EXPERIMENT COMPLETE
+============================================================
+Figures: 22 files in C:\Users\zklzk\Desktop\mathmodel_contest\figures
+Results: 4 files in C:\Users\zklzk\Desktop\mathmodel_contest\results

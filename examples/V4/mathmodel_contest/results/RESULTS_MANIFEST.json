@@ -1,0 +1,554 @@
+[
+  {
+    "result_id": "Q1A_type_chi2",
+    "question": "Q1A",
+    "value": 5.451814406318083,
+    "units": "chi2",
+    "description": "Weathering x type chi-square",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1A_type_pvalue",
+    "question": "Q1A",
+    "value": 0.019548014331003307,
+    "units": "p-value",
+    "description": "Weathering x type p-value",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1A_type_cramer_v",
+    "question": "Q1A",
+    "value": 0.3065889758437711,
+    "units": "Cramer's V",
+    "description": "Weathering x type effect size",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1A_decoration_chi2",
+    "question": "Q1A",
+    "value": 4.9565359477124185,
+    "units": "chi2",
+    "description": "Weathering x decoration chi-square",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1A_decoration_pvalue",
+    "question": "Q1A",
+    "value": 0.08388839673210005,
+    "units": "p-value",
+    "description": "Weathering x decoration p-value",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1A_decoration_cramer_v",
+    "question": "Q1A",
+    "value": 0.29233117579189066,
+    "units": "Cramer's V",
+    "description": "Weathering x decoration effect size",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1A_color_chi2",
+    "question": "Q1A",
+    "value": 2.237142857142857,
+    "units": "chi2",
+    "description": "Weathering x color chi-square",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1A_color_pvalue",
+    "question": "Q1A",
+    "value": 0.8966480343151315,
+    "units": "p-value",
+    "description": "Weathering x color p-value",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1A_color_cramer_v",
+    "question": "Q1A",
+    "value": 0.19639610121239315,
+    "units": "Cramer's V",
+    "description": "Weathering x color effect size",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1B_High-K_SiO2_d",
+    "question": "Q1B",
+    "value": 4.279006830998028,
+    "units": "Cohen's d",
+    "description": "High-K SiO2 weathering effect",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1B_Pb-Ba_SiO2_d",
+    "question": "Q1B",
+    "value": -1.458061326679172,
+    "units": "Cohen's d",
+    "description": "Pb-Ba SiO2 weathering effect",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1C_MAE_Na2O",
+    "question": "Q1C",
+    "value": 0.111304459337937,
+    "units": "%",
+    "description": "MAE for Na2O prediction",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1C_MAE_K2O",
+    "question": "Q1C",
+    "value": 0.16671369556490367,
+    "units": "%",
+    "description": "MAE for K2O prediction",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1C_MAE_MgO",
+    "question": "Q1C",
+    "value": 0.29741199466802276,
+    "units": "%",
+    "description": "MAE for MgO prediction",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1C_MAE_Fe2O3",
+    "question": "Q1C",
+    "value": 0.41466611319192526,
+    "units": "%",
+    "description": "MAE for Fe2O3 prediction",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1C_MAE_SrO",
+    "question": "Q1C",
+    "value": 0.4647293422207871,
+    "units": "%",
+    "description": "MAE for SrO prediction",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1C_MAE_CuO",
+    "question": "Q1C",
+    "value": 0.6325402253615122,
+    "units": "%",
+    "description": "MAE for CuO prediction",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1C_MAE_CaO",
+    "question": "Q1C",
+    "value": 1.4580389862078205,
+    "units": "%",
+    "description": "MAE for CaO prediction",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1C_MAE_Al2O3",
+    "question": "Q1C",
+    "value": 2.2166466099629676,
+    "units": "%",
+    "description": "MAE for Al2O3 prediction",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1C_MAE_P2O5",
+    "question": "Q1C",
+    "value": 3.329276625384325,
+    "units": "%",
+    "description": "MAE for P2O5 prediction",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1C_MAE_BaO",
+    "question": "Q1C",
+    "value": 9.332055635222712,
+    "units": "%",
+    "description": "MAE for BaO prediction",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1C_MAE_PbO",
+    "question": "Q1C",
+    "value": 23.632650034831784,
+    "units": "%",
+    "description": "MAE for PbO prediction",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1C_MAE_SiO2",
+    "question": "Q1C",
+    "value": 26.74126828034123,
+    "units": "%",
+    "description": "MAE for SiO2 prediction",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q1C_overall_MAE",
+    "question": "Q1C",
+    "value": 5.733108500191328,
+    "units": "%",
+    "description": "Overall MAE for pre-weathering prediction",
+    "source": "q1_weathering.py"
+  },
+  {
+    "result_id": "Q2_discriminant_PbO",
+    "question": "Q2",
+    "value": 1.0,
+    "units": "rank",
+    "description": "Discriminant rank for PbO",
+    "source": "q2_classification.py"
+  },
+  {
+    "result_id": "Q2_discriminant_BaO",
+    "question": "Q2",
+    "value": 2.0,
+    "units": "rank",
+    "description": "Discriminant rank for BaO",
+    "source": "q2_classification.py"
+  },
+  {
+    "result_id": "Q2_discriminant_K2O",
+    "question": "Q2",
+    "value": 3.3333333333333335,
+    "units": "rank",
+    "description": "Discriminant rank for K2O",
+    "source": "q2_classification.py"
+  },
+  {
+    "result_id": "Q2_discriminant_SrO",
+    "question": "Q2",
+    "value": 4.0,
+    "units": "rank",
+    "description": "Discriminant rank for SrO",
+    "source": "q2_classification.py"
+  },
+  {
+    "result_id": "Q2_discriminant_SiO2",
+    "question": "Q2",
+    "value": 4.666666666666667,
+    "units": "rank",
+    "description": "Discriminant rank for SiO2",
+    "source": "q2_classification.py"
+  },
+  {
+    "result_id": "Q2_discriminant_Fe2O3",
+    "question": "Q2",
+    "value": 7.333333333333333,
+    "units": "rank",
+    "description": "Discriminant rank for Fe2O3",
+    "source": "q2_classification.py"
+  },
+  {
+    "result_id": "Q2_discriminant_Na2O",
+    "question": "Q2",
+    "value": 7.666666666666667,
+    "units": "rank",
+    "description": "Discriminant rank for Na2O",
+    "source": "q2_classification.py"
+  },
+  {
+    "result_id": "Q2_discriminant_MgO",
+    "question": "Q2",
+    "value": 8.333333333333334,
+    "units": "rank",
+    "description": "Discriminant rank for MgO",
+    "source": "q2_classification.py"
+  },
+  {
+    "result_id": "Q2_High-K_best_k",
+    "question": "Q2",
+    "value": 2,
+    "units": "clusters",
+    "description": "Optimal k for High-K",
+    "source": "q2_classification.py"
+  },
+  {
+    "result_id": "Q2_High-K_silhouette",
+    "question": "Q2",
+    "value": 0.26924770235494566,
+    "units": "silhouette",
+    "description": "Silhouette score for High-K",
+    "source": "q2_classification.py"
+  },
+  {
+    "result_id": "Q2_High-K_ari_bootstrap",
+    "question": "Q2",
+    "value": 0.7077856420626896,
+    "units": "ARI",
+    "description": "Bootstrap stability ARI for High-K",
+    "source": "q2_classification.py"
+  },
+  {
+    "result_id": "Q2_Pb-Ba_best_k",
+    "question": "Q2",
+    "value": 4,
+    "units": "clusters",
+    "description": "Optimal k for Pb-Ba",
+    "source": "q2_classification.py"
+  },
+  {
+    "result_id": "Q2_Pb-Ba_silhouette",
+    "question": "Q2",
+    "value": 0.21388436874177916,
+    "units": "silhouette",
+    "description": "Silhouette score for Pb-Ba",
+    "source": "q2_classification.py"
+  },
+  {
+    "result_id": "Q2_Pb-Ba_ari_bootstrap",
+    "question": "Q2",
+    "value": 0.5672513347466029,
+    "units": "ARI",
+    "description": "Bootstrap stability ARI for Pb-Ba",
+    "source": "q2_classification.py"
+  },
+  {
+    "result_id": "Q2_decision_tree_accuracy",
+    "question": "Q2",
+    "value": 0.7758620689655172,
+    "units": "accuracy",
+    "description": "Decision tree training accuracy",
+    "source": "q2_classification.py"
+  },
+  {
+    "result_id": "Q3_RF_LOOCV",
+    "question": "Q3",
+    "value": 1.0,
+    "units": "accuracy",
+    "description": "RF LOOCV accuracy",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_kNN3_LOOCV",
+    "question": "Q3",
+    "value": 1.0,
+    "units": "accuracy",
+    "description": "k-NN k=3 LOOCV accuracy",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A1_type",
+    "question": "Q3",
+    "value": "高钾",
+    "units": "type",
+    "description": "Classification for A1",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A1_confidence",
+    "question": "Q3",
+    "value": 0.6666666666666666,
+    "units": "fraction",
+    "description": "Confidence for A1",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A1_subclass",
+    "question": "Q3",
+    "value": "High-K-2",
+    "units": "subclass",
+    "description": "Sub-class for A1",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A2_type",
+    "question": "Q3",
+    "value": "铅钡",
+    "units": "type",
+    "description": "Classification for A2",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A2_confidence",
+    "question": "Q3",
+    "value": 1.0,
+    "units": "fraction",
+    "description": "Confidence for A2",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A2_subclass",
+    "question": "Q3",
+    "value": "Pb-Ba-1",
+    "units": "subclass",
+    "description": "Sub-class for A2",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A3_type",
+    "question": "Q3",
+    "value": "铅钡",
+    "units": "type",
+    "description": "Classification for A3",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A3_confidence",
+    "question": "Q3",
+    "value": 1.0,
+    "units": "fraction",
+    "description": "Confidence for A3",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A3_subclass",
+    "question": "Q3",
+    "value": "Pb-Ba-3",
+    "units": "subclass",
+    "description": "Sub-class for A3",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A4_type",
+    "question": "Q3",
+    "value": "铅钡",
+    "units": "type",
+    "description": "Classification for A4",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A4_confidence",
+    "question": "Q3",
+    "value": 1.0,
+    "units": "fraction",
+    "description": "Confidence for A4",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A4_subclass",
+    "question": "Q3",
+    "value": "Pb-Ba-3",
+    "units": "subclass",
+    "description": "Sub-class for A4",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A5_type",
+    "question": "Q3",
+    "value": "铅钡",
+    "units": "type",
+    "description": "Classification for A5",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A5_confidence",
+    "question": "Q3",
+    "value": 1.0,
+    "units": "fraction",
+    "description": "Confidence for A5",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A5_subclass",
+    "question": "Q3",
+    "value": "Pb-Ba-3",
+    "units": "subclass",
+    "description": "Sub-class for A5",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A6_type",
+    "question": "Q3",
+    "value": "高钾",
+    "units": "type",
+    "description": "Classification for A6",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A6_confidence",
+    "question": "Q3",
+    "value": 0.6666666666666666,
+    "units": "fraction",
+    "description": "Confidence for A6",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A6_subclass",
+    "question": "Q3",
+    "value": "High-K-2",
+    "units": "subclass",
+    "description": "Sub-class for A6",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A7_type",
+    "question": "Q3",
+    "value": "高钾",
+    "units": "type",
+    "description": "Classification for A7",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A7_confidence",
+    "question": "Q3",
+    "value": 0.6666666666666666,
+    "units": "fraction",
+    "description": "Confidence for A7",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A7_subclass",
+    "question": "Q3",
+    "value": "High-K-2",
+    "units": "subclass",
+    "description": "Sub-class for A7",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A8_type",
+    "question": "Q3",
+    "value": "铅钡",
+    "units": "type",
+    "description": "Classification for A8",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A8_confidence",
+    "question": "Q3",
+    "value": 1.0,
+    "units": "fraction",
+    "description": "Confidence for A8",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_A8_subclass",
+    "question": "Q3",
+    "value": "Pb-Ba-4",
+    "units": "subclass",
+    "description": "Sub-class for A8",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_stability_0.05",
+    "question": "Q3",
+    "value": 0.98,
+    "units": "fraction",
+    "description": "Classification stability at 5.0% perturbation",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q3_stability_0.1",
+    "question": "Q3",
+    "value": 0.92125,
+    "units": "fraction",
+    "description": "Classification stability at 10.0% perturbation",
+    "source": "q3_identification.py"
+  },
+  {
+    "result_id": "Q4_permutation_F_norm",
+    "question": "Q4",
+    "value": 4.51416922393487,
+    "units": "Frobenius norm",
+    "description": "Observed correlation matrix difference",
+    "source": "q4_correlation.py"
+  },
+  {
+    "result_id": "Q4_permutation_pvalue",
+    "question": "Q4",
+    "value": 0.0032,
+    "units": "p-value",
+    "description": "Permutation test for group difference",
+    "source": "q4_correlation.py"
+  }
+]
