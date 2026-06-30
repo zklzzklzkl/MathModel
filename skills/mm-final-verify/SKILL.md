@@ -21,6 +21,14 @@ Read:
 
 Write `reports/VERIFY_REPORT.md` with `PASS`, `CONDITIONAL_PASS`, or `FAIL`.
 
+Before writing the final conclusion, run or replicate this read-only audit:
+
+```bash
+python ../_references/scripts/audit_v2_run.py --workspace <contest-workspace>
+```
+
+If the script path differs because the skill is copied into another root, resolve it relative to the current `skills/_references/scripts/` directory. Copy every `BLOCKER` or `HIGH` finding into `VERIFY_REPORT.md` and `reports/REVISION_ACTIONS.md`; do not return `PASS` while such findings remain unresolved.
+
 ## Verification Checklist
 
 Check:
@@ -33,7 +41,9 @@ Check:
 - `results/RESULTS_MANIFEST.json` has metrics and figures
 - `reports/METHOD_IMPLEMENTATION_MATRIX.md` exists and has no unresolved `not_implemented` core method rows
 - `reports/FIGURE_AUDIT.md` exists and inserted paper figures have no `FAIL` status
-- if `nature-figure` was used, core paper figures have figure contracts, selected-backend scripts, traceable source data, vector exports when feasible, and conclusion-forward captions
+- if `nature-figure` was used or available for core paper figures, core paper figures have figure contracts, selected-backend scripts, traceable source data, SVG/PDF vector exports when feasible, preview exports, and conclusion-forward captions
+- no core data figure relies on `Pillow` as its Nature backend
+- `reports/FIGURE_AUDIT.md` uses the V2.3 extended columns when Nature rules are enabled
 - every paper figure path resolves
 - LaTeX contains `\includegraphics` or Typst contains `#figure(` / `image(`
 - `reports/CLAIM_TRACE.md` has no missing core claims and no strongly worded weak core claims
@@ -67,6 +77,10 @@ Return `FAIL` if any condition is true:
 - a core claim is `missing`, or a `weak` core claim is written as a strong conclusion in the final paper
 - generated core figures are unused without a documented paper/appendix reason
 - `nature-figure` was used but a core inserted figure lacks selected-backend provenance, source-data traceability, required vector export, or a resolved figure contract
+- Nature is available and a core paper data figure is PNG-only, generated with `Pillow`, or missing SVG/PDF export without a documented raster-only exception
+- `scripts/audit_v2_run.py` reports any `BLOCKER` or `HIGH` issue
+- a formal contest paper with four or more subproblems is shorter than 8 pages without a documented short-report mode or appendix evidence
+- a formal contest paper with four or more subproblems is 5 pages or fewer and lacks sufficient formulas, result tables/figures, or validation evidence
 
 Return `CONDITIONAL_PASS` only when all hard gates pass and remaining issues are limited to `MEDIUM`/`LOW` formatting, wording, appendix coverage, or environment issues that do not affect mathematical correctness, evidence traceability, model honesty, or figure readability.
 
@@ -92,6 +106,7 @@ Return `PASS` only when:
 ## Claim Trace Results
 ## Method Implementation Results
 ## Figure Audit Results
+## V2.3 Automated Audit Results
 ## Score And Revision Gate Results
 ## Reproducibility Results
 ## Paper Build Results

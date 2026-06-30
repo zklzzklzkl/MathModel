@@ -21,4 +21,9 @@ description: "共享规范知识库。包含数学建模竞赛规范、V2 流程
 - `agent_review_protocol.md`：模型、论文、图表和最终验收的统一评审格式。
 - `agent_profiles/`：可复制给 Codex 子代理或自定义 agent 的数学建模角色画像。
 
+V2.3 helper scripts:
+
+- `scripts/resolve_nature_figure.py`: locate and validate supported `nature-figure` layouts.
+- `scripts/audit_v2_run.py`: read-only final audit for PNG-only figures, Pillow data figures, missing vector bundles, incomplete figure audit columns, short-paper false PASS, and unresolved HIGH/BLOCKER actions.
+
 请勿手动触发此 skill。

@@ -21,11 +21,12 @@ When `nature-figure` integration is enabled, core paper figures should also reco
 - core conclusion
 - figure archetype
 - selected backend
+- selected-backend script
 - panel map
 - evidence hierarchy
 - statistics needed
 - source data needed
-- export formats
+- export bundle with SVG/PDF and a raster preview when feasible
 - reviewer risks
 
 ## Good Figure Types
@@ -69,6 +70,8 @@ Reject:
 - debug-only charts inserted into final paper
 - low-resolution raster output when vector output is feasible
 - cross-rendered publication figures that were drawn, previewed, or exported with a backend different from the selected `nature-figure` backend
+- core data figures generated with `Pillow` when `nature-figure` is available; Pillow is acceptable only for non-data diagrams or raster annotations
+- Nature-enabled core figures with no SVG/PDF export bundle, no source-data trace, no selected-backend script, or no figure contract
 
 ## Figure Audit Status
 
@@ -80,9 +83,11 @@ Use `reports/FIGURE_AUDIT.md` to classify every paper-intended figure:
 
 Any inserted `FAIL` figure must create a `HIGH` or `BLOCKER` revision action.
 
-When `nature-figure` is enabled, `reports/FIGURE_AUDIT.md` may use this extended table:
+When `nature-figure` is enabled, `reports/FIGURE_AUDIT.md` must use this extended table:
 
 ```markdown
-| Figure | Inserted | Opens | Readable Text | Editable Text | Backend Match | Source Data | Stats/Legend | Labels/Units | Export Bundle | Caption Supports Claim | Status | Required Fix |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Figure | Inserted | Opens | Readable Text | Labels/Units | Backend Match | Vector Export | Source Data Trace | Stats/Legend | Caption Supports Claim | Status | Required Fix |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 ```
+
+For V2.3 final verification, run or replicate `scripts/audit_v2_run.py --workspace <contest-workspace>`. Any `HIGH` or `BLOCKER` issue from that audit must become a revision action before the run can be marked complete.

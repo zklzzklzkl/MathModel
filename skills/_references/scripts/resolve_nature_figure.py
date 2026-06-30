@@ -12,6 +12,15 @@ import os
 from pathlib import Path
 
 
+REQUIRED_SKILL_FILES = [
+    "SKILL.md",
+    "manifest.yaml",
+    "static/core/contract.md",
+    "static/core/stance.md",
+    "static/fragments/backend/python.md",
+    "static/fragments/backend/r.md",
+]
+
 REQUIRED_RELATIVE_FILES = [
     "skills/nature-figure/SKILL.md",
     "skills/nature-figure/manifest.yaml",
@@ -34,14 +43,39 @@ def candidate_roots(workspace: Path) -> list[Path]:
             workspace.parent / "nature-skills",
             Path.home() / "Downloads" / "Compressed" / "nature-skills-main" / "nature-skills-main",
             Path.home() / ".codex" / "skills",
+            Path.home() / ".codex" / "skills" / "nature-figure",
         ]
     )
     return roots
 
 
-def validate_root(root: Path) -> tuple[bool, list[str]]:
-    missing = [rel for rel in REQUIRED_RELATIVE_FILES if not (root / rel).is_file()]
-    return not missing, missing
+def validate_root(root: Path) -> tuple[bool, str | None, Path | None, list[str]]:
+    """Validate supported nature-figure layouts.
+
+    Supported roots:
+    - nature-skills repository root containing skills/nature-figure/
+    - Codex skills root containing nature-figure/
+    - direct nature-figure skill directory
+    """
+    layouts = [
+        ("nature-skills-repo", root / "skills" / "nature-figure", REQUIRED_SKILL_FILES),
+        ("codex-skills-root", root / "nature-figure", REQUIRED_SKILL_FILES),
+        ("direct-skill", root, REQUIRED_SKILL_FILES),
+    ]
+    best_layout: str | None = None
+    best_skill_dir: Path | None = None
+    best_missing: list[str] | None = None
+
+    for layout, skill_dir, required in layouts:
+        missing = [rel for rel in required if not (skill_dir / rel).is_file()]
+        if not missing:
+            return True, layout, skill_dir, []
+        if best_missing is None or len(missing) < len(best_missing):
+            best_layout = layout
+            best_skill_dir = skill_dir
+            best_missing = missing
+
+    return False, best_layout, best_skill_dir, best_missing or REQUIRED_SKILL_FILES[:]
 
 
 def main() -> int:
@@ -55,14 +89,16 @@ def main() -> int:
     for root in candidate_roots(workspace):
         resolved = root.expanduser().resolve()
         checked.append(str(resolved))
-        ok, missing = validate_root(resolved)
+        ok, layout, skill_dir, missing = validate_root(resolved)
         if ok:
             print(
                 json.dumps(
                     {
                         "available": True,
                         "root": str(resolved),
-                        "nature_figure": str(resolved / "skills" / "nature-figure"),
+                        "layout": layout,
+                        "nature_figure": str(skill_dir),
+                        "required_files_missing": [],
                         "checked": checked,
                     },
                     ensure_ascii=False,
@@ -76,9 +112,11 @@ def main() -> int:
             {
                 "available": False,
                 "root": None,
+                "layout": None,
                 "nature_figure": None,
                 "checked": checked,
-                "required_files": REQUIRED_RELATIVE_FILES,
+                "required_files": REQUIRED_SKILL_FILES,
+                "required_files_missing": REQUIRED_SKILL_FILES,
             },
             ensure_ascii=False,
             indent=2,

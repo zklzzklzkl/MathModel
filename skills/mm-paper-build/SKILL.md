@@ -38,6 +38,7 @@ Require:
 ## Hard Rules
 
 - Do not produce a text-only paper.
+- For formal contest submission, default to LaTeX or Typst. ReportLab/Markdown PDF is a preview artifact unless the user explicitly requested short-report mode.
 - Do not invent numbers, tables, or figure conclusions.
 - Insert figures near the section where they support reasoning.
 - Every inserted figure must have a caption and surrounding explanation.
@@ -47,17 +48,19 @@ Require:
 - For non-trivial contests, include one non-data figure such as a technical route, modeling framework, mechanism diagram, or algorithm flowchart unless `PAPER_BUILD_REPORT.md` gives a contest-specific exception.
 - If an approved high-score method is downgraded during implementation, update the paper wording and `METHOD_IMPLEMENTATION_MATRIX.md`; do not leave the old method promise implicit.
 - Generated figures should use CJK-compatible fonts; matplotlib default DejaVu Sans can produce square boxes for Chinese labels. Check labels before inserting.
+- For a formal contest with four or more subproblems, a paper under 8 pages is a `HIGH` compression risk unless appendices and dense evidence justify it; 5 pages or fewer with limited formulas/figures is a `BLOCKER` unless the user explicitly requested short-report mode.
+- Each major subproblem must include method definition, formula or algorithm explanation, result table or figure, validation/sensitivity when applicable, and limitations. Missing any element prevents a high score for paper structure, rigor, or validation.
 
 ## Writing Flow
 
-1. Confirm engine from `plan.md`; default to LaTeX if missing.
+1. Confirm engine from `plan.md`; default to LaTeX if missing. Use Typst when the plan or contest template prefers Typst.
 2. Choose the closest existing template from legacy `5writing/templates/` when available.
 3. Build a section outline from the contest type and number of subproblems.
 4. Build `reports/METHOD_IMPLEMENTATION_MATRIX.md` by comparing `MODELING_DECISION.md`, code scripts, result files, `RESULTS_MANIFEST.json`, and planned paper claims.
 4a. Optional ARS argument-chain check: if ARS is available, load `<ARS_ROOT>/academic-paper/agents/argument_builder_agent.md` as a role prompt. Use only for Claim-Evidence-Reasoning review. For each planned core claim, verify the chain `claim -> evidence (manifest/table/figure/model decision) -> reasoning`. If reasoning is missing or implicit, add an explicit reasoning sentence or downgrade the claim wording before drafting.
 5. Draft each problem section only after its result entries exist.
 6. Insert figures and tables according to `reports/FIGURE_PLAN.md`. Insert every core figure needed for the argument; list any unused paper-intended figure with a reason in `PAPER_BUILD_REPORT.md`.
-6a. When `nature-figure` is enabled, prefer figures with a completed figure contract, selected-backend script, traceable source data, SVG/PDF export, and a conclusion-forward caption. Downgrade or omit any figure that lacks these elements unless the omission is justified in `PAPER_BUILD_REPORT.md`.
+6a. When `nature-figure` is enabled, use only figures with a completed figure contract, selected-backend script, traceable source data, SVG/PDF export, and a conclusion-forward caption for core paper claims. A PNG-only core data figure or `Pillow` data figure must create a `HIGH`/`BLOCKER` revision item instead of being silently inserted.
 7. Add a technical route or modeling framework figure for non-trivial contests.
 8. Write abstract last, using final methods and numeric results.
 8a. Optional ARS bilingual abstract: if ARS is available and the contest template allows an English abstract, the paper language is English, the contest is MCM/ICM-style, or the user explicitly requested bilingual output, load `<ARS_ROOT>/academic-paper/agents/abstract_bilingual_agent.md` as a role prompt. Generate a non-mechanical bilingual abstract using Background, Purpose, Method, Findings, and Implications. For Chinese national-style templates, do not add an English abstract by default.
@@ -114,3 +117,11 @@ The paper must contain:
 - validation, sensitivity, or robustness analysis
 - model strengths, weaknesses, and improvement discussion
 - for core paper-intended figures, a traceable contract linking conclusion, panel evidence, source data, script, caption, and claim
+
+For formal multi-question contest papers, `reports/PAPER_BUILD_REPORT.md` must also state:
+
+- final engine: LaTeX / Typst / preview-only
+- page count or expected page count
+- number of inserted figures and tables
+- whether any core figure is PNG-only or lacks SVG/PDF export
+- whether the output is formal submission or short-report mode

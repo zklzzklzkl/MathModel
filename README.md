@@ -1,8 +1,8 @@
-# MathModelAgent V2.1
+# MathModelAgent V2.3
 
 数学建模竞赛全流程自动化 Skills —— 从赛题分析、建模设计、代码实验、图表生成到论文撰写与最终验收。
 
-**Version**: 2.1  
+**Version**: 2.3
 **Architecture**: Skill + Codex Subagent Hybrid Workflow  
 **Skills**: 17 (7 V1 legacy + 8 V2 + 2 tools)
 
@@ -246,7 +246,7 @@ The [Academic Research Suite (ARS)](https://github.com/Imbad0202/academic-resear
 
 [Yuan1z0825/nature-skills](https://github.com/Yuan1z0825/nature-skills) can enhance V2 scientific plotting through `nature-figure`. Set `NATURE_SKILLS_ROOT` to a full `nature-skills` checkout, or keep the downloaded archive at `Downloads/Compressed/nature-skills-main/nature-skills-main`.
 
-When enabled, MathModelAgent still owns the workflow. `nature-figure` only strengthens figure contracts, Python/R backend discipline, SVG/PDF/TIFF export quality, source-data traceability, and `FIGURE_AUDIT.md` checks. It writes findings back into the existing V2 artifacts instead of creating a separate workflow.
+When enabled, MathModelAgent still owns the workflow. In V2.3, `nature-figure` is a hard quality gate for core paper figures: figure contracts, Python/R backend discipline, SVG/PDF export bundles, source-data traceability, and extended `FIGURE_AUDIT.md` checks must all be recorded before final `PASS`. PNG-only or Pillow-generated data figures are treated as revision issues, not publication-ready evidence.
 
 Use the resolver to check availability:
 
@@ -255,6 +255,12 @@ python skills/_references/scripts/resolve_nature_figure.py --workspace .
 ```
 
 See `skills/_references/nature_figure_integration_guide.md` and `examples/nature-figure-v2/`.
+
+Run the V2.3 read-only audit on a contest workspace:
+
+```bash
+python skills/_references/scripts/audit_v2_run.py --workspace <contest-workspace>
+```
 
 ---
 

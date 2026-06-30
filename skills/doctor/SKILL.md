@@ -38,6 +38,7 @@ allowed-tools: Bash(*), Read, Write
 | 项 | 用途 | 检测命令 |
 | --- | --- | --- |
 | `nature-figure` | 可选接入 `Yuan1z0825/nature-skills`，增强论文级科研绘图 | `python skills/_references/scripts/resolve_nature_figure.py --workspace <workspace>` |
+| `audit_v2_run.py` | V2.3 只读审计 PNG-only、Pillow 数据图、缺矢量包、短论文误 PASS 等问题 | `python skills/_references/scripts/audit_v2_run.py --workspace <workspace>` |
 | `svglite` / `ragg` / `patchwork` | R 后端投稿级 SVG/PDF/TIFF 导出 | `Rscript -e "library(svglite); library(ragg); library(patchwork)"` |
 
 ## 工作流程

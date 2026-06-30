@@ -58,10 +58,12 @@ For each step:
 4. Save outputs and intermediate data.
 5. Generate at least one useful table or figure unless the modeling decision explicitly says not applicable.
 6. For paper-intended figures, resolve the plotting backend from `plan.md` or the implementation language. If no backend is clear and `nature-figure` is needed for a publication figure, stop before rendering and ask `Python or R?`.
-7. When `nature-figure` is enabled, load its manifest, core contract, stance, and exactly one backend fragment through `../_references/nature_figure_integration_guide.md`; generate figures only with the selected backend.
-8. Append a manifest entry for every metric, table, and figure.
-9. Write a short result narrative in `reports/RESULTS_REPORT.md`.
-10. If using subagents, ask `visualization-reviewer` to check figure usefulness and record the review.
+7. When `nature-figure` is available, run or replicate `../_references/scripts/resolve_nature_figure.py --workspace <contest-workspace>` before drawing core paper figures. Record the resolver result in `reports/AGENT_RUNS.md`.
+8. When `nature-figure` is enabled, load its manifest, core contract, stance, and exactly one backend fragment through `../_references/nature_figure_integration_guide.md`; generate data figures only with the selected Python scientific plotting backend or R/ggplot2 backend.
+9. Do not use `Pillow` as the backend for core data figures such as heatmaps, bar charts, scatter plots, matrices, distributions, model diagnostics, or quantitative panels. `Pillow` is allowed only for non-data process diagrams or raster annotations.
+10. Append a manifest entry for every metric, table, and figure.
+11. Write a short result narrative in `reports/RESULTS_REPORT.md`.
+12. If using subagents, ask `visualization-reviewer` to check figure usefulness and record the review.
 
 For complex data cleaning, modeling code, or repeated figure generation, use `experiment-coder` or the installed `mathmodel-experiment-coder` custom agent. Its write scope is limited to `code/`, `code/outputs/`, `figures/`, `results/`, `reports/EXPERIMENT_LOG.md`, `reports/RESULTS_REPORT.md`, and `reports/FIGURE_PLAN.md`.
 
@@ -83,6 +85,25 @@ Record both native and simulated subagent runs in `reports/AGENT_RUNS.md` using 
 Metric entries require `id`, `problem`, `value`, `unit`, `source_file`, `script`, and `description`.
 
 Figure entries require `id`, `path`, `problem`, `source_data`, `script`, `intended_section`, `caption`, and `supports_claim`.
+
+When `nature-figure` is enabled for a core paper figure, figure entries also require `backend`, `contract_id`, `export_bundle`, and `audit_status`:
+
+```json
+{
+  "id": "f1",
+  "path": "figures/f1.svg",
+  "backend": "Python",
+  "contract_id": "F1",
+  "export_bundle": {
+    "svg": "figures/f1.svg",
+    "pdf": "figures/f1.pdf",
+    "preview": "figures/f1.png"
+  },
+  "audit_status": "pending"
+}
+```
+
+Keep `path` for backward compatibility; use `export_bundle` to make SVG/PDF/preview traceable.
 
 Table entries require `id`, `path`, `problem`, `source_data`, `script`, `intended_section`, and `caption`.
 
@@ -114,6 +135,16 @@ When `nature-figure` is enabled, also require:
 - source data traceable from `RESULTS_MANIFEST.json`
 - statistics or validation notes sufficient for the caption and paper text
 - no cross-rendering with the non-selected backend
+- no `Pillow` backend for core data figures
+
+Write `reports/FIGURE_AUDIT.md` with the V2.3 extended columns whenever Nature rules are enabled:
+
+```markdown
+| Figure | Inserted | Opens | Readable Text | Labels/Units | Backend Match | Vector Export | Source Data Trace | Stats/Legend | Caption Supports Claim | Status | Required Fix |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+```
+
+If any core paper figure is PNG-only, lacks SVG/PDF export, lacks source data, lacks a selected-backend script, or uses `Pillow` for a data figure, create a `HIGH` or `BLOCKER` item in `reports/REVISION_ACTIONS.md` before leaving this stage.
 
 For complex or high-value figures, optionally load `<ARS_ROOT>/academic-paper/agents/visualization_agent.md` as a role prompt. Use only for figure critique and improvement suggestions. Summarize failures into `reports/FIGURE_AUDIT.md`; convert actionable `FAIL` items into `reports/REVISION_ACTIONS.md`.
 

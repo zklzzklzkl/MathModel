@@ -74,7 +74,7 @@ For any dimension below 4, create an action item in `reports/REVISION_ACTIONS.md
 
 Conclusion rules:
 
-- `PASS`: every dimension is 4 or 5, no `BLOCKER`/`HIGH` actions remain, figure audit has no failed inserted figures, and method implementation matrix has no `not_implemented` core rows.
+- `PASS`: every dimension is 4 or 5, no `BLOCKER`/`HIGH` actions remain, figure audit has no failed inserted figures, Nature/V2.3 audit has no `HIGH`/`BLOCKER` issue, and method implementation matrix has no `not_implemented` core rows.
 - `CONDITIONAL_PASS`: no fatal correctness issue, but at least one `MEDIUM` or justified score weakness remains.
 - `FAIL`: any hard failure, unimplemented approved core method, missing core evidence, or judge-facing defect that would likely cause major score loss.
 
@@ -107,8 +107,8 @@ Write or update `reports/FIGURE_AUDIT.md`:
 ```markdown
 # Figure Audit
 
-| Figure | Inserted | Opens | Readable Text | Labels/Units | Caption Supports Claim | Problem Section | Status | Required Fix |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Figure | Inserted | Opens | Readable Text | Labels/Units | Backend Match | Vector Export | Source Data Trace | Stats/Legend | Caption Supports Claim | Status | Required Fix |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 ```
 
 Rules:
@@ -117,6 +117,17 @@ Rules:
 - Core generated figures that are not inserted must have a justification or appendix plan.
 - A paper with no technical route, modeling framework, mechanism, or algorithm flow figure in a non-trivial contest must receive a `HIGH` action.
 - When `nature-figure` is enabled, also audit figure contract presence, backend match, editable SVG/PDF text where applicable, source-data traceability, statistics/legend sufficiency, and export bundle completeness. Missing core source data, missing selected-backend script, or missing vector export is at least `HIGH` unless documented as not applicable.
+- Core data figures generated with `Pillow` are at least `HIGH` when Nature is available. `Pillow` is acceptable only for non-data diagrams or raster annotations.
+- Core figures that are PNG-only when SVG/PDF export is feasible are at least `HIGH`.
+- `reports/FIGURE_AUDIT.md` missing the V2.3 extended columns is itself a `HIGH` issue when Nature rules are enabled.
+
+## Paper Density Review
+
+For formal contests with four or more subproblems:
+
+- Fewer than 8 final PDF pages is a `HIGH` risk unless `PAPER_BUILD_REPORT.md` documents short-report mode or unusually dense appendix coverage.
+- Five pages or fewer with limited formulas, tables, or figure evidence is a `BLOCKER` for full `PASS`.
+- Each major subproblem must include method definition, formula/algorithm explanation, result table or figure, validation/sensitivity where applicable, and limitation wording. Missing any element should reduce the relevant score dimension below 4 and create a revision action.
 
 ## Method Implementation Review
 

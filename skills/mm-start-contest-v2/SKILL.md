@@ -26,6 +26,8 @@ Do not let one long-context chat hold the whole contest state. Persist state to 
 
 Optional ARS review must be summarized into existing V2 artifacts (`MODEL_REVIEW_AI.md`, `FIGURE_AUDIT.md`, `CLAIM_TRACE.md`, `PAPER_SCORECARD.md`, `REVISION_ACTIONS.md`, `VERIFY_REPORT.md`). Do not create ad hoc long ARS transcripts.
 
+V2.3 Nature audit is a hard quality gate when Nature is available for core paper figures. The workflow may continue without Nature when unavailable, but it may not claim Nature-quality figures unless the resolver result, backend, source data, SVG/PDF export bundle, and figure audit are recorded.
+
 ## Required Setup
 
 Create or update these files in the contest workspace:
@@ -90,6 +92,8 @@ subagent_policy:
 figure_policy:
 - 科研绘图后端：<Python / R / 待确认，默认先记录为待确认>
 - nature-figure：<enabled / unavailable / not requested>
+- formal_paper_mode：<true，默认正式竞赛论文>
+- short_report_mode：<false，只有用户明确要求短报告时才改为 true>
 ```
 
 ## Todo Template
@@ -116,3 +120,7 @@ Update `todo.md` and `WORKFLOW_STATE.md` at every phase boundary.
 The workflow is not complete if the final paper is text-only, lacks traceable figures, lacks model validation, lacks sensitivity or robustness analysis, cannot map conclusions back to code/results, has unresolved `BLOCKER` or `HIGH` review actions, has failed inserted figures, or claims a stronger model than the code actually implemented.
 
 When `nature-figure` is enabled, the workflow is also incomplete if core paper figures lack a figure contract, selected-backend script, source data, vector export, or conclusion-forward caption unless a contest-specific exception is documented.
+
+For formal contests with four or more subproblems, the workflow is incomplete if the paper is shorter than 8 pages without documented short-report mode or appendix evidence. A 5-page-or-shorter paper with limited formulas, tables, figures, or validation evidence is a hard failure.
+
+Before final completion, run or replicate `../_references/scripts/audit_v2_run.py --workspace <contest-workspace>`. Any `BLOCKER` or `HIGH` result must be routed through `mm-revision-integrator`.
