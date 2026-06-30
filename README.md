@@ -242,6 +242,22 @@ The [Academic Research Suite (ARS)](https://github.com/Imbad0202/academic-resear
 
 ---
 
+## Optional Nature Figure Integration
+
+[Yuan1z0825/nature-skills](https://github.com/Yuan1z0825/nature-skills) can enhance V2 scientific plotting through `nature-figure`. Set `NATURE_SKILLS_ROOT` to a full `nature-skills` checkout, or keep the downloaded archive at `Downloads/Compressed/nature-skills-main/nature-skills-main`.
+
+When enabled, MathModelAgent still owns the workflow. `nature-figure` only strengthens figure contracts, Python/R backend discipline, SVG/PDF/TIFF export quality, source-data traceability, and `FIGURE_AUDIT.md` checks. It writes findings back into the existing V2 artifacts instead of creating a separate workflow.
+
+Use the resolver to check availability:
+
+```bash
+python skills/_references/scripts/resolve_nature_figure.py --workspace .
+```
+
+See `skills/_references/nature_figure_integration_guide.md` and `examples/nature-figure-v2/`.
+
+---
+
 ## Installation
 
 ```bash

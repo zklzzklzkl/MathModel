@@ -14,6 +14,7 @@ Read:
 - `../_references/paper_benchmark_profile.md`
 - `../_references/agent_review_protocol.md`
 - `../_references/figure_quality_standard.md`
+- `../_references/nature_figure_integration_guide.md` when optional `nature-figure` scientific plotting integration is available
 - `../_references/ars_v2_integration_guide.md` when optional ARS editorial synthesis is available
 
 ## Inputs
@@ -115,6 +116,7 @@ Rules:
 - Inserted figures with garbled text, square-box labels, unreadable ticks, or broken paths are `FAIL` and create a `HIGH` or `BLOCKER` action.
 - Core generated figures that are not inserted must have a justification or appendix plan.
 - A paper with no technical route, modeling framework, mechanism, or algorithm flow figure in a non-trivial contest must receive a `HIGH` action.
+- When `nature-figure` is enabled, also audit figure contract presence, backend match, editable SVG/PDF text where applicable, source-data traceability, statistics/legend sufficiency, and export bundle completeness. Missing core source data, missing selected-backend script, or missing vector export is at least `HIGH` unless documented as not applicable.
 
 ## Method Implementation Review
 

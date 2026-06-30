@@ -16,6 +16,7 @@ description: "共享规范知识库。包含数学建模竞赛规范、V2 流程
 - `contest_score_rubric.md`：高分论文导向的评分维度和硬失败条件。
 - `paper_benchmark_profile.md`：弱论文与高分论文的差距画像和最低质量线。
 - `figure_quality_standard.md`：论文图表质量、元数据和硬失败标准。
+- `nature_figure_integration_guide.md`：可选接入 `Yuan1z0825/nature-skills` 的 `nature-figure`，增强科研绘图契约、Python/R 后端纪律、导出质量和图表审查。
 - `model_method_cards.md`：预测、评价、优化、统计推断、仿真等常见建模路线卡片。
 - `agent_review_protocol.md`：模型、论文、图表和最终验收的统一评审格式。
 - `agent_profiles/`：可复制给 Codex 子代理或自定义 agent 的数学建模角色画像。

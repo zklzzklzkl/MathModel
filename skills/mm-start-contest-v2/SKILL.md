@@ -15,6 +15,7 @@ Read these references before starting:
 - `../_references/v2_pipeline_contract.md`
 - `../_references/codex_subagent_protocol.md`
 - `../_references/contest_score_rubric.md`
+- `../_references/nature_figure_integration_guide.md` when optional `nature-figure` scientific plotting integration is available
 - `../_references/ars_v2_integration_guide.md` when optional ARS deep-review integration is available
 
 Read `../_references/paper_benchmark_profile.md` before writing or reviewing the paper.
@@ -85,6 +86,10 @@ subagent_policy:
 - review agents: read-only
 - experiment agents: write only task outputs
 - final verifier: read all and write verification report
+
+figure_policy:
+- 科研绘图后端：<Python / R / 待确认，默认先记录为待确认>
+- nature-figure：<enabled / unavailable / not requested>
 ```
 
 ## Todo Template
@@ -109,3 +114,5 @@ Update `todo.md` and `WORKFLOW_STATE.md` at every phase boundary.
 ## Completion Standard
 
 The workflow is not complete if the final paper is text-only, lacks traceable figures, lacks model validation, lacks sensitivity or robustness analysis, cannot map conclusions back to code/results, has unresolved `BLOCKER` or `HIGH` review actions, has failed inserted figures, or claims a stronger model than the code actually implemented.
+
+When `nature-figure` is enabled, the workflow is also incomplete if core paper figures lack a figure contract, selected-backend script, source data, vector export, or conclusion-forward caption unless a contest-specific exception is documented.

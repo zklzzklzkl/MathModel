@@ -14,6 +14,7 @@ Read:
 - `../_references/codex_subagent_protocol.md`
 - `../_references/model_method_cards.md`
 - `../_references/agent_review_protocol.md`
+- `../_references/nature_figure_integration_guide.md` when optional `nature-figure` scientific plotting integration is available
 - `../_references/ars_v2_integration_guide.md` when optional ARS methodology audit is available
 
 ## Inputs
@@ -35,6 +36,7 @@ Require `PROBLEM_BRIEF.md`, `DATA_AUDIT.md`, `WORKFLOW_STATE.md`, and `reports/I
 
 1. Generate at least two viable modeling routes for the whole problem set. Include one conservative baseline and one stronger high-score route when data allows.
 2. For each subproblem, specify objective, variables, assumptions, equations or algorithm, constraints, solver, validation method, expected figures, expected tables, and failure risks.
+2a. For each core expected figure, write a figure contract draft in `reports/FIGURE_PLAN.md`: core conclusion, figure archetype, backend if known, panel map, evidence hierarchy, source data needed, statistics needed, intended section, and supported claim. If `nature-figure` is available, follow `../_references/nature_figure_integration_guide.md`.
 3. Run independent AI review when possible:
    - `model-reviewer`: judge correctness, feasibility, data fit, and implementation clarity.
    - `devils-advocate`: identify weak assumptions, template models, missing validation, and likely judge objections.
@@ -56,6 +58,7 @@ Each route in `reports/MODEL_CANDIDATES.md` must include:
 - algorithm steps
 - validation and sensitivity plan
 - figure/table plan
+- figure contract draft for each core paper-intended figure
 - advantages
 - risks
 - reason to adopt or reject

@@ -13,6 +13,7 @@ Read:
 - `../_references/v2_pipeline_contract.md`
 - `../_references/contest_score_rubric.md`
 - `../_references/figure_quality_standard.md`
+- `../_references/nature_figure_integration_guide.md` when optional `nature-figure` scientific plotting integration was used
 - `../_references/agent_review_protocol.md`
 - `../_references/ars_v2_integration_guide.md` when optional ARS integrity checks are available
 
@@ -32,6 +33,7 @@ Check:
 - `results/RESULTS_MANIFEST.json` has metrics and figures
 - `reports/METHOD_IMPLEMENTATION_MATRIX.md` exists and has no unresolved `not_implemented` core method rows
 - `reports/FIGURE_AUDIT.md` exists and inserted paper figures have no `FAIL` status
+- if `nature-figure` was used, core paper figures have figure contracts, selected-backend scripts, traceable source data, vector exports when feasible, and conclusion-forward captions
 - every paper figure path resolves
 - LaTeX contains `\includegraphics` or Typst contains `#figure(` / `image(`
 - `reports/CLAIM_TRACE.md` has no missing core claims and no strongly worded weak core claims
@@ -64,6 +66,7 @@ Return `FAIL` if any condition is true:
 - `REVISION_ACTIONS.md` contains unresolved `BLOCKER` or `HIGH` items, or `REVISION_STATUS.md` is missing after such actions were created
 - a core claim is `missing`, or a `weak` core claim is written as a strong conclusion in the final paper
 - generated core figures are unused without a documented paper/appendix reason
+- `nature-figure` was used but a core inserted figure lacks selected-backend provenance, source-data traceability, required vector export, or a resolved figure contract
 
 Return `CONDITIONAL_PASS` only when all hard gates pass and remaining issues are limited to `MEDIUM`/`LOW` formatting, wording, appendix coverage, or environment issues that do not affect mathematical correctness, evidence traceability, model honesty, or figure readability.
 
