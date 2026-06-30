@@ -1,0 +1,43 @@
+{
+  "title": "MathModelAgent Skills",
+  "description": "数学建模竞赛全流程自动化 Skills：从赛题分析、建模、编码、绘图到论文撰写与验证。",
+  "sections": [
+    {
+      "title": "V2 工作流 Skills（高分论文对标 + Codex 子代理）",
+      "skills": [
+        "mm-start-contest-v2",
+        "mm-problem-intake",
+        "mm-model-strategy",
+        "mm-data-experiment",
+        "mm-paper-build",
+        "mm-contest-review",
+        "mm-final-verify"
+      ]
+    },
+    {
+      "title": "工作流 Skills（按顺序使用）",
+      "skills": [
+        "0problem-triage",
+        "1start-mathmodel",
+        "2analysis-modeling",
+        "3coding-visual",
+        "4drawio",
+        "5writing",
+        "6verity"
+      ]
+    },
+    {
+      "title": "工具 Skills",
+      "skills": [
+        "doctor",
+        "typst-author"
+      ]
+    },
+    {
+      "title": "内部依赖",
+      "skills": [
+        "_references"
+      ]
+    }
+  ]
+}

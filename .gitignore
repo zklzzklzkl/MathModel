@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# LaTeX / Typst build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
+*.bcf
+*.run.xml
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Obsidian workspace (keep vault config, ignore workspace state)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Example workspace outputs (keep source, ignore generated)
+examples/*/paper/*.aux
+examples/*/paper/*.log
+examples/*/paper/*.out
+examples/*/paper/*.toc
+examples/*/code/__pycache__/
+examples/*/results/
+examples/*/_monitor/
+
+# Temporary files
+*.tmp
+*.temp
+_monitor/
+
+# Example workspace generated outputs
+examples/*/code/outputs/
+examples/*/paper/*.pdf
+examples/*/results/

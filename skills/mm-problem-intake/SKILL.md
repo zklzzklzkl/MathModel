@@ -1,0 +1,65 @@
+---
+name: mm-problem-intake
+description: "数学建模竞赛 V2 题面与数据建档阶段。用于读取赛题、附件和资源，拆解子问题，审计数据风险，建立可恢复上下文，并为后续建模与代码阶段提供结构化输入。"
+allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetch
+---
+
+# Problem Intake
+
+## Load First
+
+Read `../_references/v2_pipeline_contract.md` and `../_references/codex_subagent_protocol.md`.
+
+## Required Outputs
+
+Create or update:
+
+- `PROBLEM_BRIEF.md`
+- `DATA_AUDIT.md`
+- `WORKFLOW_STATE.md`
+- `reports/AGENT_RUNS.md`
+- `reports/INTAKE_GATE.md`
+
+## Procedure
+
+1. Inventory all provided problem statements, PDFs, DOCX files, spreadsheets, CSV files, images, and downloaded resources.
+2. Extract the exact contest title, background, top-level questions, attachment descriptions, submission requirements, and known constraints.
+3. Treat only explicitly numbered top-level questions as `ques1`, `ques2`, etc. Do not inflate small details into fake subproblems.
+4. Audit each data file for rows, columns, field meaning, units, missing values, abnormal values, duplicate records, encodings, and whether it can support each subproblem.
+5. Record ambiguities and risks in `WORKFLOW_STATE.md`; mark any unreadable or semantically unclear data as `HIGH` risk.
+6. If using Codex subagents, run `problem-analyst` and `data-auditor` independently, then summarize their outputs into `reports/AGENT_RUNS.md`.
+
+## PROBLEM_BRIEF.md Structure
+
+```markdown
+# Problem Brief
+
+## Contest And Task
+## Source Files
+## Top-Level Questions
+## Inputs And Outputs
+## Constraints And Evaluation
+## Dependencies Between Questions
+## Ambiguities And Risks
+## Next Modeling Needs
+```
+
+## DATA_AUDIT.md Structure
+
+```markdown
+# Data Audit
+
+## File Inventory
+## Table And Field Summary
+## Missing / Abnormal / Duplicate Data
+## Unit And Encoding Issues
+## Usable Variables By Question
+## Derived Variables Needed
+## Blocking Risks
+```
+
+## Gate
+
+Write `reports/INTAKE_GATE.md` with `PASS`, `CONDITIONAL_PASS`, or `FAIL`.
+
+Do not proceed to modeling on `FAIL`. On `CONDITIONAL_PASS`, list exactly what the model strategy stage must handle.

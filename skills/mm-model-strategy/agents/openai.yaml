@@ -1,0 +1,6 @@
+interface:
+  display_name: "Math Modeling Strategy"
+  short_description: "Design, review, and approve contest modeling routes before coding."
+  default_prompt: "Use $mm-model-strategy to create and review candidate modeling routes for a math modeling contest."
+policy:
+  allow_implicit_invocation: true

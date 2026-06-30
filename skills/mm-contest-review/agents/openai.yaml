@@ -1,0 +1,6 @@
+interface:
+  display_name: "Math Modeling Contest Review"
+  short_description: "Review a contest paper against high-score standards and produce revision actions."
+  default_prompt: "Use $mm-contest-review to score a math modeling paper and identify revisions before final verification."
+policy:
+  allow_implicit_invocation: true

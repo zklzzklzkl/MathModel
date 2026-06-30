@@ -1,0 +1,6 @@
+interface:
+  display_name: "Math Modeling Paper Build"
+  short_description: "Build the final contest paper from traceable results and figures."
+  default_prompt: "Use $mm-paper-build to write a math modeling paper with figures, tables, and traced claims."
+policy:
+  allow_implicit_invocation: true

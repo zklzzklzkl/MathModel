@@ -1,0 +1,6 @@
+interface:
+  display_name: "Math Modeling Intake"
+  short_description: "Build a durable problem brief and data audit before modeling begins."
+  default_prompt: "Use $mm-problem-intake to inspect the contest problem, attachments, and data before modeling."
+policy:
+  allow_implicit_invocation: true
