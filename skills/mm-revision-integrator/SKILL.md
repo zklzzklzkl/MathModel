@@ -13,6 +13,7 @@ Read:
 - `../_references/v2_pipeline_contract.md`
 - `../_references/contest_score_rubric.md`
 - `../_references/figure_quality_standard.md`
+- `../_references/nature_figure_integration_guide.md` when optional `nature-figure` figure actions exist
 - `../_references/agent_review_protocol.md`
 - `../_references/ars_v2_integration_guide.md` when ARS-origin review findings exist
 
@@ -45,6 +46,7 @@ Require:
 4. If a promised method was not implemented, either implement it or revise `MODELING_DECISION.md`, `METHOD_IMPLEMENTATION_MATRIX.md`, and the paper wording so the route is honest.
 5. If a core claim is weak, either strengthen evidence or rewrite the paper claim as exploratory, limited, or conditional.
 6. If inserted figures fail visual audit, regenerate or replace them before final verification.
+6a. For `nature-figure`-origin or publication-figure actions, regenerate through the selected backend only, update SVG/PDF/preview exports, refresh source-data references in `RESULTS_MANIFEST.json`, and update the related figure contract in `FIGURE_PLAN.md`.
 7. For ARS-origin findings, treat ARS as reviewer evidence and priority guidance only. Do not let ARS directly override V2 artifacts; apply fixes through the owning V2 stage and record the result in `REVISION_STATUS.md`.
 8. Update `REVISION_STATUS.md` with one row per action item.
 

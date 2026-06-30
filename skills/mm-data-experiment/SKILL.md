@@ -13,6 +13,7 @@ Read:
 - `../_references/v2_pipeline_contract.md`
 - `../_references/codex_subagent_protocol.md`
 - `../_references/figure_quality_standard.md`
+- `../_references/nature_figure_integration_guide.md` when optional `nature-figure` scientific plotting integration is available
 - `../_references/ars_v2_integration_guide.md` when optional ARS visualization audit is available
 
 ## Inputs
@@ -56,9 +57,11 @@ For each step:
 3. Execute on real data.
 4. Save outputs and intermediate data.
 5. Generate at least one useful table or figure unless the modeling decision explicitly says not applicable.
-6. Append a manifest entry for every metric, table, and figure.
-7. Write a short result narrative in `reports/RESULTS_REPORT.md`.
-8. If using subagents, ask `visualization-reviewer` to check figure usefulness and record the review.
+6. For paper-intended figures, resolve the plotting backend from `plan.md` or the implementation language. If no backend is clear and `nature-figure` is needed for a publication figure, stop before rendering and ask `Python or R?`.
+7. When `nature-figure` is enabled, load its manifest, core contract, stance, and exactly one backend fragment through `../_references/nature_figure_integration_guide.md`; generate figures only with the selected backend.
+8. Append a manifest entry for every metric, table, and figure.
+9. Write a short result narrative in `reports/RESULTS_REPORT.md`.
+10. If using subagents, ask `visualization-reviewer` to check figure usefulness and record the review.
 
 For complex data cleaning, modeling code, or repeated figure generation, use `experiment-coder` or the installed `mathmodel-experiment-coder` custom agent. Its write scope is limited to `code/`, `code/outputs/`, `figures/`, `results/`, `reports/EXPERIMENT_LOG.md`, `reports/RESULTS_REPORT.md`, and `reports/FIGURE_PLAN.md`.
 
@@ -102,6 +105,15 @@ Before accepting a generated figure as paper-ready, check against `../_reference
 - axes have units or meaningful labels
 - colors remain distinguishable in grayscale print
 - captions state the conclusion, not only the chart type
+
+When `nature-figure` is enabled, also require:
+
+- a figure contract in `reports/FIGURE_PLAN.md`
+- selected backend recorded as Python or R
+- generated SVG and PDF for vector plots, plus TIFF or PNG preview when useful
+- source data traceable from `RESULTS_MANIFEST.json`
+- statistics or validation notes sufficient for the caption and paper text
+- no cross-rendering with the non-selected backend
 
 For complex or high-value figures, optionally load `<ARS_ROOT>/academic-paper/agents/visualization_agent.md` as a role prompt. Use only for figure critique and improvement suggestions. Summarize failures into `reports/FIGURE_AUDIT.md`; convert actionable `FAIL` items into `reports/REVISION_ACTIONS.md`.
 

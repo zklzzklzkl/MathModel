@@ -16,6 +16,18 @@ Every paper-intended figure must have:
 
 Record this in `reports/FIGURE_PLAN.md` and `results/RESULTS_MANIFEST.json`.
 
+When `nature-figure` integration is enabled, core paper figures should also record:
+
+- core conclusion
+- figure archetype
+- selected backend
+- panel map
+- evidence hierarchy
+- statistics needed
+- source data needed
+- export formats
+- reviewer risks
+
 ## Good Figure Types
 
 Use figures that reveal model evidence:
@@ -43,6 +55,7 @@ Before accepting a figure:
 - figure file opens correctly
 - CJK labels render as real text, not square boxes or mojibake
 - inserted paper figures remain readable after PDF/Typst/LaTeX compilation
+- if `nature-figure` is enabled, selected-backend provenance, editable vector text where feasible, source-data traceability, and export bundle completeness are documented
 
 ## Hard Failures
 
@@ -55,6 +68,7 @@ Reject:
 - figures with no connection to a paper claim
 - debug-only charts inserted into final paper
 - low-resolution raster output when vector output is feasible
+- cross-rendered publication figures that were drawn, previewed, or exported with a backend different from the selected `nature-figure` backend
 
 ## Figure Audit Status
 
@@ -65,3 +79,10 @@ Use `reports/FIGURE_AUDIT.md` to classify every paper-intended figure:
 - `FAIL`: broken, unreadable, garbled, not connected to a claim, or an inserted figure with visible text/rendering defects
 
 Any inserted `FAIL` figure must create a `HIGH` or `BLOCKER` revision action.
+
+When `nature-figure` is enabled, `reports/FIGURE_AUDIT.md` may use this extended table:
+
+```markdown
+| Figure | Inserted | Opens | Readable Text | Editable Text | Backend Match | Source Data | Stats/Legend | Labels/Units | Export Bundle | Caption Supports Claim | Status | Required Fix |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+```

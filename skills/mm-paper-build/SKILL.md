@@ -13,6 +13,7 @@ Read:
 - `../_references/v2_pipeline_contract.md`
 - `../_references/paper_benchmark_profile.md`
 - `../_references/figure_quality_standard.md`
+- `../_references/nature_figure_integration_guide.md` when optional `nature-figure` scientific plotting integration is available
 - `../_references/ars_v2_integration_guide.md` when optional ARS writing audit is available
 
 ## Inputs
@@ -56,6 +57,7 @@ Require:
 4a. Optional ARS argument-chain check: if ARS is available, load `<ARS_ROOT>/academic-paper/agents/argument_builder_agent.md` as a role prompt. Use only for Claim-Evidence-Reasoning review. For each planned core claim, verify the chain `claim -> evidence (manifest/table/figure/model decision) -> reasoning`. If reasoning is missing or implicit, add an explicit reasoning sentence or downgrade the claim wording before drafting.
 5. Draft each problem section only after its result entries exist.
 6. Insert figures and tables according to `reports/FIGURE_PLAN.md`. Insert every core figure needed for the argument; list any unused paper-intended figure with a reason in `PAPER_BUILD_REPORT.md`.
+6a. When `nature-figure` is enabled, prefer figures with a completed figure contract, selected-backend script, traceable source data, SVG/PDF export, and a conclusion-forward caption. Downgrade or omit any figure that lacks these elements unless the omission is justified in `PAPER_BUILD_REPORT.md`.
 7. Add a technical route or modeling framework figure for non-trivial contests.
 8. Write abstract last, using final methods and numeric results.
 8a. Optional ARS bilingual abstract: if ARS is available and the contest template allows an English abstract, the paper language is English, the contest is MCM/ICM-style, or the user explicitly requested bilingual output, load `<ARS_ROOT>/academic-paper/agents/abstract_bilingual_agent.md` as a role prompt. Generate a non-mechanical bilingual abstract using Background, Purpose, Method, Findings, and Implications. For Chinese national-style templates, do not add an English abstract by default.
@@ -111,3 +113,4 @@ The paper must contain:
 - at least one non-data method/process figure for non-trivial contests
 - validation, sensitivity, or robustness analysis
 - model strengths, weaknesses, and improvement discussion
+- for core paper-intended figures, a traceable contract linking conclusion, panel evidence, source data, script, caption, and claim
