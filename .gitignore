@@ -34,10 +34,6 @@ $RECYCLE.BIN/
 *.swo
 *~
 
-# Obsidian workspace (keep vault config, ignore workspace state)
-.obsidian/workspace.json
-.obsidian/workspace-mobile.json
-
 # Example workspace outputs (keep source, ignore generated)
 examples/*/paper/*.aux
 examples/*/paper/*.log
