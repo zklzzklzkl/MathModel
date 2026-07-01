@@ -26,7 +26,7 @@ The workspace is the shared memory. Chat history must NOT hold contest state. Sk
 
 ### V2 Hybrid Workflow
 
-Eight phases orchestrated by `mm-start-contest-v2`:
+Seven stages, numbered Phase 0 through Phase 6, are orchestrated by `mm-start-contest-v2`:
 
 ```
 Phase 0: mm-problem-intake     → problem-analyst + data-auditor (read-only subagents)
@@ -76,7 +76,7 @@ Key convention: Subagents do not own the workflow — the main skill integrates 
 ## Optional Integrations
 
 - **ARS** (Academic Research Suite): Deeper audits via `methodology_reviewer_agent`, `editorial_synthesizer_agent`, etc. Set `ARS_ROOT` env var. Advisory only — never a hard dependency.
-- **Nature Figure**: Scientific plotting enhancement via `Yuan1z0825/nature-skills`. Set `NATURE_SKILLS_ROOT` env var. Check availability with `python skills/_references/scripts/resolve_nature_figure.py --workspace .`
+- **Nature Figure V2.3**: Scientific plotting quality gate via `Yuan1z0825/nature-skills`. Set `NATURE_SKILLS_ROOT` env var or use the downloaded checkout. Check availability with `python skills/_references/scripts/resolve_nature_figure.py --workspace .`; audit a run with `python skills/_references/scripts/audit_v2_run.py --workspace <contest-workspace>`.
 
 ## Templates
 

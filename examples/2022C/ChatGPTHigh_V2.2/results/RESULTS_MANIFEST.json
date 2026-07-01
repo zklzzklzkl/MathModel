@@ -1,0 +1,238 @@
+{
+  "metrics": [
+    {
+      "id": "m_valid_known_samples",
+      "problem": "data",
+      "value": 67,
+      "unit": "samples",
+      "source_file": "source/附件(1).xlsx",
+      "script": "code/analyze_glass.py",
+      "description": "表单2有效已分类采样点数量"
+    },
+    {
+      "id": "m_invalid_known_samples",
+      "problem": "data",
+      "value": 2,
+      "unit": "samples",
+      "source_file": "source/附件(1).xlsx",
+      "script": "code/analyze_glass.py",
+      "description": "表单2成分总和低于85或高于105的采样点数量"
+    },
+    {
+      "id": "m_valid_unknown_samples",
+      "problem": "data",
+      "value": 8,
+      "unit": "samples",
+      "source_file": "source/附件(1).xlsx",
+      "script": "code/analyze_glass.py",
+      "description": "表单3有效未知样本数量"
+    },
+    {
+      "id": "m_q2_loocv_accuracy",
+      "problem": "Q2",
+      "value": 0.9552238805970149,
+      "unit": "ratio",
+      "source_file": "D:\\WorkSpace_MathModel\\examples\\GPT\\code\\outputs\\q2_loocv_validation.csv",
+      "script": "code/analyze_glass.py",
+      "description": "最近质心类型判别留一准确率"
+    },
+    {
+      "id": "m_q2_silhouette_高钾",
+      "problem": "Q2",
+      "value": 0.5006399728058374,
+      "unit": "score",
+      "source_file": "D:\\WorkSpace_MathModel\\examples\\GPT\\code\\outputs\\q2_subclass_silhouette.csv",
+      "script": "code/analyze_glass.py",
+      "description": "高钾类型内k=2亚类轮廓系数"
+    },
+    {
+      "id": "m_q2_silhouette_铅钡",
+      "problem": "Q2",
+      "value": 0.3240679723505865,
+      "unit": "score",
+      "source_file": "D:\\WorkSpace_MathModel\\examples\\GPT\\code\\outputs\\q2_subclass_silhouette.csv",
+      "script": "code/analyze_glass.py",
+      "description": "铅钡类型内k=2亚类轮廓系数"
+    },
+    {
+      "id": "m_q3_mean_stability",
+      "problem": "Q3",
+      "value": 1.0,
+      "unit": "ratio",
+      "source_file": "D:\\WorkSpace_MathModel\\examples\\GPT\\code\\outputs\\q3_sensitivity.csv",
+      "script": "code/analyze_glass.py",
+      "description": "未知样本平均分类稳定率"
+    }
+  ],
+  "tables": [
+    {
+      "id": "t_q1_association",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\code\\outputs\\q1_association.csv",
+      "problem": "Q1",
+      "source_data": "表单1",
+      "script": "code/analyze_glass.py",
+      "intended_section": "问题1",
+      "caption": "表面风化与类型、纹饰、颜色的关联强度"
+    },
+    {
+      "id": "t_q1_group_means",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\code\\outputs\\q1_group_component_means.csv",
+      "problem": "Q1",
+      "source_data": "表单1+表单2",
+      "script": "code/analyze_glass.py",
+      "intended_section": "问题1",
+      "caption": "不同类型和风化状态的关键成分均值"
+    },
+    {
+      "id": "t_q1_weathering_prediction",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\code\\outputs\\q1_weathering_prediction.csv",
+      "problem": "Q1",
+      "source_data": "表单1+表单2",
+      "script": "code/analyze_glass.py",
+      "intended_section": "问题1",
+      "caption": "风化点风化前成分预测"
+    },
+    {
+      "id": "t_q2_loocv",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\code\\outputs\\q2_loocv_validation.csv",
+      "problem": "Q2",
+      "source_data": "表单1+表单2",
+      "script": "code/analyze_glass.py",
+      "intended_section": "问题2",
+      "caption": "类型判别留一交叉验证结果"
+    },
+    {
+      "id": "t_q2_subclass_assignments",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\code\\outputs\\q2_subclass_assignments.csv",
+      "problem": "Q2",
+      "source_data": "表单2",
+      "script": "code/analyze_glass.py",
+      "intended_section": "问题2",
+      "caption": "类型内亚类划分结果"
+    },
+    {
+      "id": "t_q2_subclass_centers",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\code\\outputs\\q2_subclass_centers.csv",
+      "problem": "Q2",
+      "source_data": "表单2",
+      "script": "code/analyze_glass.py",
+      "intended_section": "问题2",
+      "caption": "类型内亚类中心成分"
+    },
+    {
+      "id": "t_q2_subclass_silhouette",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\code\\outputs\\q2_subclass_silhouette.csv",
+      "problem": "Q2",
+      "source_data": "表单2",
+      "script": "code/analyze_glass.py",
+      "intended_section": "问题2",
+      "caption": "亚类划分轮廓系数"
+    },
+    {
+      "id": "t_q3_unknown_predictions",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\code\\outputs\\q3_unknown_predictions.csv",
+      "problem": "Q3",
+      "source_data": "表单3",
+      "script": "code/analyze_glass.py",
+      "intended_section": "问题3",
+      "caption": "未知类别文物判别结果"
+    },
+    {
+      "id": "t_q3_sensitivity",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\code\\outputs\\q3_sensitivity.csv",
+      "problem": "Q3",
+      "source_data": "表单3",
+      "script": "code/analyze_glass.py",
+      "intended_section": "问题3",
+      "caption": "未知样本分类敏感性"
+    },
+    {
+      "id": "t_q4_corr_diff",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\code\\outputs\\q4_top_correlation_differences.csv",
+      "problem": "Q4",
+      "source_data": "表单2",
+      "script": "code/analyze_glass.py",
+      "intended_section": "问题4",
+      "caption": "高钾与铅钡类别相关关系差异最大的成分对"
+    }
+  ],
+  "figures": [
+    {
+      "id": "f1_weathering_association",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\figures\\F1_weathering_association.png",
+      "problem": "Q1",
+      "source_data": "表单1",
+      "script": "code/analyze_glass.py",
+      "intended_section": "问题1",
+      "caption": "风化与类型/纹饰/颜色存在不同强度关联",
+      "supports_claim": "风化与类型/纹饰/颜色存在不同强度关联"
+    },
+    {
+      "id": "f2_group_component_means",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\figures\\F2_group_component_means.png",
+      "problem": "Q1",
+      "source_data": "表单1+表单2",
+      "script": "code/analyze_glass.py",
+      "intended_section": "问题1",
+      "caption": "风化后关键成分呈类型差异化变化",
+      "supports_claim": "风化后关键成分呈类型差异化变化"
+    },
+    {
+      "id": "f3_type_discrimination",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\figures\\F3_type_discrimination_scatter.png",
+      "problem": "Q2/Q3",
+      "source_data": "表单2+表单3",
+      "script": "code/analyze_glass.py",
+      "intended_section": "问题2/3",
+      "caption": "K2O 与 PbO+BaO 可解释主类别判别",
+      "supports_claim": "K2O 与 PbO+BaO 可解释主类别判别"
+    },
+    {
+      "id": "f4_subclass_centers",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\figures\\F4_subclass_centers.png",
+      "problem": "Q2",
+      "source_data": "q2_subclass_centers.csv",
+      "script": "code/analyze_glass.py",
+      "intended_section": "问题2",
+      "caption": "类型内亚类具有不同成分中心",
+      "supports_claim": "类型内亚类具有不同成分中心"
+    },
+    {
+      "id": "f5_unknown_sensitivity",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\figures\\F5_unknown_sensitivity.png",
+      "problem": "Q3",
+      "source_data": "q3_sensitivity.csv",
+      "script": "code/analyze_glass.py",
+      "intended_section": "问题3",
+      "caption": "未知样本分类稳定性存在差异",
+      "supports_claim": "未知样本分类稳定性存在差异"
+    },
+    {
+      "id": "f6_correlation_difference",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\figures\\F6_correlation_difference.png",
+      "problem": "Q4",
+      "source_data": "表单2",
+      "script": "code/analyze_glass.py",
+      "intended_section": "问题4",
+      "caption": "两类玻璃关键成分关联结构存在差异",
+      "supports_claim": "两类玻璃关键成分关联结构存在差异"
+    },
+    {
+      "id": "f7_modeling_flow",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\figures\\F7_modeling_flow.png",
+      "problem": "all",
+      "source_data": "MODELING_DECISION.md",
+      "script": "code/analyze_glass.py",
+      "intended_section": "模型建立",
+      "caption": "建模流程完整覆盖四个问题",
+      "supports_claim": "建模流程完整覆盖四个问题"
+    }
+  ],
+  "scripts": [
+    {
+      "id": "script_analyze_glass",
+      "path": "D:\\WorkSpace_MathModel\\examples\\GPT\\code\\analyze_glass.py",
+      "description": "完成 C 题全部统计建模、结果表和图表生成"
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "q3": {
+    "predictions": {
+      "A1": {
+        "Mahalanobis": "Ç¦±µ",
+        "LDA": "¸ß¼Ø",
+        "QDA": "¸ß¼Ø",
+        "KNN": "¸ß¼Ø",
+        "L1-LR": "¸ß¼Ø",
+        "Ensemble": "¸ß¼Ø"
+      },
+      "A2": {
+        "Mahalanobis": "Ç¦±µ",
+        "LDA": "Ç¦±µ",
+        "QDA": "Ç¦±µ",
+        "KNN": "Ç¦±µ",
+        "L1-LR": "Ç¦±µ",
+        "Ensemble": "Ç¦±µ"
+      },
+      "A3": {
+        "Mahalanobis": "Ç¦±µ",
+        "LDA": "Ç¦±µ",
+        "QDA": "Ç¦±µ",
+        "KNN": "Ç¦±µ",
+        "L1-LR": "Ç¦±µ",
+        "Ensemble": "Ç¦±µ"
+      },
+      "A4": {
+        "Mahalanobis": "Ç¦±µ",
+        "LDA": "Ç¦±µ",
+        "QDA": "Ç¦±µ",
+        "KNN": "Ç¦±µ",
+        "L1-LR": "Ç¦±µ",
+        "Ensemble": "Ç¦±µ"
+      },
+      "A5": {
+        "Mahalanobis": "Ç¦±µ",
+        "LDA": "Ç¦±µ",
+        "QDA": "Ç¦±µ",
+        "KNN": "Ç¦±µ",
+        "L1-LR": "Ç¦±µ",
+        "Ensemble": "Ç¦±µ"
+      },
+      "A6": {
+        "Mahalanobis": "¸ß¼Ø",
+        "LDA": "¸ß¼Ø",
+        "QDA": "¸ß¼Ø",
+        "KNN": "¸ß¼Ø",
+        "L1-LR": "¸ß¼Ø",
+        "Ensemble": "¸ß¼Ø"
+      },
+      "A7": {
+        "Mahalanobis": "¸ß¼Ø",
+        "LDA": "¸ß¼Ø",
+        "QDA": "¸ß¼Ø",
+        "KNN": "¸ß¼Ø",
+        "L1-LR": "¸ß¼Ø",
+        "Ensemble": "¸ß¼Ø"
+      },
+      "A8": {
+        "Mahalanobis": "Ç¦±µ",
+        "LDA": "Ç¦±µ",
+        "QDA": "Ç¦±µ",
+        "KNN": "Ç¦±µ",
+        "L1-LR": "Ç¦±µ",
+        "Ensemble": "Ç¦±µ"
+      }
+    },
+    "sensitivity": {
+      "perturbation_stability": {
+        "5%": 8,
+        "10%": 8
+      },
+      "loo_stability": 6
+    }
+  }
+}
