@@ -6,15 +6,21 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 This is a collection of **Codex skills** (not a traditional software project) that automate the full math modeling contest pipeline: problem analysis → model design → coding → visualization → paper writing → verification.
 
-Two workflows exist side by side: **V2** (hybrid Skill + Codex subagent, high-score paper oriented) and **V1** (legacy linear pipeline). V2 is the primary workflow; V1 is kept for backward compatibility.
+Two workflows exist in the repository history: **V2** (hybrid Skill + Codex subagent, high-score paper oriented) and **V1** (legacy linear pipeline). V2 is the active workflow; V1 is archived under `archive/v1/` for reference only.
 
 ## No Build/Test/Lint Pipeline
 
 This project has no build, test, or lint commands. Every artifact is a markdown report, a PDF figure, a LaTeX/Typst paper, or Python analysis code generated during a contest workflow run. The only verifiable entry is:
 
 ```bash
-# V1 paper quality gate (616-line shell script)
-bash skills/6verity/scripts/writing_check.sh --paper-dir <workspace>/paper
+# V2.3 read-only workspace audit
+python skills/_references/scripts/audit_v2_run.py --workspace <contest-workspace>
+
+# Benchmark all 2022C example runs
+python scripts/audit_benchmark.py --root examples/2022C
+
+# V1 archived paper quality gate
+bash archive/v1/skills/6verity/scripts/writing_check.sh --paper-dir <workspace>/paper
 ```
 
 ## Architecture
@@ -25,7 +31,7 @@ The workspace is the shared memory. Chat history must NOT hold contest state. Sk
 
 ### V2 Hybrid Workflow (primary)
 
-Six phases orchestrated by `mm-start-contest-v2`:
+Seven stages, numbered Phase 0 through Phase 6, are orchestrated by `mm-start-contest-v2`:
 
 ```
 Phase 0: mm-problem-intake     → problem-analyst + data-auditor (read-only subagents)
@@ -41,7 +47,7 @@ Each phase writes specific gate artifacts (`INTAKE_GATE.md`, `ANALYSIS_GATE.md`,
 
 ### V1 Legacy Pipeline
 
-Linear: `0problem-triage → 1start-mathmodel → 2analysis-modeling → 3coding-visual → 4drawio → 5writing → 6verity`
+Archived linear flow: `archive/v1/skills/0problem-triage → ... → archive/v1/skills/6verity`
 
 ### Key differences V2 vs V1
 
@@ -53,11 +59,13 @@ Linear: `0problem-triage → 1start-mathmodel → 2analysis-modeling → 3coding
 ## Skill Layout
 
 - `skills/_references/` — Shared knowledge base. All skills read from here on demand. Contains pipeline contracts, scoring rubrics, agent profiles, modeling norms, figure standards. Do NOT trigger `_references` as a standalone skill.
-- `skills/0problem-triage/` through `skills/6verity/` — V1 pipeline skills
+- `archive/v1/skills/0problem-triage/` through `archive/v1/skills/6verity/` — archived V1 pipeline skills
 - `skills/mm-start-contest-v2/` through `skills/mm-revision-integrator/` — V2 pipeline skills
 - `skills/5writing/templates/` — LaTeX and Typst templates for ~17 contest types (zh/ and en/)
 - `skills/doctor/` — Environment dependency check and install
-- `skills/6verity/scripts/writing_check.sh` — 616-line shell script for paper quality verification
+- `scripts/audit_benchmark.py` — batch V2.3 audit runner for example workspaces
+- `scripts/new_v2_workspace.py` — creates the standard V2 contest workspace skeleton
+- `archive/v1/skills/6verity/scripts/writing_check.sh` — archived V1 paper quality verification script
 
 Each V2 skill has a `SKILL.md` (workflow, gates, required artifacts) and optionally `agents/openai.yaml` (subagent configuration).
 

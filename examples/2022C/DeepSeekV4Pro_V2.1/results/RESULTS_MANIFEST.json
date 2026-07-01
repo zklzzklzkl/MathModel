@@ -1,0 +1,59 @@
+{
+  "metrics": [
+    {"id": "q1a_chi2", "problem": "q1a", "value": 5.45, "unit": "chi2", "source_file": "results/q1_results.json", "script": "q1_analysis.py", "description": "风化×类型卡方检验统计量"},
+    {"id": "q1a_cramers_v", "problem": "q1a", "value": 0.307, "unit": "Cramer's V", "source_file": "results/q1_results.json", "script": "q1_analysis.py", "description": "风化×类型效应量"},
+    {"id": "q1a_or_type", "problem": "q1a", "value": 3.88, "unit": "OR", "source_file": "results/q1_results.json", "script": "q1_analysis.py", "description": "铅钡玻璃风化优势比"},
+    {"id": "q1b_gaok_sio2_g", "problem": "q1b", "value": -3.378, "unit": "Hedges' g", "source_file": "results/q1_results.json", "script": "q1_analysis.py", "description": "高钾玻璃SiO2风化效应量"},
+    {"id": "q1b_gaok_k2o_g", "problem": "q1b", "value": 2.667, "unit": "Hedges' g", "source_file": "results/q1_results.json", "script": "q1_analysis.py", "description": "高钾玻璃K2O风化效应量"},
+    {"id": "q1b_qb_pbo_g", "problem": "q1b", "value": -1.08, "unit": "Hedges' g", "source_file": "results/q1_results.json", "script": "q1_analysis.py", "description": "铅钡玻璃PbO风化效应量"},
+    {"id": "q1c_direct_pairs", "problem": "q1c", "value": 3, "unit": "pairs", "source_file": "results/q1_results.json", "script": "q1_analysis.py", "description": "直接风化配对样本数"},
+    {"id": "q2a_l1_lr_cv_acc", "problem": "q2a", "value": 0.892, "unit": "accuracy", "source_file": "results/q2_results.json", "script": "q2_classification.py", "description": "L1-Logistic回归5折CV准确率"},
+    {"id": "q2a_auc", "problem": "q2a", "value": 1.0, "unit": "AUC", "source_file": "results/q2_results.json", "script": "q2_classification.py", "description": "分类ROC AUC"},
+    {"id": "q2b_gaok_silhouette_k2", "problem": "q2b", "value": 0.686, "unit": "Silhouette", "source_file": "results/q2_results.json", "script": "q2_classification.py", "description": "高钾k=2轮廓系数"},
+    {"id": "q2b_qb_silhouette_k2", "problem": "q2b", "value": 0.683, "unit": "Silhouette", "source_file": "results/q2_results.json", "script": "q2_classification.py", "description": "铅钡k=2轮廓系数"},
+    {"id": "q2b_ari_gaok", "problem": "q2b", "value": 1.0, "unit": "ARI", "source_file": "results/q2_results.json", "script": "q2_classification.py", "description": "高钾K-means与层次聚类一致性"},
+    {"id": "q3_ensemble_agreement", "problem": "q3", "value": 8, "unit": "samples (5/5 agreement)", "source_file": "results/q3_results.json", "script": "q3_prediction.py", "description": "5分类器完全一致的样品数"},
+    {"id": "q3_stability_10pct", "problem": "q3", "value": 8, "unit": "stable/8 total", "source_file": "results/q3_results.json", "script": "q3_prediction.py", "description": "±10%扰动下分类稳定数"},
+    {"id": "q4_sig_diff_pairs", "problem": "q4", "value": 11, "unit": "pairs (|Z|>1.96)", "source_file": "results/q4_results.json", "script": "q4_correlation.py", "description": "组间显著差异的组分对数"}
+  ],
+  "tables": [
+    {"id": "t1", "path": "paper/", "problem": "q1a", "source_data": "results/q1_results.json", "script": "q1_analysis.py", "intended_section": "4.1", "caption": "表单1基本统计：类型×风化×纹饰×颜色频率"},
+    {"id": "t2", "path": "paper/", "problem": "q1a", "source_data": "results/q1_results.json", "script": "q1_analysis.py", "intended_section": "4.1", "caption": "Logistic回归结果表"},
+    {"id": "t3", "path": "paper/", "problem": "q1b", "source_data": "results/q1_results.json", "script": "q1_analysis.py", "intended_section": "4.1", "caption": "11组分×4组均值±标准差"},
+    {"id": "t4", "path": "paper/", "problem": "q1c", "source_data": "results/q1_results.json", "script": "q1_analysis.py", "intended_section": "4.1", "caption": "风化变化率表"},
+    {"id": "t5", "path": "paper/", "problem": "q2a", "source_data": "results/q2_results.json", "script": "q2_classification.py", "intended_section": "5.1", "caption": "分类性能对比表"},
+    {"id": "t6", "path": "paper/", "problem": "q2b", "source_data": "results/q2_results.json", "script": "q2_classification.py", "intended_section": "5.2", "caption": "亚类统计特征表"},
+    {"id": "t7", "path": "paper/", "problem": "q3", "source_data": "results/q3_results.json", "script": "q3_prediction.py", "intended_section": "6", "caption": "未知样品分类结果"},
+    {"id": "t8", "path": "paper/", "problem": "q3", "source_data": "results/q3_results.json", "script": "q3_prediction.py", "intended_section": "6", "caption": "敏感性分析表"},
+    {"id": "t9", "path": "paper/", "problem": "q4", "source_data": "results/q4_results.json", "script": "q4_correlation.py", "intended_section": "7", "caption": "显著差异组分对（Fisher Z检验）"}
+  ],
+  "figures": [
+    {"id": "f1.1", "path": "figures/q1a_weather_type_bar.pdf", "problem": "q1a", "source_data": "form1", "script": "q1_analysis.py", "intended_section": "4.1", "caption": "不同类型玻璃的风化分布堆叠柱状图", "supports_claim": "铅钡玻璃风化率显著高于高钾玻璃"},
+    {"id": "f1.2", "path": "figures/q1a_or_forest.pdf", "problem": "q1a", "source_data": "form1", "script": "q1_analysis.py", "intended_section": "4.1", "caption": "风化影响因素优势比森林图", "supports_claim": "类型是风化最主要的预测因子"},
+    {"id": "f2.1", "path": "figures/q1b_boxplot_matrix.pdf", "problem": "q1b", "source_data": "form2", "script": "q1_analysis.py", "intended_section": "4.2", "caption": "11组分×4组箱线图", "supports_claim": "风化导致成分发生方向性变化"},
+    {"id": "f2.2", "path": "figures/q1b_effect_size.pdf", "problem": "q1b", "source_data": "form2", "script": "q1_analysis.py", "intended_section": "4.2", "caption": "风化效应量排序条形图", "supports_claim": "两类玻璃风化模式不同"},
+    {"id": "f3.1", "path": "figures/q1c_pred_vs_actual.pdf", "problem": "q1c", "source_data": "form2", "script": "q1_analysis.py", "intended_section": "4.3", "caption": "风化前成分预测vs实测散点图", "supports_claim": "基于变化率的预测可反演风化前成分"},
+    {"id": "f3.2", "path": "figures/q1c_change_rates.pdf", "problem": "q1c", "source_data": "form2", "script": "q1_analysis.py", "intended_section": "4.3", "caption": "各组分风化变化率", "supports_claim": "不同组分风化变化率差异显著"},
+    {"id": "f4.1", "path": "figures/q2a_ratio_scatter.pdf", "problem": "q2a", "source_data": "form2", "script": "q2_classification.py", "intended_section": "5.1", "caption": "关键组分比值散点矩阵", "supports_claim": "PbO/SiO2和K2O/SiO2可清晰区分两类玻璃"},
+    {"id": "f4.2", "path": "figures/q2a_decision_boundary.pdf", "problem": "q2a", "source_data": "form2", "script": "q2_classification.py", "intended_section": "5.1", "caption": "PCA投影及LDA决策边界", "supports_claim": "两类玻璃在特征空间中线性可分"},
+    {"id": "f4.3", "path": "figures/q2a_roc.pdf", "problem": "q2a", "source_data": "form2", "script": "q2_classification.py", "intended_section": "5.1", "caption": "ROC曲线", "supports_claim": "分类器性能优异（AUC=1.0）"},
+    {"id": "f5.1", "path": "figures/q2b_dendro_gaok.pdf", "problem": "q2b", "source_data": "form2", "script": "q2_classification.py", "intended_section": "5.2", "caption": "高钾玻璃层次聚类谱系图", "supports_claim": "高钾玻璃可分为2个亚类"},
+    {"id": "f5.2", "path": "figures/q2b_dendro_qianbei.pdf", "problem": "q2b", "source_data": "form2", "script": "q2_classification.py", "intended_section": "5.2", "caption": "铅钡玻璃层次聚类谱系图", "supports_claim": "铅钡玻璃可分为2个亚类"},
+    {"id": "f5.3", "path": "figures/q2b_pca_gaok.pdf", "problem": "q2b", "source_data": "form2", "script": "q2_classification.py", "intended_section": "5.2", "caption": "高钾PCA投影（按亚类着色）", "supports_claim": "亚类在PC1上分离明显"},
+    {"id": "f5.4", "path": "figures/q2b_pca_qianbei.pdf", "problem": "q2b", "source_data": "form2", "script": "q2_classification.py", "intended_section": "5.2", "caption": "铅钡PCA投影（按亚类着色）", "supports_claim": "亚类在成分空间有明确边界"},
+    {"id": "f5.5", "path": "figures/q2b_silhouette.pdf", "problem": "q2b", "source_data": "form2", "script": "q2_classification.py", "intended_section": "5.2", "caption": "不同k值轮廓系数对比", "supports_claim": "k=2为最优亚类数"},
+    {"id": "f6.1", "path": "figures/q3_classifier_compare.pdf", "problem": "q3", "source_data": "form3", "script": "q3_prediction.py", "intended_section": "6", "caption": "多分类器分类结果对比", "supports_claim": "所有分类器对8个样品给出完全一致的分类"},
+    {"id": "f6.2", "path": "figures/q3_mahalanobis.pdf", "problem": "q3", "source_data": "form3", "script": "q3_prediction.py", "intended_section": "6", "caption": "马氏距离对比条形图", "supports_claim": "未知样品到两类的马氏距离差异显著"},
+    {"id": "f6.3", "path": "figures/q3_sensitivity_heat.pdf", "problem": "q3", "source_data": "form3", "script": "q3_prediction.py", "intended_section": "6", "caption": "组分扰动敏感性热图", "supports_claim": "分类结果对±10%组分扰动稳定"},
+    {"id": "f7.1", "path": "figures/q4_heatmaps.pdf", "problem": "q4", "source_data": "form2", "script": "q4_correlation.py", "intended_section": "7", "caption": "高钾/铅钡Pearson相关系数热图", "supports_claim": "两类玻璃组分关联结构有本质差异"},
+    {"id": "f7.2", "path": "figures/q4_partial_networks.pdf", "problem": "q4", "source_data": "form2", "script": "q4_correlation.py", "intended_section": "7", "caption": "Graphical Lasso偏相关网络", "supports_claim": "高钾玻璃组分间条件依赖更密集"},
+    {"id": "f7.3", "path": "figures/q4_diff_network.pdf", "problem": "q4", "source_data": "form2", "script": "q4_correlation.py", "intended_section": "7", "caption": "相关性差异矩阵", "supports_claim": "11对组分在两类型间相关差异显著"}
+  ],
+  "scripts": [
+    {"name": "preprocessing.py", "status": "PASS", "outputs": ["code/outputs/form1_processed.csv", "code/outputs/form2_processed.csv", "code/outputs/form3_processed.csv", "code/outputs/metadata.json"]},
+    {"name": "q1_analysis.py", "status": "PASS", "outputs": ["results/q1_results.json", "figures/q1a_*.pdf", "figures/q1b_*.pdf", "figures/q1c_*.pdf"]},
+    {"name": "q2_classification.py", "status": "PASS", "outputs": ["results/q2_results.json", "figures/q2a_*.pdf", "figures/q2b_*.pdf"]},
+    {"name": "q3_prediction.py", "status": "PASS", "outputs": ["results/q3_results.json", "figures/q3_*.pdf"]},
+    {"name": "q4_correlation.py", "status": "PASS", "outputs": ["results/q4_results.json", "figures/q4_*.pdf"]}
+  ]
+}

@@ -56,7 +56,7 @@ def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="replace")
 
 
-def load_json(path: Path) -> dict[str, Any]:
+def load_json(path: Path) -> Any:
     if not path.is_file():
         return {}
     try:
@@ -237,10 +237,49 @@ def conclusion_is_pass(text: str) -> bool:
     return bool(re.search(r"(conclusion|结论)\s*[:：]?\s*\*{0,2}PASS\b", text, re.IGNORECASE))
 
 
+def normalize_manifest(manifest: Any, issues: list[dict[str, str]], final_workspace: bool) -> dict[str, list[Any]]:
+    if isinstance(manifest, dict):
+        normalized: dict[str, list[Any]] = {}
+        for key in ("metrics", "tables", "figures", "scripts"):
+            value = manifest.get(key, [])
+            if isinstance(value, list):
+                normalized[key] = value
+            else:
+                normalized[key] = []
+                add_issue(
+                    issues,
+                    "HIGH",
+                    f"manifest_{key}_invalid",
+                    f"Manifest field `{key}` must be a list.",
+                    "results/RESULTS_MANIFEST.json",
+                )
+        return normalized
+
+    if isinstance(manifest, list):
+        add_issue(
+            issues,
+            "HIGH",
+            "manifest_schema_legacy",
+            "RESULTS_MANIFEST.json uses the legacy list schema; V2.3 requires an object with metrics, tables, figures, and scripts.",
+            "results/RESULTS_MANIFEST.json",
+        )
+        return {"metrics": manifest, "tables": [], "figures": [], "scripts": []}
+
+    if final_workspace:
+        add_issue(
+            issues,
+            "BLOCKER",
+            "manifest_schema_invalid",
+            "RESULTS_MANIFEST.json is missing or is not valid JSON.",
+            "results/RESULTS_MANIFEST.json",
+        )
+    return {"metrics": [], "tables": [], "figures": [], "scripts": []}
+
+
 def audit_workspace(workspace: Path, nature_mode: str) -> dict[str, Any]:
     issues: list[dict[str, str]] = []
     reports = workspace / "reports"
-    manifest = load_json(workspace / "results" / "RESULTS_MANIFEST.json")
+    manifest_raw = load_json(workspace / "results" / "RESULTS_MANIFEST.json")
     plan_text = read_text(reports / "FIGURE_PLAN.md")
     audit_text = read_text(reports / "FIGURE_AUDIT.md")
     verify_text = read_text(reports / "VERIFY_REPORT.md")
@@ -252,10 +291,16 @@ def audit_workspace(workspace: Path, nature_mode: str) -> dict[str, Any]:
     nature_available = bool(nature.get("available"))
     plan_rows = parse_plan_rows(plan_text)
 
-    figures = manifest.get("figures", [])
-    if not isinstance(figures, list):
-        figures = []
-        add_issue(issues, "BLOCKER", "manifest_figures_invalid", "Manifest figures must be a list.", "results/RESULTS_MANIFEST.json")
+    manifest = normalize_manifest(manifest_raw, issues, final_workspace)
+    figures = manifest["figures"]
+    if final_workspace and not figures:
+        add_issue(
+            issues,
+            "HIGH",
+            "manifest_figures_missing",
+            "Final workspaces must trace paper figures through manifest.figures.",
+            "results/RESULTS_MANIFEST.json",
+        )
 
     audit_columns = parse_audit_columns(audit_text)
     missing_audit_columns = [col for col in AUDIT_REQUIRED_COLUMNS if col not in audit_columns]
@@ -379,6 +424,9 @@ def audit_workspace(workspace: Path, nature_mode: str) -> dict[str, Any]:
         "nature": nature,
         "summary": {
             "figures": len(figures),
+            "metrics": len(manifest["metrics"]),
+            "tables": len(manifest["tables"]),
+            "scripts": len(manifest["scripts"]),
             "paper_pages": page_count,
             "pass_claimed": pass_claimed,
             "issue_count": len(issues),

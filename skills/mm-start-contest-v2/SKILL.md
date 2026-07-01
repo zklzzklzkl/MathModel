@@ -6,7 +6,7 @@ allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetc
 
 # Math Modeling Contest V2 Orchestrator
 
-> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: 无（入口点） · 下游调度: [[skills/mm-problem-intake/SKILL|Phase 1 Intake]] → [[skills/mm-model-strategy/SKILL|Phase 2 Strategy]] → [[skills/mm-data-experiment/SKILL|Phase 3 Experiment]] → [[skills/mm-paper-build/SKILL|Phase 4 Paper]] → [[skills/mm-contest-review/SKILL|Phase 5 Review]] → [[skills/mm-revision-integrator/SKILL|Phase 6 Revise]] → [[skills/mm-final-verify/SKILL|Phase 7 Verify]] · 共享规范: [[skills/_references/SKILL|_references]]
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: 无（入口点） · 下游调度: [[skills/mm-problem-intake/SKILL|Phase 0 Intake]] → [[skills/mm-model-strategy/SKILL|Phase 1 Strategy]] → [[skills/mm-data-experiment/SKILL|Phase 2 Experiment]] → [[skills/mm-paper-build/SKILL|Phase 3 Paper]] → [[skills/mm-contest-review/SKILL|Phase 4 Review]] → [[skills/mm-revision-integrator/SKILL|Phase 5 Revise]] → [[skills/mm-final-verify/SKILL|Phase 6 Verify]] · 共享规范: [[skills/_references/SKILL|_references]]
 
 Use this skill as the only V2 entrypoint. Keep legacy skills untouched unless the user explicitly asks to run V1.
 
@@ -56,13 +56,13 @@ Create or update these files in the contest workspace:
 
 ## Workflow
 
-1. Intake: run `mm-problem-intake`. Spawn or simulate `problem-analyst` and `data-auditor` as independent reviewers when the task is non-trivial.
-2. Modeling: run `mm-model-strategy`. Produce at least two candidate routes, then run model review and devil's advocate review. Stop for human final model confirmation before coding.
-3. Experiment: run `mm-data-experiment`. Execute `EDA -> ques1 -> ques2 -> ... -> sensitivity_analysis`. After each section, record code, results, figures, and manifest entries.
-4. Paper build: run `mm-paper-build`. Write sections after results exist, insert figures near the relevant argument, and maintain claim trace.
-5. Contest review: run `mm-contest-review`. Compare against high-score paper standards and request revisions.
-6. Revision loop: run `mm-revision-integrator` when `REVISION_ACTIONS.md` contains any `BLOCKER`, `HIGH`, or score-dimension action. Repair or explicitly resolve those items before final verification.
-7. Final verification: run `mm-final-verify`. Do not call the work complete until every hard gate and quality gate passes.
+0. Intake: run `mm-problem-intake`. Spawn or simulate `problem-analyst` and `data-auditor` as independent reviewers when the task is non-trivial.
+1. Modeling: run `mm-model-strategy`. Produce at least two candidate routes, then run model review and devil's advocate review. Stop for human final model confirmation before coding.
+2. Experiment: run `mm-data-experiment`. Execute `EDA -> ques1 -> ques2 -> ... -> sensitivity_analysis`. After each section, record code, results, figures, and manifest entries.
+3. Paper build: run `mm-paper-build`. Write sections after results exist, insert figures near the relevant argument, and maintain claim trace.
+4. Contest review: run `mm-contest-review`. Compare against high-score paper standards and request revisions.
+5. Revision loop: run `mm-revision-integrator` when `REVISION_ACTIONS.md` contains any `BLOCKER`, `HIGH`, or score-dimension action. Repair or explicitly resolve those items before final verification.
+6. Final verification: run `mm-final-verify`. Do not call the work complete until every hard gate and quality gate passes.
 
 ## Plan Template
 

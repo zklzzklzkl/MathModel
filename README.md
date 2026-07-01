@@ -4,7 +4,7 @@
 
 **Version**: 2.3
 **Architecture**: Skill + Codex Subagent Hybrid Workflow  
-**Skills**: 17 (7 V1 legacy + 8 V2 + 2 tools)
+**Active workflow**: V2.3 (8 V2 skills + shared references + tools). V1 is archived under `archive/v1/`.
 
 ---
 
@@ -40,7 +40,7 @@ mm-start-contest-v2 (Orchestrator)
 ### V1 Legacy Linear Pipeline
 
 ```
-0problem-triage → 1start-mathmodel → 2analysis-modeling → 3coding-visual → 4drawio → 5writing → 6verity
+archive/v1/skills/0problem-triage → ... → archive/v1/skills/6verity
 ```
 
 ### Key Differences: V2 vs V1
@@ -67,32 +67,19 @@ mm-start-contest-v2 (Orchestrator)
 │   │   ├── SKILL.md                 # Reference index
 │   │   ├── v2_pipeline_contract.md  # V2 stage gates, artifacts, completion criteria
 │   │   ├── codex_subagent_protocol.md # Subagent roles, parallelism, logging
-│   │   ├── workflow_state_contract.md # V1 persistence context & gates
-│   │   ├── math_modeling_norms.md   # Domain knowledge (~450 lines, all model types)
+│   │   ├── workflow_state_contract.md # V2 persistence context & gates
 │   │   ├── contest_score_rubric.md  # 0-5 scoring, 10 dimensions, hard-fail conditions
 │   │   ├── paper_benchmark_profile.md # Weak-vs-high-score gap profile
 │   │   ├── figure_quality_standard.md # Metadata, quality checks, audit status
 │   │   ├── model_method_cards.md    # Prediction/evaluation/optimization/statistics/simulation
 │   │   ├── agent_review_protocol.md # Unified review format (PASS/CONDITIONAL_PASS/FAIL)
 │   │   ├── ars_v2_integration_guide.md # Optional Academic Research Suite integration
-│   │   ├── claude_code_monitoring.md # External AI monitoring spec
 │   │   ├── agent_profiles/          # 10 reusable agent role prompts
 │   │   └── scripts/
-│   │       └── check_context_contract.py
+│   │       ├── audit_v2_run.py
+│   │       └── resolve_nature_figure.py
 │   │
-│   ├── 0problem-triage/SKILL.md     # V1: Problem triage & feasibility
-│   ├── 1start-mathmodel/SKILL.md    # V1: Workflow entry
-│   ├── 2analysis-modeling/SKILL.md  # V1: Analysis & modeling design
-│   ├── 3coding-visual/SKILL.md      # V1: Code & data visualization
-│   ├── 4drawio/SKILL.md             # V1: Non-data diagrams
-│   ├── 5writing/                    # V1: Paper writing
-│   │   ├── SKILL.md
-│   │   └── templates/              # 17 contest templates (Typst + LaTeX)
-│   │       ├── zh/                  # 14 Chinese contests
-│   │       └── en/                  # 3 English contests
-│   ├── 6verity/                     # V1: Final verification
-│   │   ├── SKILL.md
-│   │   └── scripts/writing_check.sh # 616-line writing quality gate
+│   ├── 5writing/templates/          # 17 contest templates (Typst + LaTeX)
 │   ├── doctor/SKILL.md              # Environment check & dependency install
 │   │
 │   ├── mm-start-contest-v2/         # V2: Orchestrator entry
@@ -120,8 +107,11 @@ mm-start-contest-v2 (Orchestrator)
 │       └── SKILL.md
 │
 └── examples/                        # Example contest workspaces
-    ├── space1/
-    └── workspace/
+    └── 2022C/                       # Benchmark examples for V2.3 audits
+└── archive/v1/                      # Archived V1 workflow and writing_check.sh
+└── scripts/
+    ├── audit_benchmark.py           # Batch audit examples
+    └── new_v2_workspace.py          # Create a V2 workspace skeleton
 ```
 
 ---
@@ -262,6 +252,18 @@ Run the V2.3 read-only audit on a contest workspace:
 python skills/_references/scripts/audit_v2_run.py --workspace <contest-workspace>
 ```
 
+Run the example benchmark:
+
+```bash
+python scripts/audit_benchmark.py --root examples/2022C
+```
+
+Create a fresh V2 workspace:
+
+```bash
+python scripts/new_v2_workspace.py workspace/my-contest --contest CUMCM --engine LaTeX --language 中文
+```
+
 ---
 
 ## Installation
@@ -287,9 +289,9 @@ Start V2 workflow:
 /mm-start-contest-v2
 ```
 
-Start V1 workflow:
+V1 is archived. Use only for historical reference:
 ```
-/1start-mathmodel
+archive/v1/skills/1start-mathmodel/SKILL.md
 ```
 
 Check environment:
