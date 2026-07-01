@@ -31,6 +31,12 @@ export interface PhaseSummary {
   status: string;
   status_class: "good" | "warn" | "bad" | "info" | string;
   artifacts: string[];
+  inputs: string[];
+  outputs: string[];
+  missing_inputs: string[];
+  missing_outputs: string[];
+  ready: boolean;
+  next_action: string;
 }
 
 export interface ArtifactItem {
@@ -60,6 +66,7 @@ export interface WorkspaceSummary {
   manifest: Record<string, unknown>;
   paper: Record<string, unknown>;
   issues: Array<Record<string, unknown>>;
+  recommendations: Array<Record<string, unknown>>;
 }
 
 export interface AuditResponse {
@@ -94,6 +101,67 @@ export interface CreateWorkspacePayload {
   force?: boolean;
 }
 
+export interface CreateWorkspaceResponse {
+  workspace: WorkspaceItem;
+  created: string[];
+  skipped: string[];
+  stdout: string;
+  stderr: string;
+}
+
+export interface RunHistoryEntry {
+  timestamp: string;
+  event: string;
+  phase: number | null;
+  harness: string | null;
+  status_before: string | null;
+  status_after: string | null;
+  source_workspace: string | null;
+  run_workspace: string | null;
+  prompt_path: string | null;
+  note: string | null;
+}
+
+export interface RevisionTask {
+  id: string;
+  severity: string;
+  phase: number;
+  artifact: string;
+  issue_code: string;
+  title: string;
+  action: string;
+}
+
+export interface RevisionTasksResponse {
+  tasks: RevisionTask[];
+  written_path: string | null;
+}
+
+export interface SourceUploadResponse {
+  saved: string[];
+  skipped: string[];
+}
+
+export interface HarnessInfo {
+  id: "Manual" | "Codex" | "Claude Code" | "OpenCode";
+  label: string;
+  managed: boolean;
+  available: boolean;
+  note: string;
+}
+
+export interface PrepareHarnessResponse {
+  harness: string;
+  phase: number;
+  source_workspace: string;
+  run_workspace: string;
+  copied: boolean;
+  prompt: string;
+  prompt_path: string | null;
+  command_preview: string;
+  history: RunHistoryEntry;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     headers: {
@@ -116,10 +184,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  base: API_BASE,
   health: () => request<HealthResponse>("/api/health"),
+  rawUrl: (id: string, path: string) => `${API_BASE}/api/workspaces/${id}/raw?path=${encodeURIComponent(path)}`,
+  harnesses: () => request<HarnessInfo[]>("/api/harnesses"),
   workspaces: () => request<WorkspaceItem[]>("/api/workspaces"),
   createWorkspace: (payload: CreateWorkspacePayload) =>
-    request("/api/workspaces", { method: "POST", body: JSON.stringify(payload) }),
+    request<CreateWorkspaceResponse>("/api/workspaces", { method: "POST", body: JSON.stringify(payload) }),
   summary: (id: string) => request<WorkspaceSummary>(`/api/workspaces/${id}/summary`),
   artifacts: (id: string) => request<ArtifactItem[]>(`/api/workspaces/${id}/artifacts`),
   artifact: (id: string, path: string) =>
@@ -136,4 +207,24 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ name }),
     }),
+  history: (id: string) => request<RunHistoryEntry[]>(`/api/workspaces/${id}/runs/history`),
+  revisionTasks: (id: string) =>
+    request<RevisionTasksResponse>(`/api/workspaces/${id}/revision-tasks`, { method: "POST" }),
+  prepareHarness: (id: string, phase: number, harness: string, copyWorkspace = true, runName?: string) =>
+    request<PrepareHarnessResponse>(`/api/workspaces/${id}/harness/prepare`, {
+      method: "POST",
+      body: JSON.stringify({ phase, harness, copy_workspace: copyWorkspace, run_name: runName }),
+    }),
+  uploadSource: async (id: string, files: FileList | File[]) => {
+    const form = new FormData();
+    Array.from(files).forEach((file) => form.append("files", file));
+    const response = await fetch(`${API_BASE}/api/workspaces/${id}/source-files`, {
+      method: "POST",
+      body: form,
+    });
+    if (!response.ok) {
+      throw new Error(`${response.status}: ${response.statusText}`);
+    }
+    return response.json() as Promise<SourceUploadResponse>;
+  },
 };

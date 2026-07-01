@@ -18,8 +18,25 @@ if not exist "%BACKEND_DIR%\.venv\Scripts\python.exe" (
   python -m venv "%BACKEND_DIR%\.venv"
 )
 
-echo [backend] Installing dependencies...
-"%BACKEND_DIR%\.venv\Scripts\python.exe" -m pip install -q -r "%BACKEND_DIR%\requirements.txt"
+echo [backend] Checking dependencies...
+"%BACKEND_DIR%\.venv\Scripts\python.exe" -c "import fastapi, uvicorn, multipart" >nul 2>nul
+if errorlevel 1 (
+  echo [backend] Installing dependencies...
+  "%BACKEND_DIR%\.venv\Scripts\python.exe" -m pip install -q --timeout 60 -r "%BACKEND_DIR%\requirements.txt"
+  if errorlevel 1 (
+    echo [backend] PyPI install failed. Retrying with Tsinghua mirror...
+    "%BACKEND_DIR%\.venv\Scripts\python.exe" -m pip install -q --timeout 60 -i https://pypi.tuna.tsinghua.edu.cn/simple -r "%BACKEND_DIR%\requirements.txt"
+    if errorlevel 1 (
+      echo [backend] Dependency install failed. Check your network or run:
+      echo cd /d "%BACKEND_DIR%"
+      echo .venv\Scripts\python.exe -m pip install -r requirements.txt
+      pause
+      exit /b 1
+    )
+  )
+) else (
+  echo [backend] Dependencies already installed, skipping pip install.
+)
 
 if not exist "%FRONTEND_DIR%\node_modules" (
   echo [frontend] Installing dependencies...

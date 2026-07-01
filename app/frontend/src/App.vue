@@ -22,10 +22,7 @@
         </select>
         <label>Harness</label>
         <select v-model="harness">
-          <option>Manual</option>
-          <option>Codex</option>
-          <option>Claude Code</option>
-          <option>OpenCode</option>
+          <option v-for="item in store.harnesses" :key="item.id">{{ item.id }}</option>
         </select>
       </div>
     </aside>
@@ -83,18 +80,47 @@
                   <span class="phase-id">P{{ phase.id }}</span>
                   <span>
                     <strong>{{ phase.name }}</strong>
-                    <small>{{ phase.skill }} -> {{ phase.gate }}</small>
+                    <small>{{ phase.next_action }}</small>
                   </span>
                   <span :class="['badge', phase.status_class]">{{ phase.status }}</span>
                 </button>
               </div>
             </Panel>
 
-            <Panel title="风险与下一步" subtitle="audit_v2_run.py">
-              <IssueList :issues="store.summary?.issues ?? []" />
+            <Panel title="下一步建议" subtitle="audit + required files">
+              <div class="recommendation-list">
+                <button
+                  v-for="item in store.summary?.recommendations ?? []"
+                  :key="`${item.title}-${item.artifact}`"
+                  class="recommendation-item"
+                  @click="selectRecommendation(item)"
+                >
+                  <span :class="['badge', statusClass(item.severity)]">{{ item.severity }}</span>
+                  <span>
+                    <strong>{{ item.title }}</strong>
+                    <small>{{ item.detail }}</small>
+                  </span>
+                </button>
+              </div>
               <div class="button-row">
-                <button class="primary" @click="store.generatePrompt(selectedPhase, harness)">生成修复 Prompt</button>
+                <button class="primary" @click="store.generateRevisionTasks">生成修订任务</button>
                 <button @click="view = 'artifacts'">查看文件</button>
+              </div>
+            </Panel>
+          </div>
+
+          <div class="grid-dashboard second-row">
+            <Panel title="审计问题" subtitle="BLOCKER/HIGH first">
+              <IssueList :issues="store.summary?.issues ?? []" />
+            </Panel>
+            <Panel title="修订任务" subtitle="REVISION_ACTIONS_CONTROL.md">
+              <div class="task-list">
+                <div v-for="task in store.revisionTasks" :key="task.id" class="task-item">
+                  <span :class="['badge', statusClass(task.severity)]">{{ task.severity }}</span>
+                  <strong>{{ task.id }} · Phase {{ task.phase }}</strong>
+                  <small>{{ task.action }}</small>
+                </div>
+                <div v-if="!store.revisionTasks.length" class="empty">点击“生成修订任务”后显示。</div>
               </div>
             </Panel>
           </div>
@@ -119,16 +145,37 @@
           <Panel title="阶段详情" :subtitle="currentPhase?.gate ?? 'Gate'">
             <div class="phase-head">
               <h2>{{ currentPhase?.name }}</h2>
-              <span :class="['badge', currentPhase?.status_class]">{{ currentPhase?.status }}</span>
+              <span :class="['badge', currentPhase?.ready ? 'good' : 'warn']">{{ currentPhase?.ready ? "ready" : "check" }}</span>
             </div>
             <div class="field-grid">
               <div class="field"><label>Skill</label><strong>{{ currentPhase?.skill }}</strong></div>
               <div class="field"><label>Harness</label><strong>{{ harness }}</strong></div>
-              <div class="field wide"><label>Gate</label><strong>{{ currentPhase?.gate }}</strong></div>
+              <div class="field wide"><label>下一步</label><strong>{{ currentPhase?.next_action }}</strong></div>
+            </div>
+            <div class="check-grid">
+              <div>
+                <h3>输入</h3>
+                <div v-for="path in currentPhase?.inputs ?? []" :key="path" class="check-row">
+                  <span :class="['badge', currentPhase?.missing_inputs.includes(path) ? 'bad' : 'good']">
+                    {{ currentPhase?.missing_inputs.includes(path) ? "missing" : "ok" }}
+                  </span>
+                  <button @click="openArtifact(path)">{{ path }}</button>
+                </div>
+              </div>
+              <div>
+                <h3>输出</h3>
+                <div v-for="path in currentPhase?.outputs ?? []" :key="path" class="check-row">
+                  <span :class="['badge', currentPhase?.missing_outputs.includes(path) ? 'warn' : 'good']">
+                    {{ currentPhase?.missing_outputs.includes(path) ? "pending" : "ok" }}
+                  </span>
+                  <button @click="openArtifact(path)">{{ path }}</button>
+                </div>
+              </div>
             </div>
             <div class="prompt-box">{{ store.prompt?.phase === selectedPhase ? store.prompt.prompt : "点击生成 Prompt 获取当前阶段执行指令。" }}</div>
             <div class="button-row">
               <button class="primary" @click="store.generatePrompt(selectedPhase, harness)">生成 Prompt</button>
+              <button @click="store.prepareHarness(selectedPhase, harness, true)">准备安全副本</button>
               <button @click="copyPrompt">复制</button>
             </div>
           </Panel>
@@ -155,7 +202,20 @@
           </Panel>
 
           <Panel :title="store.selectedArtifact?.path ?? 'Preview'" :subtitle="store.selectedArtifact?.absolute_path ?? ''">
-            <pre class="code-box">{{ artifactPreview }}</pre>
+            <div v-if="!store.selectedArtifact" class="empty">未选择文件。</div>
+            <div v-else-if="!store.selectedArtifact.exists" class="missing-box">
+              <strong>文件不存在</strong>
+              <p>{{ missingSuggestion(store.selectedArtifact.path) }}</p>
+              <button class="primary" @click="store.generatePrompt(selectedPhase, harness)">生成修复 Prompt</button>
+            </div>
+            <div v-else-if="store.selectedArtifact.type === 'markdown'" class="markdown-preview" v-html="markdownPreview"></div>
+            <pre v-else-if="store.selectedArtifact.type === 'json' || store.selectedArtifact.type === 'text'" class="code-box">{{ artifactPreview }}</pre>
+            <img v-else-if="store.selectedArtifact.type === 'image'" class="image-preview" :src="rawUrl(store.selectedArtifact.path)" />
+            <div v-else-if="store.selectedArtifact.type === 'pdf'" class="pdf-box">
+              <iframe :src="rawUrl(store.selectedArtifact.path)" title="PDF preview"></iframe>
+              <a :href="rawUrl(store.selectedArtifact.path)" target="_blank" rel="noreferrer">打开 PDF</a>
+            </div>
+            <div v-else class="code-box">{{ artifactPreview }}</div>
           </Panel>
         </section>
 
@@ -171,24 +231,33 @@
               <div class="field">
                 <label>Harness</label>
                 <select v-model="harness">
-                  <option>Manual</option>
-                  <option>Codex</option>
-                  <option>Claude Code</option>
-                  <option>OpenCode</option>
+                  <option v-for="item in store.harnesses" :key="item.id">{{ item.id }}</option>
                 </select>
               </div>
             </div>
             <div class="button-row">
               <button class="primary" @click="store.generatePrompt(selectedPhase, harness)">生成</button>
+              <button @click="store.prepareHarness(selectedPhase, harness, true)">准备安全副本</button>
               <button @click="copyPrompt">复制</button>
+            </div>
+            <div v-if="store.preparedRun" class="prepared-box">
+              <strong>Run workspace</strong>
+              <p>{{ store.preparedRun.run_workspace }}</p>
+              <strong>Command preview</strong>
+              <pre>{{ store.preparedRun.command_preview }}</pre>
             </div>
             <pre class="prompt-box">{{ store.prompt?.prompt ?? "等待生成 Prompt。" }}</pre>
           </Panel>
 
-          <Panel title="运行记录" subtitle="local status">
-            <div class="message"><strong>Workspace</strong><p>{{ store.selectedWorkspace?.path }}</p></div>
-            <div class="message"><strong>Audit</strong><p>{{ store.summary?.status }} / {{ store.summary?.worst_severity }}</p></div>
-            <div class="message"><strong>Manual</strong><p>首版只生成可复制 Prompt，不自动调用 harness。</p></div>
+          <Panel title="运行历史" subtitle="runs/control-center-history.jsonl">
+            <div class="history-list">
+              <div v-for="entry in reversedHistory" :key="`${entry.timestamp}-${entry.event}`" class="message">
+                <strong>{{ entry.timestamp }} · {{ entry.event }}</strong>
+                <p>{{ entry.note }}</p>
+                <small v-if="entry.run_workspace">{{ entry.run_workspace }}</small>
+              </div>
+              <div v-if="!store.history.length" class="empty">暂无运行记录。</div>
+            </div>
           </Panel>
         </section>
 
@@ -223,6 +292,32 @@
         </section>
 
         <section v-else class="view settings-grid">
+          <Panel title="新建工作区" subtitle="scripts/new_v2_workspace.py">
+            <form class="form-grid" @submit.prevent="createWorkspace">
+              <label>名称<input v-model="createForm.name" placeholder="2026-demo" /></label>
+              <label>竞赛<input v-model="createForm.contest" /></label>
+              <label>排版引擎<input v-model="createForm.engine" /></label>
+              <label>语言<input v-model="createForm.language" /></label>
+              <label>子问题<input v-model="createForm.subproblems" /></label>
+              <label>绘图后端<input v-model="createForm.figure_backend" /></label>
+              <label>Nature
+                <select v-model="createForm.nature">
+                  <option value="not_requested">not_requested</option>
+                  <option value="enabled">enabled</option>
+                  <option value="unavailable">unavailable</option>
+                </select>
+              </label>
+              <label class="checkbox-line"><input v-model="createForm.force" type="checkbox" /> force</label>
+              <button class="primary" type="submit">创建</button>
+            </form>
+          </Panel>
+
+          <Panel title="上传 source" subtitle="题面/附件/数据">
+            <input type="file" multiple @change="uploadSource" />
+            <div v-if="store.uploadResult" class="code-box">saved: {{ store.uploadResult.saved.join(", ") }}
+skipped: {{ store.uploadResult.skipped.join(", ") }}</div>
+          </Panel>
+
           <Panel title="服务健康" subtitle="local backend">
             <div class="service-row">
               <span><strong>Backend</strong><small>Python {{ store.health?.python }}</small></span>
@@ -234,10 +329,11 @@
             </div>
           </Panel>
 
-          <Panel title="路径" subtitle="configuration">
-            <div class="code-box">MATHMODEL_ROOT={{ store.health?.mathmodel_root }}
-WORKSPACE_ROOT={{ store.health?.workspace_root }}
-EXAMPLES_ROOT={{ store.health?.examples_root }}</div>
+          <Panel title="Harness Adapters" subtitle="prepare only">
+            <div v-for="item in store.harnesses" :key="item.id" class="service-row">
+              <span><strong>{{ item.label }}</strong><small>{{ item.note }}</small></span>
+              <span :class="['badge', item.available ? 'good' : 'bad']">{{ item.managed ? "managed" : "prompt" }}</span>
+            </div>
           </Panel>
         </section>
       </main>
@@ -248,6 +344,7 @@ EXAMPLES_ROOT={{ store.health?.examples_root }}</div>
 <script setup lang="ts">
 import { computed, defineComponent, h, onMounted, ref } from "vue";
 import { BarChart3, Copy, FileText, Gauge, LayoutDashboard, RefreshCw, Settings, ShieldCheck, TerminalSquare } from "lucide-vue-next";
+import { api } from "./api";
 import { useControlStore } from "./store";
 
 const store = useControlStore();
@@ -255,6 +352,16 @@ const view = ref("dashboard");
 const selectedPhase = ref(2);
 const harness = ref("Manual");
 const artifactQuery = ref("");
+const createForm = ref({
+  name: "",
+  contest: "待确认",
+  engine: "LaTeX",
+  language: "中文",
+  subproblems: "待确认",
+  figure_backend: "matplotlib",
+  nature: "not_requested" as "enabled" | "unavailable" | "not_requested",
+  force: false,
+});
 
 const navItems = [
   { id: "dashboard", label: "总览", icon: LayoutDashboard },
@@ -278,6 +385,8 @@ const artifactPreview = computed(() => {
   if (artifact.content) return artifact.content;
   return `${artifact.type}\n${artifact.absolute_path ?? ""}`;
 });
+const markdownPreview = computed(() => renderMarkdown(store.selectedArtifact?.content ?? ""));
+const reversedHistory = computed(() => [...store.history].reverse());
 const benchmarkRows = computed(() =>
   (store.benchmark?.results ?? []).map((item) => {
     const summary = (item.summary ?? {}) as Record<string, unknown>;
@@ -300,6 +409,10 @@ function statusClass(status: unknown) {
   return "info";
 }
 
+function rawUrl(path: string) {
+  return store.selectedWorkspaceId ? api.rawUrl(store.selectedWorkspaceId, path) : "";
+}
+
 async function openArtifact(path: string) {
   await store.openArtifact(path);
   view.value = "artifacts";
@@ -309,6 +422,52 @@ async function copyPrompt() {
   if (store.prompt?.prompt) {
     await navigator.clipboard.writeText(store.prompt.prompt);
   }
+}
+
+async function createWorkspace() {
+  await store.createWorkspace({ ...createForm.value });
+}
+
+async function uploadSource(event: Event) {
+  const input = event.target as HTMLInputElement;
+  if (input.files?.length) {
+    await store.uploadSource(input.files);
+    input.value = "";
+  }
+}
+
+function selectRecommendation(item: Record<string, unknown>) {
+  if (typeof item.phase === "number") {
+    selectedPhase.value = item.phase;
+    view.value = "phase";
+    return;
+  }
+  if (typeof item.artifact === "string") {
+    openArtifact(item.artifact);
+  }
+}
+
+function missingSuggestion(path: string) {
+  if (path.includes("RESULTS_MANIFEST")) return "运行 Phase 2 并生成 metrics/tables/figures/scripts 对象结构。";
+  if (path.includes("FIGURE_AUDIT")) return "运行 Phase 2/3，补齐图表审计列和论文插入位置。";
+  if (path.includes("PAPER_SCORECARD")) return "运行 Phase 4 竞赛评分审查。";
+  return "回到阶段页查看该 artifact 的输入输出要求，并生成对应 Phase Prompt。";
+}
+
+function escapeHtml(text: string) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function renderMarkdown(text: string) {
+  const escaped = escapeHtml(text);
+  return escaped
+    .replace(/^### (.*)$/gm, "<h3>$1</h3>")
+    .replace(/^## (.*)$/gm, "<h2>$1</h2>")
+    .replace(/^# (.*)$/gm, "<h1>$1</h1>")
+    .replace(/^\- (.*)$/gm, "<li>$1</li>")
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\n/g, "<br />");
 }
 
 const Panel = defineComponent({
