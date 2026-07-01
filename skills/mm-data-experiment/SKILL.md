@@ -14,6 +14,7 @@ Read:
 
 - `../_references/v2_pipeline_contract.md`
 - `../_references/codex_subagent_protocol.md`
+- `../_references/rag_usage_contract.md`
 - `../_references/figure_quality_standard.md`
 - `../_references/nature_figure_integration_guide.md` when optional `nature-figure` scientific plotting integration is available
 - `../_references/ars_v2_integration_guide.md` when optional ARS visualization audit is available
@@ -54,18 +55,19 @@ eda -> ques1 -> ques2 -> ... -> sensitivity_analysis
 
 For each step:
 
-1. Write or update code.
-2. Run syntax checks before execution.
-3. Execute on real data.
-4. Save outputs and intermediate data.
-5. Generate at least one useful table or figure unless the modeling decision explicitly says not applicable.
-6. For paper-intended figures, resolve the plotting backend from `plan.md` or the implementation language. If no backend is clear and `nature-figure` is needed for a publication figure, stop before rendering and ask `Python or R?`.
-7. When `nature-figure` is available, run or replicate `../_references/scripts/resolve_nature_figure.py --workspace <contest-workspace>` before drawing core paper figures. Record the resolver result in `reports/AGENT_RUNS.md`.
-8. When `nature-figure` is enabled, load its manifest, core contract, stance, and exactly one backend fragment through `../_references/nature_figure_integration_guide.md`; generate data figures only with the selected Python scientific plotting backend or R/ggplot2 backend.
-9. Do not use `Pillow` as the backend for core data figures such as heatmaps, bar charts, scatter plots, matrices, distributions, model diagnostics, or quantitative panels. `Pillow` is allowed only for non-data process diagrams or raster annotations.
-10. Append a manifest entry for every metric, table, and figure.
-11. Write a short result narrative in `reports/RESULTS_REPORT.md`.
-12. If using subagents, ask `visualization-reviewer` to check figure usefulness and record the review.
+1. If local RAG is available, query `code_templates` and `figure_templates` for implementation skeletons, validation patterns, and figure/caption standards. Record sourced template use in `reports/EXPERIMENT_LOG.md`; adapt all variable names and metrics to the current data.
+2. Write or update code.
+3. Run syntax checks before execution.
+4. Execute on real data.
+5. Save outputs and intermediate data.
+6. Generate at least one useful table or figure unless the modeling decision explicitly says not applicable.
+7. For paper-intended figures, resolve the plotting backend from `plan.md` or the implementation language. If no backend is clear and `nature-figure` is needed for a publication figure, stop before rendering and ask `Python or R?`.
+8. When `nature-figure` is available, run or replicate `../_references/scripts/resolve_nature_figure.py --workspace <contest-workspace>` before drawing core paper figures. Record the resolver result in `reports/AGENT_RUNS.md`.
+9. When `nature-figure` is enabled, load its manifest, core contract, stance, and exactly one backend fragment through `../_references/nature_figure_integration_guide.md`; generate data figures only with the selected Python scientific plotting backend or R/ggplot2 backend.
+10. Do not use `Pillow` as the backend for core data figures such as heatmaps, bar charts, scatter plots, matrices, distributions, model diagnostics, or quantitative panels. `Pillow` is allowed only for non-data process diagrams or raster annotations.
+11. Append a manifest entry for every metric, table, and figure.
+12. Write a short result narrative in `reports/RESULTS_REPORT.md`.
+13. If using subagents, ask `visualization-reviewer` to check figure usefulness and record the review.
 
 For complex data cleaning, modeling code, or repeated figure generation, use `experiment-coder` or the installed `mathmodel-experiment-coder` custom agent. Its write scope is limited to `code/`, `code/outputs/`, `figures/`, `results/`, `reports/EXPERIMENT_LOG.md`, `reports/RESULTS_REPORT.md`, and `reports/FIGURE_PLAN.md`.
 

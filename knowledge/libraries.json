@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "default_stage": "capability",
+  "libraries": [
+    {
+      "id": "cumcm_problems",
+      "name": "历年国赛题库",
+      "description": "CUMCM national contest statements, attachments, task labels, and hidden scoring cues.",
+      "stage": "problem_intake",
+      "default_license": "local-use-only",
+      "default_tags": ["cumcm", "problem", "routing"]
+    },
+    {
+      "id": "mcm_icm_problems",
+      "name": "历年美赛题库",
+      "description": "MCM/ICM statements, tracks, English phrasing, and common modeling routes.",
+      "stage": "problem_intake",
+      "default_license": "local-use-only",
+      "default_tags": ["mcm", "icm", "problem", "english"]
+    },
+    {
+      "id": "excellent_papers",
+      "name": "优秀论文库",
+      "description": "High-score paper structure, abstract patterns, figures, model route, and conclusion writing.",
+      "stage": "paper_build",
+      "default_license": "local-use-only",
+      "default_tags": ["paper", "high-score", "evidence"]
+    },
+    {
+      "id": "model_methods",
+      "name": "常规模型库",
+      "description": "Evaluation, prediction, optimization, mechanism, graph, statistics, simulation, and MCDM model cards.",
+      "stage": "model_strategy",
+      "default_license": "project-authored",
+      "default_tags": ["model", "method", "router"]
+    },
+    {
+      "id": "code_templates",
+      "name": "代码模板库",
+      "description": "Python, R, MATLAB templates for cleaning, modeling, validation, and visualization.",
+      "stage": "data_experiment",
+      "default_license": "project-authored",
+      "default_tags": ["code", "template", "experiment"]
+    },
+    {
+      "id": "figure_templates",
+      "name": "图表模板库",
+      "description": "Recommended figures by problem type, figure audit standards, captions, and evidence mapping.",
+      "stage": "data_experiment",
+      "default_license": "project-authored",
+      "default_tags": ["figure", "visualization", "evidence"]
+    },
+    {
+      "id": "paper_expression",
+      "name": "论文表达模板库",
+      "description": "Abstract, restatement, assumptions, formula explanation, result interpretation, sensitivity, and conclusion wording.",
+      "stage": "paper_build",
+      "default_license": "project-authored",
+      "default_tags": ["writing", "paper", "expression"]
+    },
+    {
+      "id": "review_rubrics",
+      "name": "评分评审库",
+      "description": "Rubrics, judge skim review, anti-template review, high-low score gaps, and common deductions.",
+      "stage": "contest_review",
+      "default_license": "project-authored",
+      "default_tags": ["review", "rubric", "judge"]
+    }
+  ]
+}
