@@ -15,6 +15,9 @@ Read:
 - `../_references/contest_score_rubric.md`
 - `../_references/paper_benchmark_profile.md`
 - `../_references/agent_review_protocol.md`
+- `../_references/rag_usage_contract.md`
+- `../_references/judge_skim_review_protocol.md`
+- `../_references/anti_template_review.md`
 - `../_references/figure_quality_standard.md`
 - `../_references/nature_figure_integration_guide.md` when optional `nature-figure` scientific plotting integration is available
 - `../_references/ars_v2_integration_guide.md` when optional ARS editorial synthesis is available
@@ -56,6 +59,15 @@ After independent panels complete, optionally load `<ARS_ROOT>/academic-paper-re
 If subagents are unavailable, simulate the panels sequentially and record that in `reports/AGENT_RUNS.md`.
 
 Whether panels are native Codex subagents or simulated roles, log the same metadata: goal, inputs, model/reasoning, permission scope, outputs, conclusion, and thread/id when available.
+
+## Local RAG And Skim Review
+
+Before writing the final scorecard:
+
+1. If local RAG is available, query `review_rubrics` for scoring/fast-review cues and `model_methods` when a model-misuse question appears. Record only sourced hits using `../_references/rag_usage_contract.md`.
+2. Run the 5-minute judge skim review from `../_references/judge_skim_review_protocol.md`. Add the `Judge Skim Review` section to `reports/PAPER_SCORECARD.md`.
+3. Run the anti-template review from `../_references/anti_template_review.md` against the final paper claims and implemented methods. Add an `Anti-Template Review` section to `reports/PAPER_SCORECARD.md`.
+4. Any actionable `BLOCKER`, `HIGH`, or `MEDIUM` finding from RAG evidence, judge skim, or anti-template review must be represented in `reports/REVISION_ACTIONS.md`.
 
 ## Scorecard
 

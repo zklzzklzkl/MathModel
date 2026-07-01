@@ -1,101 +1,434 @@
 # Model Method Cards
 
-> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 被 [[skills/mm-model-strategy/SKILL|mm-model-strategy]] 引用
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]]；主要被 `skills/mm-model-strategy/SKILL.md` 引用。
+> 这些卡片是建模判断工具，不是硬套模板。任何模型都必须回答当前题目、匹配当前数据，并能被代码与图表验证。
 
-Use these cards to guide model selection. They are prompts for judgment, not mandatory templates.
+## Card Format
 
-## Prediction
+每张模型卡在 `mm-model-strategy` 中至少用于回答：
 
-Use when the task asks to forecast, estimate, or classify future/unknown values.
+- 适用题型：哪些问题动词、数据结构、提交目标会触发它。
+- 数据要求：最少需要哪些字段、样本量、单位和时间/空间粒度。
+- 变量定义：决策变量、状态变量、解释变量、评价指标或参数。
+- 核心公式：必须能写清楚的数学对象，而不是只写模型名称。
+- Baseline：最简单但可解释的可行模型。
+- Advanced Model：在数据支持时可升级的高分路线。
+- 验证指标：误差、稳健性、敏感性、可行性、显著性或对照基准。
+- 常见扣分点：评委会认为“套模板”“不可复现”“没有回答问题”的地方。
+- 图表建议：每个模型至少要有一类能支撑结论的图或表。
+- 代码模板入口：可从 `code_templates` RAG 库检索对应骨架。
 
-Typical methods:
+## 1. Evaluation And Ranking
 
-- regression baseline
-- tree models or gradient boosting
-- time-series models
-- classification models
+适用题型：
 
-Must include:
+- 综合评价、方案排序、风险评分、指标体系构建、对象优劣比较。
+- 输出通常是排名、等级、综合得分、关键指标贡献。
 
-- train/validation split or justified validation scheme
-- error metrics
-- residual or prediction comparison figure
-- leakage check for time-dependent data
+数据要求：
 
-## Evaluation And Ranking
+- 指标方向明确：正向、负向、适中型、区间型。
+- 指标单位和量纲可解释。
+- 样本量至少能支撑权重和稳定性分析。
 
-Use when the task asks to score, rank, select, or compare.
+变量与公式：
 
-Typical methods:
+- 评价对象 `i`，指标 `j`，标准化值 `z_ij`，权重 `w_j`，综合得分 `S_i`。
+- TOPSIS 需定义正负理想解、距离和贴近度。
+- 熵权需说明信息熵、差异系数和权重归一化。
 
-- entropy weight
-- AHP with consistency check
-- TOPSIS
-- PCA or factor analysis
-- clustering plus scoring
+Baseline：
 
-Must include:
+- 等权线性加权评分。
+- 指标标准化后按专家或题面给定权重评分。
 
-- indicator direction
-- normalization method
-- weight source
-- ranking stability or sensitivity
+Advanced Model：
 
-## Optimization
+- 熵权 TOPSIS、组合赋权 TOPSIS、PCA/factor analysis + ranking。
+- 灰色关联、VIKOR、模糊综合评价，仅在语义或不确定性确实需要时使用。
 
-Use when the task asks for best allocation, scheduling, route, policy, or decision.
+验证指标：
 
-Typical methods:
+- 权重扰动敏感性。
+- 指标删除实验。
+- 排名 Spearman/Kendall 相关。
+- 与 baseline 排名差异解释。
 
-- linear/integer programming
-- nonlinear programming
-- dynamic programming
-- heuristic/metaheuristic
-- simulation optimization
+常见扣分点：
 
-Must include:
+- 未说明指标方向和标准化方式。
+- AHP 没有一致性检验或专家来源。
+- TOPSIS 只给排名，不解释为什么。
+- 样本极少却强行 PCA。
 
-- decision variables
-- objective function
-- hard constraints
-- feasible baseline
-- sensitivity on key parameters
+图表建议：
 
-## Statistical Inference
+- 指标权重条形图。
+- TOPSIS 贴近度/排名图。
+- 稳定性热力图。
+- 方案雷达图或平行坐标图。
 
-Use when the task asks to compare groups, test difference, estimate effects, or explain factors.
+代码模板入口：
 
-Typical methods:
+- 检索 `code_templates`：`evaluation ranking topsis entropy sensitivity`。
 
-- hypothesis tests
-- regression and generalized linear models
-- ANOVA or nonparametric tests
-- Bayesian or bootstrap intervals
+## 2. Prediction
 
-Must include:
+适用题型：
 
-- assumptions
-- effect size or confidence interval
-- diagnostic or robustness check
+- 预测趋势、估计未来值、分类风险、填补未知指标。
+- 输出通常是预测值、区间、误差、未来场景。
 
-## Simulation
+数据要求：
 
-Use when direct analytical solution is difficult and system dynamics matter.
+- 明确训练数据与预测目标。
+- 时间序列需保留时间顺序。
+- 特征不能泄漏未来信息。
 
-Typical methods:
+变量与公式：
 
-- Monte Carlo simulation
-- agent/state simulation
-- queueing or epidemic-style dynamics
-- scenario simulation
+- 目标 `y`，特征 `X`，预测函数 `f(X)`，误差 `e = y - y_hat`。
+- 时间序列需说明滞后项、季节项或状态转移。
 
-Must include:
+Baseline：
 
-- scenario definitions
-- random seed policy
-- repeated runs
-- uncertainty visualization
+- 均值/最近值/季节朴素预测。
+- 线性回归、逻辑回归、简单 ARIMA/指数平滑。
 
-## Do Not Template-Stuff
+Advanced Model：
 
-Do not use AHP, TOPSIS, neural networks, or genetic algorithms just because they look sophisticated. The model must answer the actual question with available data.
+- 随机森林、梯度提升树、XGBoost/LightGBM。
+- 状态空间模型、Prophet、LSTM/Transformer 仅在数据量和时间结构足够时使用。
+
+验证指标：
+
+- MAE、RMSE、MAPE、R2、AUC/F1。
+- 时间序列滚动验证。
+- 残差诊断和误差分布。
+
+常见扣分点：
+
+- 用随机切分破坏时间因果。
+- 只报告训练误差。
+- 黑箱模型没有解释或重要特征分析。
+- 数据量很小却使用深度学习。
+
+图表建议：
+
+- 真实值-预测值对比图。
+- 残差分布图。
+- 特征重要性图。
+- 预测区间或场景带图。
+
+代码模板入口：
+
+- 检索 `code_templates`：`prediction validation baseline residual`。
+
+## 3. Optimization And Decision
+
+适用题型：
+
+- 资源配置、排班调度、路线规划、选址、策略制定、成本收益权衡。
+- 输出通常是最优方案、约束满足情况、敏感性和可执行建议。
+
+数据要求：
+
+- 决策变量可定义。
+- 目标函数可量化。
+- 硬约束和软约束可区分。
+- 参数来源可追踪。
+
+变量与公式：
+
+- 决策变量 `x`，目标 `min/max f(x)`，约束 `g_k(x) <= b_k`。
+- 整数/0-1 变量必须说明含义。
+
+Baseline：
+
+- 贪心规则、人工规则、均匀分配、最近邻或简单线性规划。
+
+Advanced Model：
+
+- 线性/整数规划、非线性规划、动态规划。
+- 多目标优化、鲁棒优化、仿真优化。
+- 启发式/遗传算法只在精确求解不可行或搜索空间巨大时使用。
+
+验证指标：
+
+- 目标值与 baseline 对比。
+- 约束违反数量。
+- 参数敏感性。
+- 多目标 Pareto 前沿或权衡曲线。
+
+常见扣分点：
+
+- 没有写决策变量。
+- 约束只在文字里，没有进入模型。
+- 只给最优值，不给方案可执行表。
+- 遗传算法没有说明编码、适应度和收敛性。
+
+图表建议：
+
+- 方案对比表。
+- 约束利用率图。
+- Pareto 前沿图。
+- 收敛曲线和敏感性曲线。
+
+代码模板入口：
+
+- 检索 `code_templates`：`optimization linear programming sensitivity feasible baseline`。
+
+## 4. Mechanism Modeling
+
+适用题型：
+
+- 解释系统机理、传播过程、物理/生态/经济动态、因果结构。
+- 输出通常是方程、状态演化、关键参数、情景响应。
+
+数据要求：
+
+- 有可解释的状态变量和参数。
+- 题面背景能支持机制假设。
+- 最好有观测数据用于校准或检验。
+
+变量与公式：
+
+- 状态变量 `x(t)`，参数 `theta`，微分/差分方程 `dx/dt = F(x, theta, t)`。
+- 需要说明初值、边界条件和参数含义。
+
+Baseline：
+
+- 质量守恒、比例关系、简单差分方程、线性响应模型。
+
+Advanced Model：
+
+- ODE/PDE、系统动力学、SEIR 类模型、灰箱模型、因果图 + 方程。
+
+验证指标：
+
+- 拟合误差。
+- 参数可解释性。
+- 情景响应是否符合常识。
+- 参数敏感性。
+
+常见扣分点：
+
+- 背景故事很多，数学方程很少。
+- 参数没有来源。
+- 只模拟一条曲线，没有验证。
+- 机制假设与题目实际场景不符。
+
+图表建议：
+
+- 机制流程图。
+- 状态变量时间演化图。
+- 参数敏感性曲线。
+- 观测值与模拟值对比图。
+
+代码模板入口：
+
+- 检索 `code_templates`：`ode simulation parameter sensitivity mechanism`。
+
+## 5. Graph And Network
+
+适用题型：
+
+- 交通网络、供应链、社交传播、设施连通性、路径与中心性、网络风险。
+- 输出通常是关键节点、路径、社区、鲁棒性或网络优化方案。
+
+数据要求：
+
+- 节点、边、权重、方向、容量或距离定义清楚。
+- 网络构建规则不能任意。
+
+变量与公式：
+
+- 图 `G=(V,E)`，边权 `w_ij`，邻接矩阵 `A`，中心性 `C(v)`，路径长度 `d(i,j)`。
+
+Baseline：
+
+- 度中心性、最短路径、连通分量、简单网络指标。
+
+Advanced Model：
+
+- PageRank、介数/接近中心性、社区发现、最小生成树、最大流/最小割、网络鲁棒性仿真。
+
+验证指标：
+
+- 关键节点移除实验。
+- 路径或流量对 baseline 的改善。
+- 社区划分稳定性。
+- 结果与业务含义一致性。
+
+常见扣分点：
+
+- 边权没有物理或业务含义。
+- 只画网络图，不输出可决策指标。
+- 网络算法与题问无关。
+
+图表建议：
+
+- 带权网络图。
+- 中心性排名图。
+- 关键节点移除鲁棒性曲线。
+- 路径/流量示意图。
+
+代码模板入口：
+
+- 检索 `code_templates`：`network graph centrality shortest path robustness`。
+
+## 6. Statistical Tests And Inference
+
+适用题型：
+
+- 比较差异、解释影响因素、检验假设、估计效应、识别显著变量。
+
+数据要求：
+
+- 分组、样本量、变量类型和独立性假设明确。
+- 缺失值和异常值处理可追踪。
+
+变量与公式：
+
+- 原假设 `H0`，备择假设 `H1`，统计量 `T`，p 值，效应量或置信区间。
+
+Baseline：
+
+- 描述统计、相关分析、t 检验/卡方检验、线性回归。
+
+Advanced Model：
+
+- ANOVA、非参数检验、GLM、混合效应模型、Bootstrap、贝叶斯区间。
+
+验证指标：
+
+- 假设检查。
+- p 值与效应量并报。
+- 置信区间。
+- 多重比较控制。
+
+常见扣分点：
+
+- 只报 p 值，不报效应大小。
+- 忽略分布和独立性假设。
+- 把相关说成因果。
+- 多次检验不控制错误率。
+
+图表建议：
+
+- 箱线图/小提琴图。
+- 回归诊断图。
+- 效应量和置信区间图。
+- 相关矩阵热力图。
+
+代码模板入口：
+
+- 检索 `code_templates`：`statistical test effect size confidence interval diagnostic`。
+
+## 7. Simulation
+
+适用题型：
+
+- 随机性强、解析解困难、排队服务、库存、传播、风险情景、策略试验。
+
+数据要求：
+
+- 随机变量分布、事件规则、初始条件、重复次数明确。
+- 参数来自题面、数据估计或可解释假设。
+
+变量与公式：
+
+- 状态 `s_t`，事件 `a_t`，随机扰动 `epsilon_t`，转移 `s_{t+1}=F(s_t,a_t,epsilon_t)`。
+
+Baseline：
+
+- 单情景确定性模拟。
+- Monte Carlo 均值情景。
+
+Advanced Model：
+
+- 离散事件仿真、Agent-based simulation、排队模型、情景树、仿真优化。
+
+验证指标：
+
+- 重复运行均值和置信区间。
+- 极端情景测试。
+- 随机种子策略。
+- 与理论或历史数据对照。
+
+常见扣分点：
+
+- 只运行一次。
+- 分布假设没有来源。
+- 不报告不确定性。
+- 仿真结果没有转化为题目需要的建议。
+
+图表建议：
+
+- 多次仿真置信带。
+- 分布直方图/密度图。
+- 情景对比图。
+- 服务等待时间或资源占用曲线。
+
+代码模板入口：
+
+- 检索 `code_templates`：`simulation monte carlo seed confidence interval scenario`。
+
+## 8. Multi-Objective Decision
+
+适用题型：
+
+- 同时考虑成本、效率、公平、风险、环境、收益等冲突目标。
+- 输出通常是折中方案、权衡解释和推荐策略。
+
+数据要求：
+
+- 多个目标均可量化。
+- 目标方向、约束和决策变量清楚。
+- 用户偏好或权重来源可说明。
+
+变量与公式：
+
+- 目标向量 `F(x) = (f1(x), f2(x), ..., fm(x))`。
+- Pareto 支配关系、加权和、约束法或理想点距离。
+
+Baseline：
+
+- 单目标优化加事后检查。
+- 加权和模型。
+
+Advanced Model：
+
+- Pareto 前沿、NSGA-II、TOPSIS + 可行方案集、鲁棒多目标优化。
+
+验证指标：
+
+- Pareto 解数量与分布。
+- 权重敏感性。
+- 与单目标方案的代价比较。
+- 关键约束满足情况。
+
+常见扣分点：
+
+- 把多目标问题强行变成单一分数却不解释权重。
+- 只给一个“最优解”，没有权衡。
+- 高级算法没有参数、收敛和可复现说明。
+
+图表建议：
+
+- Pareto 前沿散点图。
+- 权重敏感性图。
+- 方案雷达图。
+- 推荐方案与 baseline 对比表。
+
+代码模板入口：
+
+- 检索 `code_templates`：`multi objective pareto weighted sensitivity decision`。
+
+## Anti-Template Rule
+
+任何候选路线在写入 `MODEL_CANDIDATES.md` 前，必须回答三问：
+
+1. 为什么不用更简单的 baseline？
+2. 当前数据是否支撑这个模型的参数量和假设？
+3. 这个模型的输出是否直接回答原题，而不是只展示算法名？

@@ -67,3 +67,11 @@ app/backend/.env
 app/backend/.venv/
 app/frontend/node_modules/
 app/frontend/dist/
+
+# Local RAG knowledge data and indexes (keep config/samples tracked)
+knowledge/raw/
+knowledge/.local/
+knowledge/**/*.sqlite
+knowledge/**/*.sqlite3
+knowledge/**/chroma/
+knowledge/**/.cache/

@@ -14,6 +14,8 @@ Read:
 
 - `../_references/v2_pipeline_contract.md`
 - `../_references/contest_score_rubric.md`
+- `../_references/rag_usage_contract.md`
+- `../_references/anti_template_review.md`
 - `../_references/figure_quality_standard.md`
 - `../_references/nature_figure_integration_guide.md` when optional `nature-figure` scientific plotting integration was used
 - `../_references/agent_review_protocol.md`
@@ -50,6 +52,7 @@ Check:
 - LaTeX contains `\includegraphics` or Typst contains `#figure(` / `image(`
 - `reports/CLAIM_TRACE.md` has no missing core claims and no strongly worded weak core claims
 - `reports/PAPER_SCORECARD.md` exists and all critical dimensions are acceptable
+- `reports/PAPER_SCORECARD.md` records judge-skim and anti-template findings when those reviews were run
 - `reports/REVISION_ACTIONS.md` and `reports/REVISION_STATUS.md` show no unresolved `BLOCKER` or `HIGH` items
 - code files compile or have a documented execution method
 - paper compiles where the engine is installed
