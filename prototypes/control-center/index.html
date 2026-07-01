@@ -1,0 +1,1278 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MathModel Control Center Prototype</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --surface-2: #f0f4f5;
+      --line: #d8dee3;
+      --line-strong: #b6c1ca;
+      --text: #18212b;
+      --muted: #637181;
+      --soft: #7d8a98;
+      --accent: #0f766e;
+      --accent-2: #2563eb;
+      --good: #15803d;
+      --warn: #b7791f;
+      --bad: #b42318;
+      --info: #1d4ed8;
+      --shadow: 0 12px 28px rgba(24, 33, 43, 0.08);
+      --radius: 8px;
+      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background: var(--bg);
+      font-size: 14px;
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 7px;
+      min-height: 34px;
+      padding: 0 12px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      border-color: var(--line-strong);
+      background: #f8fafb;
+    }
+
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    button.active {
+      background: #e6f3f2;
+      border-color: #8bc8c1;
+      color: #0b5f59;
+      font-weight: 650;
+    }
+
+    select {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      color: var(--text);
+      min-height: 34px;
+      padding: 0 10px;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 248px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      background: #ffffff;
+      border-right: 1px solid var(--line);
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 4px 2px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand strong {
+      font-size: 17px;
+    }
+
+    .brand span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .nav {
+      display: grid;
+      gap: 6px;
+    }
+
+    .nav button {
+      width: 100%;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: flex-start;
+    }
+
+    .nav-mark {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--line-strong);
+      flex: 0 0 auto;
+    }
+
+    button.active .nav-mark {
+      background: var(--accent);
+    }
+
+    .workspace-mini {
+      margin-top: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+      background: var(--surface-2);
+    }
+
+    .workspace-mini label,
+    .field label {
+      font-size: 12px;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .workspace-mini select {
+      width: 100%;
+    }
+
+    .content {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      min-height: 64px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      padding: 12px 20px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .title-block {
+      min-width: 0;
+    }
+
+    .title-block h1 {
+      margin: 0;
+      font-size: 19px;
+      line-height: 1.25;
+      font-weight: 720;
+    }
+
+    .title-block p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .main {
+      padding: 18px 20px 24px;
+      min-width: 0;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .grid-dashboard {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.85fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .panel-header {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.3;
+    }
+
+    .panel-header span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .panel-body {
+      padding: 14px;
+    }
+
+    .status-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: #fff;
+      min-height: 82px;
+    }
+
+    .metric label {
+      color: var(--muted);
+      font-size: 12px;
+      display: block;
+      margin-bottom: 7px;
+    }
+
+    .metric strong {
+      font-size: 22px;
+      line-height: 1.1;
+      display: block;
+    }
+
+    .metric small {
+      display: block;
+      margin-top: 7px;
+      color: var(--soft);
+      line-height: 1.35;
+    }
+
+    .phase-timeline {
+      display: grid;
+      gap: 9px;
+    }
+
+    .phase-row {
+      display: grid;
+      grid-template-columns: 54px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fff;
+    }
+
+    .phase-row.selected {
+      border-color: #8bc8c1;
+      background: #f1fbfa;
+    }
+
+    .phase-id {
+      font-weight: 700;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .phase-row h3 {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .phase-row p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 0 9px;
+      font-size: 12px;
+      font-weight: 650;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .badge.good {
+      color: var(--good);
+      background: #eaf7ee;
+      border-color: #bfe6cb;
+    }
+
+    .badge.warn {
+      color: var(--warn);
+      background: #fff7e6;
+      border-color: #f1d08a;
+    }
+
+    .badge.bad {
+      color: var(--bad);
+      background: #fff0ee;
+      border-color: #f2b8b2;
+    }
+
+    .badge.info {
+      color: var(--info);
+      background: #eef5ff;
+      border-color: #c4d8ff;
+    }
+
+    .artifact-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .artifact-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fff;
+    }
+
+    .artifact-item strong {
+      display: block;
+      overflow-wrap: anywhere;
+    }
+
+    .artifact-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 3px;
+      overflow-wrap: anywhere;
+    }
+
+    .phase-layout {
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) minmax(0, 1fr) minmax(310px, 0.85fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .phase-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .phase-button {
+      display: grid;
+      width: 100%;
+      grid-template-columns: 46px minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      text-align: left;
+      min-height: 48px;
+    }
+
+    .phase-detail-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .phase-detail-title h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .field {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      min-height: 68px;
+      background: #fff;
+    }
+
+    .field strong {
+      display: block;
+      overflow-wrap: anywhere;
+    }
+
+    .prompt-box,
+    .code-box {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fbfcfd;
+      padding: 12px;
+      color: #22303d;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .prompt-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .risk-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .risk-item {
+      border-left: 4px solid var(--line-strong);
+      padding: 9px 10px;
+      background: #fff;
+      border-radius: 0 7px 7px 0;
+      border-top: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .risk-item.blocker {
+      border-left-color: var(--bad);
+    }
+
+    .risk-item.high {
+      border-left-color: var(--warn);
+    }
+
+    .risk-item.medium {
+      border-left-color: var(--info);
+    }
+
+    .risk-item strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .risk-item p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .artifact-layout {
+      display: grid;
+      grid-template-columns: minmax(300px, 410px) minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .search-row input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      min-height: 34px;
+      padding: 0 10px;
+      font: inherit;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f3f6f8;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .console-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(310px, 0.7fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .message-stream {
+      display: grid;
+      gap: 10px;
+    }
+
+    .message {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 11px;
+      background: #fff;
+    }
+
+    .message header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .message p {
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .mono {
+      font-family: Consolas, "Cascadia Mono", monospace;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .service-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fff;
+    }
+
+    .service-row strong {
+      display: block;
+    }
+
+    .service-row span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 3px;
+    }
+
+    @media (max-width: 1180px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+        flex-direction: row;
+        align-items: center;
+      }
+
+      .brand {
+        border-bottom: 0;
+        padding: 0;
+        min-width: 190px;
+      }
+
+      .nav {
+        grid-auto-flow: column;
+        overflow-x: auto;
+        flex: 1;
+      }
+
+      .nav button {
+        white-space: nowrap;
+      }
+
+      .workspace-mini {
+        display: none;
+      }
+
+      .grid-dashboard,
+      .phase-layout,
+      .artifact-layout,
+      .console-layout,
+      .settings-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+
+      .top-actions {
+        justify-content: flex-start;
+      }
+
+      .status-strip,
+      .field-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .main {
+        padding: 14px 12px 20px;
+      }
+
+      .phase-row {
+        grid-template-columns: 42px minmax(0, 1fr);
+      }
+
+      .phase-row .badge {
+        grid-column: 2;
+        justify-self: start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <strong>MathModel Control</strong>
+        <span>V2.3 workspace shell</span>
+      </div>
+      <nav class="nav" aria-label="主导航">
+        <button class="active" data-view="dashboard"><span class="nav-mark"></span>总览</button>
+        <button data-view="phase"><span class="nav-mark"></span>阶段</button>
+        <button data-view="artifacts"><span class="nav-mark"></span>文件</button>
+        <button data-view="console"><span class="nav-mark"></span>执行</button>
+        <button data-view="benchmark"><span class="nav-mark"></span>对标</button>
+        <button data-view="settings"><span class="nav-mark"></span>设置</button>
+      </nav>
+      <div class="workspace-mini">
+        <div>
+          <label for="workspace">工作区</label>
+          <select id="workspace">
+            <option>examples/2022C/V2.3</option>
+            <option>新建 V2 工作区</option>
+          </select>
+        </div>
+        <div>
+          <label for="harness">Harness</label>
+          <select id="harness">
+            <option>Manual</option>
+            <option>Codex</option>
+            <option>Claude Code</option>
+            <option>OpenCode</option>
+          </select>
+        </div>
+      </div>
+    </aside>
+
+    <section class="content">
+      <header class="topbar">
+        <div class="title-block">
+          <h1 id="viewTitle">竞赛工作区总览</h1>
+          <p>D:\WorkSpace_MathModel\examples\2022C\DeepSeekV4Pro_V2.3</p>
+        </div>
+        <div class="top-actions">
+          <button>刷新</button>
+          <button>打开目录</button>
+          <button class="primary">生成下一步</button>
+        </div>
+      </header>
+
+      <main class="main">
+        <section class="view active" id="dashboard">
+          <div class="status-strip">
+            <div class="metric">
+              <label>VERIFY_REPORT</label>
+              <strong class="badge bad">FAIL</strong>
+              <small>当前最高风险为 HIGH</small>
+            </div>
+            <div class="metric">
+              <label>论文页数</label>
+              <strong>16</strong>
+              <small>PDF 可读，仍缺核心图证</small>
+            </div>
+            <div class="metric">
+              <label>核心图表</label>
+              <strong>0</strong>
+              <small>manifest 未登记 figures</small>
+            </div>
+            <div class="metric">
+              <label>未解决项</label>
+              <strong>3</strong>
+              <small>schema, figures, audit columns</small>
+            </div>
+          </div>
+
+          <div class="grid-dashboard">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>阶段流</h2>
+                <span>V2.3 Phase 0-6</span>
+              </div>
+              <div class="panel-body">
+                <div class="phase-timeline" id="dashboardPhases"></div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2>风险与下一步</h2>
+                <span>audit_v2_run.py</span>
+              </div>
+              <div class="panel-body">
+                <div class="risk-list">
+                  <div class="risk-item high">
+                    <strong>HIGH - RESULTS_MANIFEST schema legacy</strong>
+                    <p>示例结果仍是旧 list 结构，需要迁移到 metrics/tables/figures/scripts 对象结构。</p>
+                  </div>
+                  <div class="risk-item high">
+                    <strong>HIGH - manifest figures missing</strong>
+                    <p>论文中的核心证据图没有进入 manifest，后续 claim trace 无法闭环。</p>
+                  </div>
+                  <div class="risk-item medium">
+                    <strong>MEDIUM - figure audit columns missing</strong>
+                    <p>FIGURE_AUDIT 需要显式记录 status, source, resolution, paper_link。</p>
+                  </div>
+                </div>
+                <div class="prompt-actions">
+                  <button class="primary">生成修复提示词</button>
+                  <button>查看审计报告</button>
+                  <button>进入 Phase 2</button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="phase">
+          <div class="phase-layout">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>阶段</h2>
+                <span>选择当前工作焦点</span>
+              </div>
+              <div class="panel-body">
+                <div class="phase-list" id="phaseButtons"></div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2>阶段详情</h2>
+                <span id="phaseGate">Gate</span>
+              </div>
+              <div class="panel-body">
+                <div class="phase-detail-title">
+                  <h2 id="phaseName"></h2>
+                  <span id="phaseStatus" class="badge"></span>
+                </div>
+                <div class="field-grid">
+                  <div class="field">
+                    <label>Skill</label>
+                    <strong id="phaseSkill"></strong>
+                  </div>
+                  <div class="field">
+                    <label>Agent roles</label>
+                    <strong id="phaseAgents"></strong>
+                  </div>
+                  <div class="field">
+                    <label>输入</label>
+                    <strong id="phaseInputs"></strong>
+                  </div>
+                  <div class="field">
+                    <label>输出</label>
+                    <strong id="phaseOutputs"></strong>
+                  </div>
+                </div>
+                <div class="prompt-box" id="phasePrompt"></div>
+                <div class="prompt-actions">
+                  <button class="primary">复制 Prompt</button>
+                  <button>标记人工确认</button>
+                  <button>运行审计</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2>阶段文件</h2>
+                <span id="artifactCount"></span>
+              </div>
+              <div class="panel-body">
+                <div class="artifact-list" id="phaseArtifacts"></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="artifacts">
+          <div class="artifact-layout">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Artifact Index</h2>
+                <span>workspace truth</span>
+              </div>
+              <div class="panel-body">
+                <div class="search-row">
+                  <input id="artifactSearch" placeholder="搜索 plan, audit, scorecard..." />
+                  <button>过滤</button>
+                </div>
+                <div class="artifact-list" id="artifactIndex"></div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2 id="artifactTitle">VERIFY_REPORT.md</h2>
+                <span id="artifactMeta">reports/VERIFY_REPORT.md</span>
+              </div>
+              <div class="panel-body">
+                <div class="code-box mono" id="artifactPreview"></div>
+                <div class="prompt-actions">
+                  <button>打开文件</button>
+                  <button>生成修订任务</button>
+                  <button>加入 Claim Trace</button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="console">
+          <div class="console-layout">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>执行流</h2>
+                <span>Manual harness mode</span>
+              </div>
+              <div class="panel-body">
+                <div class="message-stream">
+                  <article class="message">
+                    <header><span>System</span><span>16:18</span></header>
+                    <p>已读取 WORKFLOW_STATE.md，当前建议进入 Phase 2 修复 RESULTS_MANIFEST 和 FIGURE_AUDIT。</p>
+                  </article>
+                  <article class="message">
+                    <header><span>Prompt Builder</span><span>16:19</span></header>
+                    <p>已生成 harness-agnostic prompt，可复制到 Codex, Claude Code 或 OpenCode。</p>
+                  </article>
+                  <article class="message">
+                    <header><span>Audit</span><span>16:20</span></header>
+                    <p>benchmark 检测到 DeepSeekV4Pro_V2.3: FAIL HIGH, 0 figures, 3 issues。</p>
+                  </article>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Prompt</h2>
+                <span>portable instruction</span>
+              </div>
+              <div class="panel-body">
+                <div class="prompt-box">读取当前 V2.3 工作区。只修改 reports/RESULTS_MANIFEST.json 与 reports/FIGURE_AUDIT.md 相关闭环。不要重写论文，不要改变已完成建模结论。完成后运行 audit_v2_run.py 并报告剩余 HIGH/BLOCKER 项。</div>
+                <div class="prompt-actions">
+                  <button class="primary">复制</button>
+                  <button>保存为 run.md</button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="benchmark">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>2022C Benchmark</h2>
+              <span>examples/2022C</span>
+            </div>
+            <div class="panel-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Run</th>
+                      <th>Gate</th>
+                      <th>Severity</th>
+                      <th>Figures</th>
+                      <th>Pages</th>
+                      <th>Claimed PASS</th>
+                      <th>Issues</th>
+                    </tr>
+                  </thead>
+                  <tbody id="benchmarkRows"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" id="settings">
+          <div class="settings-grid">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>服务</h2>
+                <span>local adapters</span>
+              </div>
+              <div class="panel-body">
+                <div class="risk-list">
+                  <div class="service-row">
+                    <div><strong>Workspace Reader</strong><span>读取 artifacts, gates, manifest</span></div>
+                    <span class="badge good">ready</span>
+                  </div>
+                  <div class="service-row">
+                    <div><strong>Prompt Builder</strong><span>生成跨 harness 指令</span></div>
+                    <span class="badge good">ready</span>
+                  </div>
+                  <div class="service-row">
+                    <div><strong>Managed Adapter</strong><span>Codex / Claude Code / OpenCode</span></div>
+                    <span class="badge warn">later</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2>复用范围</h2>
+                <span>MathModelAgent-main</span>
+              </div>
+              <div class="panel-body">
+                <div class="artifact-list">
+                  <div class="artifact-item">
+                    <div><strong>WebSocket task stream</strong><span>保留连接状态、消息流和取消任务模式</span></div>
+                    <span class="badge info">reuse</span>
+                  </div>
+                  <div class="artifact-item">
+                    <div><strong>File APIs</strong><span>改造成 V2 artifact index 和文件预览</span></div>
+                    <span class="badge info">adapt</span>
+                  </div>
+                  <div class="artifact-item">
+                    <div><strong>Notebook area</strong><span>用于 code/ 与 results/ 的执行记录</span></div>
+                    <span class="badge info">reuse</span>
+                  </div>
+                  <div class="artifact-item">
+                    <div><strong>Four-agent workflow</strong><span>不作为核心脑，只做 legacy 兼容页</span></div>
+                    <span class="badge warn">legacy</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <script>
+    const phases = [
+      {
+        id: "Phase 0",
+        name: "题面与数据建档",
+        skill: "mm-problem-intake",
+        agents: "problem-analyst, data-auditor",
+        gate: "INTAKE_GATE.md",
+        status: "PASS",
+        statusClass: "good",
+        inputs: "题面, 附件, 原始数据",
+        outputs: "PROBLEM_BRIEF.md, DATA_AUDIT.md",
+        artifacts: ["PROBLEM_BRIEF.md", "DATA_AUDIT.md", "reports/INTAKE_GATE.md"],
+        prompt: "核对题目、附件、字段、缺失值和可建模性。输出必须进入工作区文件，不依赖聊天记录。"
+      },
+      {
+        id: "Phase 1",
+        name: "建模策略与人工闸门",
+        skill: "mm-model-strategy",
+        agents: "model-reviewer, devils-advocate",
+        gate: "HUMAN_MODEL_REVIEW.md",
+        status: "PASS",
+        statusClass: "good",
+        inputs: "PROBLEM_BRIEF.md, DATA_AUDIT.md",
+        outputs: "MODEL_CANDIDATES.md, MODELING_DECISION.md",
+        artifacts: ["reports/MODEL_CANDIDATES.md", "reports/MODEL_REVIEW_AI.md", "reports/HUMAN_MODEL_REVIEW.md", "reports/MODELING_DECISION.md"],
+        prompt: "提出候选模型、评分风险和最终建模路线。进入编码前必须有人确认 HUMAN_MODEL_REVIEW.md。"
+      },
+      {
+        id: "Phase 2",
+        name: "实验与可视化",
+        skill: "mm-data-experiment",
+        agents: "experiment-coder, visualization-reviewer",
+        gate: "RESULTS_MANIFEST.json",
+        status: "NEEDS FIX",
+        statusClass: "warn",
+        inputs: "MODELING_DECISION.md, code/, data/",
+        outputs: "EXPERIMENT_LOG.md, RESULTS_REPORT.md, FIGURE_PLAN.md",
+        artifacts: ["reports/EXPERIMENT_LOG.md", "reports/RESULTS_REPORT.md", "reports/FIGURE_PLAN.md", "results/RESULTS_MANIFEST.json"],
+        prompt: "修复 manifest schema，并确保核心图表登记到 figures。审计通过前不要进入论文润色。"
+      },
+      {
+        id: "Phase 3",
+        name: "论文构建与证据追踪",
+        skill: "mm-paper-build",
+        agents: "paper-writer, claim-trace",
+        gate: "CLAIM_TRACE.md",
+        status: "PARTIAL",
+        statusClass: "warn",
+        inputs: "RESULTS_REPORT.md, figures/, manifest",
+        outputs: "paper/main.pdf, CLAIM_TRACE.md, FIGURE_AUDIT.md",
+        artifacts: ["reports/FIGURE_AUDIT.md", "reports/CLAIM_TRACE.md", "reports/PAPER_BUILD_REPORT.md", "paper/main.pdf"],
+        prompt: "每个核心结论必须能追溯到代码、结果或图表。图审计缺列时优先修复结构。"
+      },
+      {
+        id: "Phase 4",
+        name: "竞赛评分审查",
+        skill: "mm-contest-review",
+        agents: "contest-reviewer, multi-review-panel",
+        gate: "PAPER_SCORECARD.md",
+        status: "WAITING",
+        statusClass: "info",
+        inputs: "paper/main.pdf, CLAIM_TRACE.md",
+        outputs: "PAPER_SCORECARD.md",
+        artifacts: ["reports/PAPER_SCORECARD.md"],
+        prompt: "按 10 维评分表给出 0-5 分和 BLOCKER/HIGH/MEDIUM/LOW。"
+      },
+      {
+        id: "Phase 5",
+        name: "修订集成",
+        skill: "mm-revision-integrator",
+        agents: "revision-integrator",
+        gate: "REVISION_STATUS.md",
+        status: "WAITING",
+        statusClass: "info",
+        inputs: "PAPER_SCORECARD.md, REVISION_ACTIONS.md",
+        outputs: "REVISION_STATUS.md, METHOD_IMPLEMENTATION_MATRIX.md",
+        artifacts: ["reports/REVISION_ACTIONS.md", "reports/REVISION_STATUS.md", "reports/METHOD_IMPLEMENTATION_MATRIX.md"],
+        prompt: "只处理未解决 BLOCKER/HIGH 项，保留可追踪修订记录。"
+      },
+      {
+        id: "Phase 6",
+        name: "最终验收",
+        skill: "mm-final-verify",
+        agents: "final-integrator",
+        gate: "VERIFY_REPORT.md",
+        status: "FAIL",
+        statusClass: "bad",
+        inputs: "完整工作区",
+        outputs: "VERIFY_REPORT.md",
+        artifacts: ["reports/VERIFY_REPORT.md", "results/RESULTS_MANIFEST.json", "paper/main.pdf"],
+        prompt: "最终只看文件事实：VERIFY_REPORT=PASS、评分全 >=4、无未解决 HIGH/BLOCKER、图表审计干净。"
+      }
+    ];
+
+    const artifacts = [
+      ["reports/VERIFY_REPORT.md", "FAIL: manifest schema legacy, figures missing, figure audit columns missing"],
+      ["results/RESULTS_MANIFEST.json", "{ metrics: [], tables: [], figures: [], scripts: [] } expected"],
+      ["reports/FIGURE_AUDIT.md", "Required columns: figure_id, source, status, resolution, paper_link"],
+      ["reports/CLAIM_TRACE.md", "Claims must point to result artifacts"],
+      ["reports/PAPER_SCORECARD.md", "All dimensions must be >= 4 for final PASS"],
+      ["paper/main.pdf", "16 pages detected"],
+      ["code/", "Experiment scripts and notebooks"],
+      ["figures/", "Core evidence figures"]
+    ];
+
+    const benchmark = [
+      ["ChatGPTHigh_V2.2", "FAIL", "BLOCKER", 7, 5, "yes", 9],
+      ["DeepSeekV4Pro_V2.1", "FAIL", "BLOCKER", 20, 21, "yes", 23],
+      ["DeepSeekV4Pro_V2.3", "FAIL", "HIGH", 0, 16, "no", 3]
+    ];
+
+    let selectedPhase = 2;
+
+    function badgeClass(status) {
+      const normalized = String(status).toLowerCase();
+      if (normalized.includes("pass") && !normalized.includes("fail")) return "good";
+      if (normalized.includes("blocker") || normalized.includes("fail")) return "bad";
+      if (normalized.includes("high") || normalized.includes("fix") || normalized.includes("partial")) return "warn";
+      return "info";
+    }
+
+    function renderDashboardPhases() {
+      const root = document.getElementById("dashboardPhases");
+      root.innerHTML = phases.map((phase, index) => `
+        <button class="phase-row ${index === selectedPhase ? "selected" : ""}" data-phase="${index}">
+          <span class="phase-id">${phase.id}</span>
+          <span>
+            <h3>${phase.name}</h3>
+            <p>${phase.skill} -> ${phase.gate}</p>
+          </span>
+          <span class="badge ${phase.statusClass}">${phase.status}</span>
+        </button>
+      `).join("");
+    }
+
+    function renderPhaseButtons() {
+      const root = document.getElementById("phaseButtons");
+      root.innerHTML = phases.map((phase, index) => `
+        <button class="phase-button ${index === selectedPhase ? "active" : ""}" data-phase="${index}">
+          <span class="phase-id">${phase.id.replace("Phase ", "P")}</span>
+          <span>${phase.name}</span>
+          <span class="badge ${phase.statusClass}">${phase.status}</span>
+        </button>
+      `).join("");
+    }
+
+    function renderPhaseDetail() {
+      const phase = phases[selectedPhase];
+      document.getElementById("phaseGate").textContent = phase.gate;
+      document.getElementById("phaseName").textContent = `${phase.id}: ${phase.name}`;
+      const status = document.getElementById("phaseStatus");
+      status.textContent = phase.status;
+      status.className = `badge ${phase.statusClass}`;
+      document.getElementById("phaseSkill").textContent = phase.skill;
+      document.getElementById("phaseAgents").textContent = phase.agents;
+      document.getElementById("phaseInputs").textContent = phase.inputs;
+      document.getElementById("phaseOutputs").textContent = phase.outputs;
+      document.getElementById("phasePrompt").textContent = phase.prompt;
+      document.getElementById("artifactCount").textContent = `${phase.artifacts.length} files`;
+      document.getElementById("phaseArtifacts").innerHTML = phase.artifacts.map(path => `
+        <div class="artifact-item">
+          <div><strong>${path}</strong><span>${phase.gate === path ? "gate artifact" : "phase artifact"}</span></div>
+          <span class="badge info">open</span>
+        </div>
+      `).join("");
+    }
+
+    function renderArtifacts(filter = "") {
+      const root = document.getElementById("artifactIndex");
+      const q = filter.trim().toLowerCase();
+      const rows = artifacts.filter(([path, desc]) => `${path} ${desc}`.toLowerCase().includes(q));
+      root.innerHTML = rows.map(([path, desc], index) => `
+        <button class="artifact-item" data-artifact="${index}">
+          <span><strong>${path}</strong><span>${desc}</span></span>
+          <span class="badge ${path.includes("VERIFY") ? "bad" : "info"}">${path.endsWith("/") ? "dir" : "file"}</span>
+        </button>
+      `).join("");
+    }
+
+    function renderBenchmark() {
+      document.getElementById("benchmarkRows").innerHTML = benchmark.map(row => `
+        <tr>
+          <td>${row[0]}</td>
+          <td><span class="badge ${badgeClass(row[1])}">${row[1]}</span></td>
+          <td><span class="badge ${badgeClass(row[2])}">${row[2]}</span></td>
+          <td>${row[3]}</td>
+          <td>${row[4]}</td>
+          <td>${row[5]}</td>
+          <td>${row[6]}</td>
+        </tr>
+      `).join("");
+    }
+
+    function setView(id) {
+      document.querySelectorAll(".view").forEach(view => view.classList.toggle("active", view.id === id));
+      document.querySelectorAll(".nav button").forEach(button => button.classList.toggle("active", button.dataset.view === id));
+      const titles = {
+        dashboard: "竞赛工作区总览",
+        phase: "阶段控制台",
+        artifacts: "Artifact 文件视图",
+        console: "执行与 Prompt",
+        benchmark: "历史对标",
+        settings: "适配与服务"
+      };
+      document.getElementById("viewTitle").textContent = titles[id] || "MathModel Control";
+    }
+
+    document.addEventListener("click", event => {
+      const viewButton = event.target.closest("[data-view]");
+      if (viewButton) setView(viewButton.dataset.view);
+
+      const phaseButton = event.target.closest("[data-phase]");
+      if (phaseButton) {
+        selectedPhase = Number(phaseButton.dataset.phase);
+        renderDashboardPhases();
+        renderPhaseButtons();
+        renderPhaseDetail();
+      }
+
+      const artifactButton = event.target.closest("[data-artifact]");
+      if (artifactButton) {
+        const [path, desc] = artifacts[Number(artifactButton.dataset.artifact)];
+        document.getElementById("artifactTitle").textContent = path.split("/").pop() || path;
+        document.getElementById("artifactMeta").textContent = path;
+        document.getElementById("artifactPreview").textContent = `# ${path}\n\n${desc}\n\nStatus: prototype preview\nWorkspace source: local files`;
+      }
+    });
+
+    document.getElementById("artifactSearch").addEventListener("input", event => {
+      renderArtifacts(event.target.value);
+    });
+
+    renderDashboardPhases();
+    renderPhaseButtons();
+    renderPhaseDetail();
+    renderArtifacts();
+    renderBenchmark();
+    document.getElementById("artifactPreview").textContent = "# reports/VERIFY_REPORT.md\n\nFAIL\n\nRemaining issues:\n- manifest_schema_legacy\n- manifest_figures_missing\n- figure_audit_columns_missing";
+  </script>
+</body>
+</html>
