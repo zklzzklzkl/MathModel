@@ -1,5 +1,7 @@
 # V2 Pipeline Contract
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 被所有 V2 技能引用 · 上游规范: [[skills/_references/workflow_state_contract|持久化上下文契约]] · 下游执行者: [[skills/mm-start-contest-v2/SKILL|V2 总控]] 及全部 V2 阶段技能
+
 This contract is the source of truth for the MathModelAgent V2 skill workflow.
 
 ## Architecture

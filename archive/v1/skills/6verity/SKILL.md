@@ -6,6 +6,8 @@ allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetc
 
 # 验证和验收（Typst / LaTeX）
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: [[skills/5writing/SKILL|Phase 4 论文]] · 下游: 无（终点） · 共享规范: [[skills/_references/SKILL|_references]]
+
 本 skill 是完整工作流的最后一关。它不重新建模、不生成新结果、不代替写作阶段重写论文；它负责发现硬错误、修复可直接修复的问题，并输出 `reports/VERIFY_REPORT.md`。
 
 ## 数学建模规范参考

@@ -6,6 +6,8 @@ allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetc
 
 # 编程实现与数据图表生成
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: [[skills/2analysis-modeling/SKILL|Phase 1 建模]] · 下游: [[skills/4drawio/SKILL|Phase 3 流程图]] · 共享规范: [[skills/_references/SKILL|_references]]
+
 本 skill 承接 `2analysis-modeling`。目标是把 `reports/ANALYSIS_MODELING_REPORT.md` 里的模型和算法落实为可复现程序，跑出可信结果，并生成论文中需要的数据型图表。
 
 本阶段必须额外产出：

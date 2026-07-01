@@ -6,6 +6,8 @@ allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetc
 
 # DrawIO 非数据图示绘制
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: [[skills/3coding-visual/SKILL|Phase 2 代码]] · 下游: [[skills/5writing/SKILL|Phase 4 论文]] · 共享规范: [[skills/_references/SKILL|_references]]
+
 本 skill 承接 `3coding-visual`。它只负责论文中的**非数据型图示**，例如技术路线图、求解流程图、模型结构图、数据处理流程图、变量关系图、指标体系图等。
 
 ## 数学建模规范参考

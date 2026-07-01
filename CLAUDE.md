@@ -1,31 +1,32 @@
 # CLAUDE.md
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP.md]]
+>
+> **V1 工作流已归档** → [[archive/v1/README|V1 归档说明]]
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Overview
 
 This is a collection of **Claude Code skills** (not a traditional software project) that automate the full math modeling contest pipeline: problem analysis → model design → coding → visualization → paper writing → verification.
 
-Two workflows exist side by side: **V2** (hybrid Skill + Codex subagent, high-score paper oriented) and **V1** (legacy linear pipeline). V2 is the primary workflow; V1 is kept for backward compatibility.
+**V2** (hybrid Skill + Codex subagent, high-score paper oriented) is the primary workflow.
 
 ## No Build/Test/Lint Pipeline
 
-This project has no build, test, or lint commands. Every artifact is a markdown report, a PDF figure, a LaTeX/Typst paper, or Python analysis code generated during a contest workflow run. The only verifiable entry is:
-
-```bash
-# V1 paper quality gate (616-line shell script)
-bash skills/6verity/scripts/writing_check.sh --paper-dir <workspace>/paper
-```
+This project has no build, test, or lint commands. Every artifact is a markdown report, a PDF figure, a LaTeX/Typst paper, or Python analysis code generated during a contest workflow run.
 
 ## Architecture
+
+See [[FILE_RELATIONSHIP_MAP.md]] for complete file dependency graph and execution logic.
 
 ### File-based state management (CRITICAL)
 
 The workspace is the shared memory. Chat history must NOT hold contest state. Skills hand off structured artifacts — never pass long raw context between agents when a compact file can be written instead.
 
-### V2 Hybrid Workflow (primary)
+### V2 Hybrid Workflow
 
-Six phases orchestrated by `mm-start-contest-v2`:
+Eight phases orchestrated by `mm-start-contest-v2`:
 
 ```
 Phase 0: mm-problem-intake     → problem-analyst + data-auditor (read-only subagents)
@@ -39,25 +40,13 @@ Phase 6: mm-final-verify       → final-integrator
 
 Each phase writes specific gate artifacts (`INTAKE_GATE.md`, `ANALYSIS_GATE.md`, etc.) that downstream phases read. Gates produce `PASS | CONDITIONAL_PASS | FAIL`.
 
-### V1 Legacy Pipeline
-
-Linear: `0problem-triage → 1start-mathmodel → 2analysis-modeling → 3coding-visual → 4drawio → 5writing → 6verity`
-
-### Key differences V2 vs V1
-
-- V1 auto-proceeds; V2 has mandatory human confirmation gate before coding
-- V2 scores against 10-dimension contest rubric (0-5); V1 has no scoring
-- V2 enforces claim traceability and figure audits; V1 does not
-- V2 uses independent subagent review panels; V1 uses self-review
-
 ## Skill Layout
 
-- `skills/_references/` — Shared knowledge base. All skills read from here on demand. Contains pipeline contracts, scoring rubrics, agent profiles, modeling norms, figure standards. Do NOT trigger `_references` as a standalone skill.
-- `skills/0problem-triage/` through `skills/6verity/` — V1 pipeline skills
-- `skills/mm-start-contest-v2/` through `skills/mm-revision-integrator/` — V2 pipeline skills
-- `skills/5writing/templates/` — LaTeX and Typst templates for ~17 contest types (zh/ and en/)
+- `skills/_references/` — Shared knowledge base. All skills read from here on demand. Contains pipeline contracts, scoring rubrics, agent profiles, figure standards. Do NOT trigger `_references` as a standalone skill.
+- `skills/mm-start-contest-v2/` through `skills/mm-final-verify/` — V2 pipeline skills (8 total)
+- `skills/5writing/templates/` — LaTeX and Typst templates for ~17 contest types (zh/ and en/), the only resource inherited from V1
 - `skills/doctor/` — Environment dependency check and install
-- `skills/6verity/scripts/writing_check.sh` — 616-line shell script for paper quality verification
+- `archive/v1/` — **V1 legacy pipeline** (linear: 0problem-triage → 6verity), preserved for reference only
 
 Each V2 skill has a `SKILL.md` (workflow, gates, required artifacts) and optionally `agents/openai.yaml` (subagent configuration).
 

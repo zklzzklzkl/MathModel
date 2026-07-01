@@ -1,5 +1,7 @@
 # Agent Review Protocol
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 被 [[skills/mm-model-strategy/SKILL|Phase 2 Strategy]] [[skills/mm-contest-review/SKILL|Phase 5 Review]] [[skills/mm-revision-integrator/SKILL|Phase 6 Revise]] [[skills/mm-final-verify/SKILL|Phase 7 Verify]] 直接引用
+
 Use this protocol for model, paper, figure, and final reviews.
 
 ## Review Output Format

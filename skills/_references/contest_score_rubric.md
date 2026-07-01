@@ -1,5 +1,7 @@
 # Contest Score Rubric
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 被 [[skills/mm-contest-review/SKILL|Phase 5 Review]] 和 [[skills/mm-final-verify/SKILL|Phase 7 Verify]] 直接引用
+
 Use this rubric for high-score-oriented math modeling review.
 
 ## Score Dimensions

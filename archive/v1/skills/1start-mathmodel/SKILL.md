@@ -6,6 +6,8 @@ allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetc
 
 # 数学建模工作流
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: 无（V1 入口点） · 下游调度: [[skills/0problem-triage/SKILL|Phase 0 预审]] → [[skills/2analysis-modeling/SKILL|Phase 1 建模]] → [[skills/3coding-visual/SKILL|Phase 2 代码]] → [[skills/4drawio/SKILL|Phase 3 流程图]] → [[skills/5writing/SKILL|Phase 4 论文]] → [[skills/6verity/SKILL|Phase 5 验收]] · 共享规范: [[skills/_references/SKILL|_references]] · V2 替代入口: [[skills/mm-start-contest-v2/SKILL|V2 总控]]
+
 本 skill 是数学建模竞赛项目的总控入口。它不替代后续阶段 skill，而是负责启动流程、询问偏好、记录决策、生成计划，并按顺序调用各阶段 skill。
 
 ## 数学建模规范参考

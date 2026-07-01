@@ -6,6 +6,8 @@ allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetc
 
 # 竞赛论文撰写（Typst / LaTeX）
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: [[skills/3coding-visual/SKILL|Phase 2 代码]] + [[skills/4drawio/SKILL|Phase 3 流程图]] · 下游: [[skills/6verity/SKILL|Phase 5 验收]] · 共享规范: [[skills/_references/SKILL|_references]]
+
 本 skill 承接 `3coding-visual` 和 `4drawio`。前序阶段只提供真实数据、图表 PDF 和记录文件；本阶段负责选择比赛模板和排版引擎、组织论文结构，并决定每张图表放入哪个章节。
 
 **Typst 引擎**下可调用 typst-author skill 学习 typst 写法；**LaTeX 引擎**参考本文件末尾的"LaTeX 写作要点"小节。

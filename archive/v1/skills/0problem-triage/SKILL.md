@@ -6,6 +6,8 @@ allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetc
 
 # 赛题预审与上下文固化
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: [[skills/1start-mathmodel/SKILL|V1 总控]] · 下游: [[skills/2analysis-modeling/SKILL|Phase 1 建模]] · 共享规范: [[skills/_references/SKILL|_references]]
+
 本 skill 是数学建模工作流的前置阶段。它不直接建模、不写代码、不写论文，而是把赛题信息变成后续阶段可以反复读取的项目档案，降低长上下文丢失、题面误读和后期数值漂移风险。
 
 ## 参考

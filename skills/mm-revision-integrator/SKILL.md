@@ -6,6 +6,8 @@ allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetc
 
 # Revision Integrator
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: [[skills/mm-contest-review/SKILL|Phase 5 Review]] · 下游: [[skills/mm-final-verify/SKILL|Phase 7 Verify]]（或回到 Phase 5） · 共享规范: [[skills/_references/SKILL|_references]]
+
 ## Load First
 
 Read:

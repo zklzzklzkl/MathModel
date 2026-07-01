@@ -6,6 +6,8 @@ allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetc
 
 # 赛题分析与建模设计
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: [[skills/0problem-triage/SKILL|Phase 0 预审]] · 下游: [[skills/3coding-visual/SKILL|Phase 2 代码]] · 共享规范: [[skills/_references/SKILL|_references]]
+
 ## 数学建模规范参考
 
 如需领域判断，读取 `../_references/math_modeling_norms.md` 中的“赛题理解与子问题识别”“假设与模型建立”和“题型防错速查”小节。该文件只作为规范知识库，不替代本阶段的分析报告结构。

@@ -1,5 +1,7 @@
 # High-Score Paper Benchmark Profile
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 被 [[skills/mm-paper-build/SKILL|Phase 4 Paper]] 和 [[skills/mm-contest-review/SKILL|Phase 5 Review]] 直接引用
+
 This profile captures the target shape for V2 outputs.
 
 ## Observed Gap From Weak Output

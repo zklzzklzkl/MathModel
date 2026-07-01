@@ -6,6 +6,8 @@ allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetc
 
 # Model Strategy
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: [[skills/mm-problem-intake/SKILL|Phase 1 Intake]] · 下游: [[skills/mm-data-experiment/SKILL|Phase 3 Experiment]] · 共享规范: [[skills/_references/SKILL|_references]]
+
 ## Load First
 
 Read:
