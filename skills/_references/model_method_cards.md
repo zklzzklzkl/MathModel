@@ -1,5 +1,7 @@
 # Model Method Cards
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 被 [[skills/mm-model-strategy/SKILL|mm-model-strategy]] 引用
+
 Use these cards to guide model selection. They are prompts for judgment, not mandatory templates.
 
 ## Prediction

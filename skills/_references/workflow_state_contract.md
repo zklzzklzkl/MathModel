@@ -1,5 +1,9 @@
 # MathModelAgent 持久化上下文契约
 
+> **版本标记**: V1 工作流已归档（→ [[archive/v1/README|V1 归档说明]]），当前仅被 V2 继承作为档案结构参考。V2 主契约为 [v2_pipeline_contract](v2_pipeline_contract.md)。
+>
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 关联文件: [[skills/_references/v2_pipeline_contract|V2 流程契约]] · [[skills/_references/codex_subagent_protocol|子代理协议]]
+
 本契约用于解决数学建模竞赛长上下文任务中的信息丢失问题。后续 skill 不应依赖聊天历史记忆，而应依赖本文件规定的项目档案。每个阶段开始时读取上游档案，结束时更新自己的档案。
 
 ## 核心原则

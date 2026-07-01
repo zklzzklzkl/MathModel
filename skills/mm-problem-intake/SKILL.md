@@ -6,6 +6,8 @@ allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetc
 
 # Problem Intake
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: [[skills/mm-start-contest-v2/SKILL|V2 总控]] · 下游: [[skills/mm-model-strategy/SKILL|Phase 2 Strategy]] · 共享规范: [[skills/_references/SKILL|_references]]
+
 ## Load First
 
 Read `../_references/v2_pipeline_contract.md` and `../_references/codex_subagent_protocol.md`.

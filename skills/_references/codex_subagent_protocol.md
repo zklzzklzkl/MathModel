@@ -1,5 +1,7 @@
 # Codex Subagent Protocol
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 被所有 V2 技能引用 · 定义 10 个子代理角色 → 具体角色定义在: [[skills/_references/agent_profiles/|agent_profiles/ 目录]]
+
 Use this protocol when a V2 skill introduces Codex subagents, official built-in agents, custom agents, parallel execution, thread viewing, inherited permissions, or per-agent model/reasoning settings.
 
 ## Role Of Subagents

@@ -6,6 +6,8 @@ allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetc
 
 # Math Modeling Contest V2 Orchestrator
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: 无（入口点） · 下游调度: [[skills/mm-problem-intake/SKILL|Phase 1 Intake]] → [[skills/mm-model-strategy/SKILL|Phase 2 Strategy]] → [[skills/mm-data-experiment/SKILL|Phase 3 Experiment]] → [[skills/mm-paper-build/SKILL|Phase 4 Paper]] → [[skills/mm-contest-review/SKILL|Phase 5 Review]] → [[skills/mm-revision-integrator/SKILL|Phase 6 Revise]] → [[skills/mm-final-verify/SKILL|Phase 7 Verify]] · 共享规范: [[skills/_references/SKILL|_references]]
+
 Use this skill as the only V2 entrypoint. Keep legacy skills untouched unless the user explicitly asks to run V1.
 
 ## Load First

@@ -6,6 +6,8 @@ allowed-tools: Bash(*), Read, Write
 
 # Doctor — 环境检查与安装向导
 
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 独立工具，不参与工作流阶段调度 · 共享规范: [[skills/_references/SKILL|_references]]
+
 本 skill 检查完整数学建模工作流所需的所有工具是否已就绪，并帮助用户安装缺失项。**本 skill 只在用户显式触发时运行，不自动执行。**
 
 ## 检查项清单
@@ -16,11 +18,11 @@ allowed-tools: Bash(*), Read, Write
 | --- | --- | --- |
 | `typst` | 论文编译（5writing、6verity，Typst 引擎） | `command -v typst` |
 | `xelatex` | 论文编译（5writing、6verity，LaTeX 引擎，中文模板必需） | `command -v xelatex` |
-| `python3` | 数值计算与图表（3coding-visual） | `command -v python3` |
-| `drawio` / `draw.io` | DrawIO 流程图导出 PDF（4drawio） | `command -v drawio \|\| command -v draw.io` |
-| `pdftoppm` | PDF 转 PNG 视觉检查（6verity） | `command -v pdftoppm` |
-| `mutool` | PDF 转 PNG 备用（6verity） | `command -v mutool` |
-| `magick` | PDF 转 PNG 备用（6verity） | `command -v magick` |
+| `python3` | 数值计算与图表 | `command -v python3` |
+| `drawio` / `draw.io` | DrawIO 流程图导出 PDF | `command -v drawio \|\| command -v draw.io` |
+| `pdftoppm` | PDF 转 PNG 视觉检查 | `command -v pdftoppm` |
+| `mutool` | PDF 转 PNG 备用 | `command -v mutool` |
+| `magick` | PDF 转 PNG 备用 | `command -v magick` |
 
 ### Python 包
 
@@ -249,14 +251,14 @@ Doctor 检查完成（macOS）
 可选项：2/4（drawio、scipy 缺失）
 
 工作流就绪状态：
-  1start-mathmodel   ✓
-  2analysis-modeling ✓
-  3coding-visual     ✓（scipy 缺失，部分功能受限）
-  4drawio            ⚠ drawio 未安装，PDF 导出将跳过
-  5writing           ✓（typst ✓，xelatex ✓）
-  6verity            ⚠ 无 PDF 转 PNG 工具，视觉检查将跳过
-  nature-figure      ✓（可选科研绘图增强已找到）
+  mm-start-contest-v2  ✓
+  论文编译              ✓（typst ✓，xelatex ✓）
+  数据图表              ✓（scipy 缺失，部分功能受限）
+  DrawIO               ⚠ drawio 未安装，PDF 导出将跳过
+  论文视觉检查          ⚠ 无 PDF 转 PNG 工具，视觉检查将跳过
+  nature-figure        ✓（可选科研绘图增强已找到）
 ```
+> 注：V1 工作流（0problem-triage ~ 6verity）已于 2026-07 归档，不再单独列出其状态。
 
 ## 注意事项
 
