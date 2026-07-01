@@ -57,3 +57,13 @@ examples/*/results/
 .obsidian/
 .claudian/
 *.zip
+
+# Control Center local runtime data (do not commit)
+workspaces/
+examples/**/source/
+examples/**/runs/
+**/control-center-history.jsonl
+app/backend/.env
+app/backend/.venv/
+app/frontend/node_modules/
+app/frontend/dist/

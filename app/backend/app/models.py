@@ -74,6 +74,20 @@ class PhaseSummary(BaseModel):
     status: str
     status_class: str
     artifacts: list[str]
+    inputs: list[str] = Field(default_factory=list)
+    outputs: list[str] = Field(default_factory=list)
+    missing_inputs: list[str] = Field(default_factory=list)
+    missing_outputs: list[str] = Field(default_factory=list)
+    ready: bool = False
+    next_action: str = ""
+
+
+class Recommendation(BaseModel):
+    severity: str
+    title: str
+    detail: str
+    phase: int | None = None
+    artifact: str | None = None
 
 
 class WorkspaceSummary(BaseModel):
@@ -85,6 +99,7 @@ class WorkspaceSummary(BaseModel):
     manifest: dict[str, Any]
     paper: dict[str, Any]
     issues: list[dict[str, Any]]
+    recommendations: list[Recommendation] = Field(default_factory=list)
 
 
 class AuditResponse(BaseModel):
@@ -120,3 +135,63 @@ class CopyRunResponse(BaseModel):
     source: str
     destination: str
     workspace: WorkspaceItem
+
+
+class RunHistoryEntry(BaseModel):
+    timestamp: str
+    event: str
+    phase: int | None = None
+    harness: str | None = None
+    status_before: str | None = None
+    status_after: str | None = None
+    source_workspace: str | None = None
+    run_workspace: str | None = None
+    prompt_path: str | None = None
+    note: str | None = None
+
+
+class RevisionTask(BaseModel):
+    id: str
+    severity: str
+    phase: int
+    artifact: str
+    issue_code: str
+    title: str
+    action: str
+
+
+class RevisionTasksResponse(BaseModel):
+    tasks: list[RevisionTask]
+    written_path: str | None = None
+
+
+class SourceUploadResponse(BaseModel):
+    saved: list[str]
+    skipped: list[str]
+
+
+class HarnessInfo(BaseModel):
+    id: Literal["Manual", "Codex", "Claude Code", "OpenCode"]
+    label: str
+    managed: bool
+    available: bool
+    note: str
+
+
+class PrepareHarnessRequest(BaseModel):
+    phase: int = Field(ge=0, le=6)
+    harness: Literal["Manual", "Codex", "Claude Code", "OpenCode"] = "Manual"
+    copy_workspace: bool = True
+    run_name: str | None = None
+
+
+class PrepareHarnessResponse(BaseModel):
+    harness: str
+    phase: int
+    source_workspace: str
+    run_workspace: str
+    copied: bool
+    prompt: str
+    prompt_path: str | None = None
+    command_preview: str
+    history: RunHistoryEntry

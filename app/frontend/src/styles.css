@@ -179,6 +179,10 @@ label {
   align-items: start;
 }
 
+.second-row {
+  margin-top: 16px;
+}
+
 .panel {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -315,6 +319,33 @@ label {
 .field.wide { grid-column: 1 / -1; }
 .field strong { overflow-wrap: anywhere; }
 
+.check-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.check-grid h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.check-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 7px;
+}
+
+.check-row button {
+  justify-content: flex-start;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  min-height: 30px;
+}
+
 .prompt-box, .code-box {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -344,6 +375,37 @@ label {
   gap: 10px;
   align-items: center;
   text-align: left;
+}
+
+.recommendation-list, .task-list, .history-list {
+  display: grid;
+  gap: 8px;
+}
+
+.recommendation-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  text-align: left;
+  min-height: 54px;
+}
+
+.recommendation-item small,
+.task-item small {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.task-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+  display: grid;
+  gap: 5px;
 }
 
 .risk-item {
@@ -376,6 +438,79 @@ label {
   margin-bottom: 8px;
 }
 
+.prepared-box {
+  border: 1px solid #c4d8ff;
+  background: #eef5ff;
+  border-radius: 8px;
+  padding: 10px;
+  margin: 12px 0;
+}
+
+.prepared-box p,
+.prepared-box pre {
+  margin: 5px 0 10px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.missing-box {
+  border: 1px solid #f2b8b2;
+  background: #fff0ee;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.missing-box p {
+  margin: 7px 0 12px;
+  color: var(--muted);
+}
+
+.markdown-preview {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fff;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  max-height: 65vh;
+  overflow: auto;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3 {
+  margin: 0 0 10px;
+}
+
+.markdown-preview code {
+  background: #eef1f4;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.image-preview {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.pdf-box iframe {
+  width: 100%;
+  min-height: 68vh;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.pdf-box a {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--info);
+}
+
 .message p { margin: 5px 0 0; color: var(--muted); overflow-wrap: anywhere; }
 
 .service-row {
@@ -395,6 +530,40 @@ label {
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: 8px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.form-grid button {
+  align-self: end;
+}
+
+.checkbox-line {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-height: 34px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.checkbox-line input {
+  width: auto;
+  min-height: auto;
+}
+
+.empty {
+  color: var(--muted);
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfcfd;
 }
 
 table {
@@ -431,12 +600,12 @@ th {
   .nav { grid-auto-flow: column; overflow-x: auto; flex: 1; }
   .nav button { white-space: nowrap; }
   .workspace-mini { display: none; }
-  .grid-dashboard, .phase-layout, .artifact-layout, .console-layout, .settings-grid { grid-template-columns: 1fr; }
+  .grid-dashboard, .phase-layout, .artifact-layout, .console-layout, .settings-grid, .check-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
   .topbar { grid-template-columns: 1fr; }
   .top-actions { justify-content: flex-start; }
-  .status-strip, .field-grid { grid-template-columns: 1fr; }
+  .status-strip, .field-grid, .form-grid { grid-template-columns: 1fr; }
   .main { padding: 14px 12px 20px; }
 }

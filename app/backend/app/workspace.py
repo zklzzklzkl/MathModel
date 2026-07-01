@@ -20,6 +20,8 @@ PHASES: list[dict[str, Any]] = [
         "name": "题面与数据建档",
         "skill": "mm-problem-intake",
         "gate": "reports/INTAKE_GATE.md",
+        "inputs": ["source"],
+        "outputs": ["PROBLEM_BRIEF.md", "DATA_AUDIT.md", "reports/INTAKE_GATE.md"],
         "artifacts": ["PROBLEM_BRIEF.md", "DATA_AUDIT.md", "reports/INTAKE_GATE.md"],
     },
     {
@@ -27,6 +29,15 @@ PHASES: list[dict[str, Any]] = [
         "name": "建模策略与人工闸门",
         "skill": "mm-model-strategy",
         "gate": "reports/HUMAN_MODEL_REVIEW.md",
+        "inputs": ["PROBLEM_BRIEF.md", "DATA_AUDIT.md", "reports/INTAKE_GATE.md"],
+        "outputs": [
+            "reports/MODEL_CANDIDATES.md",
+            "reports/MODEL_REVIEW_AI.md",
+            "reports/HUMAN_MODEL_REVIEW.md",
+            "reports/MODELING_DECISION.md",
+            "reports/ANALYSIS_MODELING_REPORT.md",
+            "reports/ANALYSIS_GATE.md",
+        ],
         "artifacts": [
             "reports/MODEL_CANDIDATES.md",
             "reports/MODEL_REVIEW_AI.md",
@@ -41,6 +52,16 @@ PHASES: list[dict[str, Any]] = [
         "name": "实验与可视化",
         "skill": "mm-data-experiment",
         "gate": "results/RESULTS_MANIFEST.json",
+        "inputs": ["reports/MODELING_DECISION.md", "reports/ANALYSIS_GATE.md", "reports/HUMAN_MODEL_REVIEW.md"],
+        "outputs": [
+            "code",
+            "figures",
+            "reports/EXPERIMENT_LOG.md",
+            "reports/RESULTS_REPORT.md",
+            "reports/FIGURE_PLAN.md",
+            "reports/FIGURE_AUDIT.md",
+            "results/RESULTS_MANIFEST.json",
+        ],
         "artifacts": [
             "code",
             "figures",
@@ -56,6 +77,13 @@ PHASES: list[dict[str, Any]] = [
         "name": "论文构建与证据追踪",
         "skill": "mm-paper-build",
         "gate": "reports/CLAIM_TRACE.md",
+        "inputs": ["reports/RESULTS_REPORT.md", "reports/FIGURE_AUDIT.md", "results/RESULTS_MANIFEST.json"],
+        "outputs": [
+            "paper",
+            "reports/CLAIM_TRACE.md",
+            "reports/PAPER_BUILD_REPORT.md",
+            "reports/METHOD_IMPLEMENTATION_MATRIX.md",
+        ],
         "artifacts": [
             "paper",
             "reports/CLAIM_TRACE.md",
@@ -68,6 +96,8 @@ PHASES: list[dict[str, Any]] = [
         "name": "竞赛评分审查",
         "skill": "mm-contest-review",
         "gate": "reports/PAPER_SCORECARD.md",
+        "inputs": ["paper", "reports/CLAIM_TRACE.md", "reports/FIGURE_AUDIT.md", "results/RESULTS_MANIFEST.json"],
+        "outputs": ["reports/PAPER_SCORECARD.md", "reports/REVISION_ACTIONS.md"],
         "artifacts": ["reports/PAPER_SCORECARD.md", "reports/REVISION_ACTIONS.md"],
     },
     {
@@ -75,6 +105,8 @@ PHASES: list[dict[str, Any]] = [
         "name": "修订集成",
         "skill": "mm-revision-integrator",
         "gate": "reports/REVISION_STATUS.md",
+        "inputs": ["reports/PAPER_SCORECARD.md", "reports/REVISION_ACTIONS.md"],
+        "outputs": ["reports/REVISION_STATUS.md", "reports/METHOD_IMPLEMENTATION_MATRIX.md"],
         "artifacts": ["reports/REVISION_ACTIONS.md", "reports/REVISION_STATUS.md"],
     },
     {
@@ -82,11 +114,15 @@ PHASES: list[dict[str, Any]] = [
         "name": "最终验收",
         "skill": "mm-final-verify",
         "gate": "reports/VERIFY_REPORT.md",
+        "inputs": ["paper", "reports/PAPER_SCORECARD.md", "reports/REVISION_STATUS.md", "reports/CLAIM_TRACE.md"],
+        "outputs": ["reports/VERIFY_REPORT.md"],
         "artifacts": ["reports/VERIFY_REPORT.md", "results/RESULTS_MANIFEST.json", "paper"],
     },
 ]
 
-REQUIRED_ARTIFACTS = sorted({item for phase in PHASES for item in phase["artifacts"]})
+REQUIRED_ARTIFACTS = sorted(
+    {item for phase in PHASES for item in [*phase["artifacts"], *phase["inputs"], *phase["outputs"]]}
+)
 
 
 def encode_workspace_id(path: Path) -> str:
@@ -267,6 +303,19 @@ def build_phase_summaries(workspace: Path) -> list[PhaseSummary]:
     phases: list[PhaseSummary] = []
     for phase in PHASES:
         status, status_class = gate_status(workspace, phase["gate"])
+        missing_inputs = [item for item in phase["inputs"] if not (workspace / item).exists()]
+        missing_outputs = [item for item in phase["outputs"] if not (workspace / item).exists()]
+        ready = not missing_inputs and status not in {"MISSING", "FAIL", "INVALID"}
+        if missing_inputs:
+            next_action = f"补齐输入文件：{', '.join(missing_inputs[:3])}"
+        elif missing_outputs:
+            next_action = f"运行 {phase['skill']} 生成缺失输出"
+        elif status in {"FAIL", "INVALID"}:
+            next_action = f"修复 gate：{phase['gate']}"
+        elif status in {"PENDING", "LEGACY"}:
+            next_action = f"审查并更新 gate：{phase['gate']}"
+        else:
+            next_action = "阶段文件已具备，可进入审计或下游阶段"
         phases.append(
             PhaseSummary(
                 id=phase["id"],
@@ -276,6 +325,12 @@ def build_phase_summaries(workspace: Path) -> list[PhaseSummary]:
                 status=status,
                 status_class=status_class,
                 artifacts=phase["artifacts"],
+                inputs=phase["inputs"],
+                outputs=phase["outputs"],
+                missing_inputs=missing_inputs,
+                missing_outputs=missing_outputs,
+                ready=ready,
+                next_action=next_action,
             )
         )
     return phases
@@ -314,3 +369,36 @@ def copy_workspace_for_run(workspace: Path, name: str | None = None) -> Path:
     ignore = shutil.ignore_patterns("runs", ".venv", "__pycache__", ".pytest_cache", "node_modules")
     shutil.copytree(workspace, destination, ignore=ignore)
     return destination
+
+
+def history_path(workspace: Path) -> Path:
+    return workspace / "runs" / "control-center-history.jsonl"
+
+
+def append_history(workspace: Path, entry: dict[str, Any]) -> dict[str, Any]:
+    target = history_path(workspace)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    entry = {"timestamp": datetime.now().isoformat(timespec="seconds"), **entry}
+    with target.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    return entry
+
+
+def read_history(workspace: Path, limit: int = 50) -> list[dict[str, Any]]:
+    target = history_path(workspace)
+    if not target.is_file():
+        return []
+    rows: list[dict[str, Any]] = []
+    for line in target.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            rows.append(value)
+    return rows[-limit:]
+
+
+def sanitize_filename(filename: str) -> str:
+    name = Path(filename).name
+    return re.sub(r'[<>:"/\\|?*\x00-\x1f]+', "_", name).strip(" .") or "uploaded-file"

@@ -6,6 +6,33 @@
 **Architecture**: Skill + Codex Subagent Hybrid Workflow  
 **Active workflow**: V2.3 (8 V2 skills + shared references + tools). V1 is archived under `archive/v1/`.
 
+## MathModel Control Center
+
+This repository now includes a local full-stack Control Center under `app/`.
+
+- Backend: FastAPI
+- Frontend: Vue 3 + Vite
+- Mode: Manual-first, harness-agnostic
+- Supported prompt targets: Manual, Codex, Claude Code, OpenCode
+- Safety default: prepare copied run workspaces instead of mutating the original workspace through a managed adapter
+
+Beginner guide:
+
+- `docs/control-center-beginner-guide.md`
+
+Quick start:
+
+```powershell
+cd D:\WorkSpace_MathModel\app
+.\start.bat
+```
+
+Open:
+
+```text
+http://127.0.0.1:5173
+```
+
 ---
 
 ## Architecture Overview
