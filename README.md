@@ -284,6 +284,16 @@ Each contest has **both** Typst and LaTeX templates under `skills/5writing/templ
 
 ## Optional Integrations
 
+### LangGraph Phase Runner
+
+Optional backend orchestration layer for dry-run phase preparation. It does not replace V2 skills, local RAG, human gates, or `audit_v2_run.py`.
+
+```powershell
+pip install -r app\backend\requirements-langgraph.txt
+```
+
+Docs: `docs/langgraph-runner.md`
+
 ### ARS (Academic Research Suite)
 
 [Academic Research Suite](https://github.com/Imbad0202/academic-research-skills) provides deeper audits. Set `ARS_ROOT` to enable. Advisory-only — never a hard dependency.

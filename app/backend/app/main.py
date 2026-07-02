@@ -11,6 +11,8 @@ from fastapi.responses import FileResponse
 
 from .config import get_settings
 from .harness import harnesses, prepare_harness_run
+from .langgraph_runner import LangGraphUnavailableError, langgraph_status, run_langgraph_phase
+from .model_adapters import ModelAdapterError
 from .models import (
     ArtifactReadResponse,
     AuditResponse,
@@ -23,6 +25,9 @@ from .models import (
     PrepareHarnessRequest,
     PrepareHarnessResponse,
     HealthResponse,
+    LangGraphRunRequest,
+    LangGraphRunResponse,
+    LangGraphStatusResponse,
     PromptRequest,
     PromptResponse,
     Recommendation,
@@ -192,6 +197,11 @@ def health() -> HealthResponse:
         examples_root=str(settings.examples_root),
         scripts=scripts,
     )
+
+
+@app.get("/api/langgraph/status", response_model=LangGraphStatusResponse)
+def get_langgraph_status() -> LangGraphStatusResponse:
+    return LangGraphStatusResponse(**langgraph_status())
 
 
 @app.get("/api/workspaces")
@@ -415,6 +425,73 @@ def prepare_harness(workspace_id: str, payload: PrepareHarnessRequest) -> Prepar
             run_name=payload.run_name,
             issues=list(audit["result"].get("issues", [])),
         )
+    )
+
+
+@app.post("/api/workspaces/{workspace_id}/langgraph/run", response_model=LangGraphRunResponse)
+def run_langgraph(workspace_id: str, payload: LangGraphRunRequest) -> LangGraphRunResponse:
+    settings = get_settings()
+    workspace = workspace_from_id(workspace_id, settings)
+    try:
+        result = run_langgraph_phase(
+            settings=settings,
+            source_workspace=workspace,
+            phase=payload.phase,
+            mode=payload.mode,
+            provider=payload.provider,
+            model=payload.model,
+            copy_workspace=payload.copy_workspace,
+            run_name=payload.run_name,
+            temperature=payload.temperature,
+            max_tokens=payload.max_tokens,
+        )
+    except LangGraphUnavailableError as exc:
+        raise HTTPException(status_code=501, detail=str(exc)) from exc
+    except ModelAdapterError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return LangGraphRunResponse(
+        available=True,
+        source_workspace=str(result["source_workspace"]),
+        run_workspace=str(result["run_workspace"]),
+        phase=int(result["phase"]),
+        mode=str(result["mode"]),
+        provider=str(result["provider"]),
+        model=result.get("model"),
+        status=str(result.get("status", "unknown")),
+        prompt_path=result.get("prompt_path"),
+        report_path=result.get("report_path"),
+        pre_audit=result.get("pre_audit", {}),
+        post_audit=result.get("post_audit", {}),
+        issues=list(result.get("issues", [])),
+        history=result.get("history"),
+        phase_plan=result.get("phase_plan"),
+        provider_error=result.get("provider_error"),
+        plan_path=result.get("plan_path"),
+        plan_markdown_path=result.get("plan_markdown_path"),
+        raw_output_path=result.get("raw_output_path"),
+        apply_diff_path=result.get("apply_diff_path"),
+        files_planned=list(result.get("files_planned", [])),
+        files_written=list(result.get("files_written", [])),
+        files_rejected=list(result.get("files_rejected", [])),
+        needs_human=bool(result.get("needs_human", False)),
+        contest_status=result.get("contest_status"),
+        completed_phases=list(result.get("completed_phases", [])),
+        paused_at=result.get("paused_at"),
+        human_gate_required=bool(result.get("human_gate_required", False)),
+        human_gate_file=result.get("human_gate_file"),
+        graph_report_path=result.get("graph_report_path"),
+        phase_results=list(result.get("phase_results", [])),
+        final_audit=result.get("final_audit", {}),
+        sandbox_commands=list(result.get("sandbox_commands", [])),
+        sandbox_status=result.get("sandbox_status"),
+        manifest_created_empty=bool(result.get("manifest_created_empty", False)),
+        paper_sandbox_status=result.get("paper_sandbox_status"),
+        paper_files_written=list(result.get("paper_files_written", [])),
+        claim_trace_path=result.get("claim_trace_path"),
+        method_matrix_path=result.get("method_matrix_path"),
+        paper_build_report_path=result.get("paper_build_report_path"),
     )
 
 
