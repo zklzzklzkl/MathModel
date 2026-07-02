@@ -18,7 +18,7 @@ This repository is not a traditional software project. Contest runs produce work
 
 V2.6 is the active workflow. V1 is archived under `archive/v1/` and should not be used for new contest runs.
 
-## No Build/Test/Lint Pipeline
+## No Build/Test/Lint Pipeline for Skills
 
 There is no single build, test or lint command for the whole repository.
 
@@ -168,7 +168,7 @@ Custom agents use the `mathmodel-*` prefix, for example `mathmodel-experiment-co
 
 Key convention: subagents do not own the workflow. The main skill integrates their results into durable workspace files.
 
-## Optional Integrations
+## Optional Integrations (advisory, never hard dependencies)
 
 - ARS, Academic Research Suite: deeper methodology and editorial audits. Set `ARS_ROOT` if available. Advisory only.
 - Nature Figure: scientific plotting quality support. Set `NATURE_SKILLS_ROOT` if available. PNG-only or Pillow-generated data figures should not be accepted as core evidence when vector-quality output is required.

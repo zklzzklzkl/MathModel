@@ -1,0 +1,236 @@
+[
+  {
+    "workspace": "D:\\WorkSpace_MathModel\\examples\\2022C\\ChatGPTHigh_V2.2",
+    "run_workspace": "D:\\WorkSpace_MathModel\\examples\\2022C\\ChatGPTHigh_V2.2\\runs\\20260702-223941-benchmark-ChatGPTHigh_V2.2",
+    "workspace_name": "ChatGPTHigh_V2.2",
+    "contest_status": "PHASE2_PLAN_ONLY",
+    "completed_phases": [
+      0,
+      1,
+      2
+    ],
+    "paused_at": "phase_2_sandbox",
+    "human_gate_required": false,
+    "human_gate_approved": true,
+    "final_audit_worst": "BLOCKER",
+    "phase_rows": [
+      {
+        "phase": 0,
+        "hit": true,
+        "status": "PLAN_READY",
+        "strategy": "llm_plan_only",
+        "files_written": [],
+        "sandbox_status": null,
+        "paper_sandbox_status": null,
+        "revision_sandbox_status": null,
+        "manifest_created_empty": false,
+        "post_audit_worst": "BLOCKER"
+      },
+      {
+        "phase": 1,
+        "hit": true,
+        "status": "APPLY_PLAN_ONLY",
+        "strategy": "phase_execute_allowlisted_reports",
+        "files_written": [],
+        "sandbox_status": null,
+        "paper_sandbox_status": null,
+        "revision_sandbox_status": null,
+        "manifest_created_empty": false,
+        "post_audit_worst": "BLOCKER"
+      },
+      {
+        "phase": 2,
+        "hit": true,
+        "status": "PHASE2_PLAN_ONLY",
+        "strategy": "phase2_sandbox_executor",
+        "files_written": [],
+        "sandbox_status": "PHASE2_PLAN_ONLY",
+        "paper_sandbox_status": null,
+        "revision_sandbox_status": null,
+        "manifest_created_empty": false,
+        "post_audit_worst": "BLOCKER"
+      },
+      {
+        "phase": 3,
+        "hit": false,
+        "status": "NOT_EXECUTED",
+        "strategy": "none"
+      },
+      {
+        "phase": 4,
+        "hit": false,
+        "status": "NOT_EXECUTED",
+        "strategy": "none"
+      },
+      {
+        "phase": 5,
+        "hit": false,
+        "status": "NOT_EXECUTED",
+        "strategy": "none"
+      },
+      {
+        "phase": 6,
+        "hit": false,
+        "status": "NOT_EXECUTED",
+        "strategy": "none"
+      }
+    ],
+    "error": null
+  },
+  {
+    "workspace": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.1",
+    "run_workspace": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.1\\runs\\20260702-223943-benchmark-DeepSeekV4Pro_V2.1",
+    "workspace_name": "DeepSeekV4Pro_V2.1",
+    "contest_status": "PHASE2_PLAN_ONLY",
+    "completed_phases": [
+      0,
+      1,
+      2
+    ],
+    "paused_at": "phase_2_sandbox",
+    "human_gate_required": false,
+    "human_gate_approved": true,
+    "final_audit_worst": "BLOCKER",
+    "phase_rows": [
+      {
+        "phase": 0,
+        "hit": true,
+        "status": "PLAN_READY",
+        "strategy": "llm_plan_only",
+        "files_written": [],
+        "sandbox_status": null,
+        "paper_sandbox_status": null,
+        "revision_sandbox_status": null,
+        "manifest_created_empty": false,
+        "post_audit_worst": "BLOCKER"
+      },
+      {
+        "phase": 1,
+        "hit": true,
+        "status": "APPLY_PLAN_ONLY",
+        "strategy": "phase_execute_allowlisted_reports",
+        "files_written": [],
+        "sandbox_status": null,
+        "paper_sandbox_status": null,
+        "revision_sandbox_status": null,
+        "manifest_created_empty": false,
+        "post_audit_worst": "BLOCKER"
+      },
+      {
+        "phase": 2,
+        "hit": true,
+        "status": "PHASE2_PLAN_ONLY",
+        "strategy": "phase2_sandbox_executor",
+        "files_written": [],
+        "sandbox_status": "PHASE2_PLAN_ONLY",
+        "paper_sandbox_status": null,
+        "revision_sandbox_status": null,
+        "manifest_created_empty": false,
+        "post_audit_worst": "BLOCKER"
+      },
+      {
+        "phase": 3,
+        "hit": false,
+        "status": "NOT_EXECUTED",
+        "strategy": "none"
+      },
+      {
+        "phase": 4,
+        "hit": false,
+        "status": "NOT_EXECUTED",
+        "strategy": "none"
+      },
+      {
+        "phase": 5,
+        "hit": false,
+        "status": "NOT_EXECUTED",
+        "strategy": "none"
+      },
+      {
+        "phase": 6,
+        "hit": false,
+        "status": "NOT_EXECUTED",
+        "strategy": "none"
+      }
+    ],
+    "error": null
+  },
+  {
+    "workspace": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3",
+    "run_workspace": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260702-223944-benchmark-DeepSeekV4Pro_V2.3",
+    "workspace_name": "DeepSeekV4Pro_V2.3",
+    "contest_status": "PHASE2_PLAN_ONLY",
+    "completed_phases": [
+      0,
+      1,
+      2
+    ],
+    "paused_at": "phase_2_sandbox",
+    "human_gate_required": false,
+    "human_gate_approved": true,
+    "final_audit_worst": "HIGH",
+    "phase_rows": [
+      {
+        "phase": 0,
+        "hit": true,
+        "status": "PLAN_READY",
+        "strategy": "llm_plan_only",
+        "files_written": [],
+        "sandbox_status": null,
+        "paper_sandbox_status": null,
+        "revision_sandbox_status": null,
+        "manifest_created_empty": false,
+        "post_audit_worst": "HIGH"
+      },
+      {
+        "phase": 1,
+        "hit": true,
+        "status": "APPLY_PLAN_ONLY",
+        "strategy": "phase_execute_allowlisted_reports",
+        "files_written": [],
+        "sandbox_status": null,
+        "paper_sandbox_status": null,
+        "revision_sandbox_status": null,
+        "manifest_created_empty": false,
+        "post_audit_worst": "HIGH"
+      },
+      {
+        "phase": 2,
+        "hit": true,
+        "status": "PHASE2_PLAN_ONLY",
+        "strategy": "phase2_sandbox_executor",
+        "files_written": [],
+        "sandbox_status": "PHASE2_PLAN_ONLY",
+        "paper_sandbox_status": null,
+        "revision_sandbox_status": null,
+        "manifest_created_empty": false,
+        "post_audit_worst": "HIGH"
+      },
+      {
+        "phase": 3,
+        "hit": false,
+        "status": "NOT_EXECUTED",
+        "strategy": "none"
+      },
+      {
+        "phase": 4,
+        "hit": false,
+        "status": "NOT_EXECUTED",
+        "strategy": "none"
+      },
+      {
+        "phase": 5,
+        "hit": false,
+        "status": "NOT_EXECUTED",
+        "strategy": "none"
+      },
+      {
+        "phase": 6,
+        "hit": false,
+        "status": "NOT_EXECUTED",
+        "strategy": "none"
+      }
+    ],
+    "error": null
+  }
+]

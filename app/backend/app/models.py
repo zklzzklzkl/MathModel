@@ -195,3 +195,76 @@ class PrepareHarnessResponse(BaseModel):
     prompt_path: str | None = None
     command_preview: str
     history: RunHistoryEntry
+
+
+class LangGraphStatusResponse(BaseModel):
+    available: bool
+    version: str | None = None
+    import_error: str | None = None
+    note: str
+
+
+class LangGraphRunRequest(BaseModel):
+    phase: int = Field(ge=0, le=6)
+    mode: Literal[
+        "dry_run",
+        "llm_plan",
+        "controlled_apply",
+        "phase_execute",
+        "contest_graph_v0",
+        "contest_graph_v1",
+        "contest_graph_v2",
+        "contest_graph_v3",
+    ] = "dry_run"
+    provider: str = "none"
+    model: str | None = None
+    copy_workspace: bool = True
+    run_name: str | None = None
+    temperature: float = Field(default=0.2, ge=0, le=2)
+    max_tokens: int = Field(default=4096, ge=512, le=32768)
+
+
+class LangGraphRunResponse(BaseModel):
+    available: bool
+    source_workspace: str
+    run_workspace: str
+    phase: int
+    mode: str
+    provider: str
+    model: str | None = None
+    status: str
+    prompt_path: str | None = None
+    report_path: str | None = None
+    pre_audit: dict[str, Any]
+    post_audit: dict[str, Any]
+    issues: list[dict[str, Any]]
+    history: dict[str, Any] | None = None
+    phase_plan: dict[str, Any] | None = None
+    provider_error: str | None = None
+    plan_path: str | None = None
+    plan_markdown_path: str | None = None
+    raw_output_path: str | None = None
+    apply_diff_path: str | None = None
+    files_planned: list[str] = Field(default_factory=list)
+    files_written: list[str] = Field(default_factory=list)
+    files_rejected: list[Any] = Field(default_factory=list)
+    needs_human: bool = False
+    contest_status: str | None = None
+    completed_phases: list[int] = Field(default_factory=list)
+    paused_at: str | None = None
+    human_gate_required: bool = False
+    human_gate_file: str | None = None
+    graph_report_path: str | None = None
+    phase_results: list[dict[str, Any]] = Field(default_factory=list)
+    final_audit: dict[str, Any] = Field(default_factory=dict)
+    sandbox_commands: list[dict[str, Any]] = Field(default_factory=list)
+    sandbox_status: str | None = None
+    manifest_created_empty: bool = False
+    paper_sandbox_status: str | None = None
+    paper_files_written: list[str] = Field(default_factory=list)
+    claim_trace_path: str | None = None
+    method_matrix_path: str | None = None
+    paper_build_report_path: str | None = None
+    revision_sandbox_status: str | None = None
+    revision_files_written: list[str] = Field(default_factory=list)
+    revision_status_path: str | None = None

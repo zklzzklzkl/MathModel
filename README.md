@@ -9,6 +9,7 @@ Current Workflow: V2.6
 Active Pipeline: 1 orchestrator + 7 phase skills
 Archived Pipeline: V1, preserved under archive/v1/
 Core Principle: workspace files are the shared memory, chat history is not the state source
+LangGraph Runtime: contest_graph_v3 (safe closed-loop: Human Gate → Phase 2 sandbox → Phase 3 paper → Phase 4 review → Phase 5 revision → Phase 6 audit-only) + Benchmark Arena
 ```
 
 ---
