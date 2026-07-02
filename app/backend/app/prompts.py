@@ -89,7 +89,7 @@ def build_prompt(workspace: Path, phase_id: int, harness: str, issues: list[dict
         )
     else:
         issue_lines = "- 当前没有传入审计 issue；请先读取 gate artifacts。"
-    return f"""# MathModelAgent V2.3 Phase {phase_id}: {phase["name"]}
+    return f"""# MathModelAgent V2.6 Phase {phase_id}: {phase["name"]}
 
 Workspace:
 {workspace}
