@@ -1,4 +1,4 @@
-# MathModelAgent V2.5
+# MathModelAgent V2.6
 
 数学建模竞赛全流程自动化 —— Skill + Codex 子代理混合工作流，底层由本地 RAG 知识库提供题型识别、模型路由、模型卡、代码模板、图表证据、论文表达和评审反馈能力。
 
