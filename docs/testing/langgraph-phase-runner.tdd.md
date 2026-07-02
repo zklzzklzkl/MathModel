@@ -430,3 +430,70 @@ Results:
 py_compile passed
 git diff --check passed with CRLF warnings only
 ```
+
+---
+
+# TDD Evidence: LangGraph Contest Graph v3 (Revision Integrator Sandbox + Benchmark Arena)
+
+## Source Plan
+
+Derived from user request to upgrade Phase 5 from `llm_plan`-only to Revision Integrator Sandbox, add mini benchmark fixtures, and verify all release stabilization invariants for contest_graph_v3.
+
+## GREEN Evidence
+
+Command:
+
+```powershell
+python -m pytest tests/test_langgraph_runner.py tests/test_langgraph_benchmark.py tests/test_langgraph_api.py -q
+```
+
+Results:
+
+```text
+112 passed, 1 skipped, 1 warning
+py_compile passed
+git diff --check passed with CRLF warnings only
+```
+
+## Test Specification
+
+### contest_graph_v3 (langgraph_runner.py)
+
+| # | What is guaranteed | Test | Type | Result |
+| --- | --- | --- | --- | --- |
+| 1 | Phase 5 write validation accepts allowed revision paths. | `test_validate_phase5_writes_accepts_allowed_revision_paths` | unit | PASS |
+| 2 | Phase 5 write validation rejects forbidden paths (code, results, source, VERIFY_REPORT, etc.). | `test_validate_phase5_writes_rejects_forbidden_paths` (8 params) | unit | PASS |
+| 3 | Missing REVISION_ACTIONS.md — writes status only, does not modify paper. | `test_phase5_revision_sandbox_missing_actions_writes_status_only` | integration | PASS |
+| 4 | REVISION_ACTIONS.md present — writes revision status and allowed files. | `test_phase5_revision_sandbox_writes_revision_status_and_allowed_files` | integration | PASS |
+| 5 | Illegal batch with forbidden paths — whole batch rejected. | `test_phase5_revision_sandbox_rejects_illegal_batch_without_writes` | integration | PASS |
+| 6 | Write failure mid-batch — rollback, no partial writes. | `test_phase5_revision_sandbox_rolls_back_on_write_failure` | integration | PASS |
+| 7 | contest_graph_v3 pauses at human gate. | `test_contest_graph_v3_pauses_at_human_gate_without_phase2_or_revision` | integration | PASS |
+| 8 | contest_graph_v3 full smoke: all phases 0-6, includes revision. | `test_contest_graph_v3_revision_smoke_runs_to_phase6_audit_only` | integration | PASS |
+| 9 | contest_graph_v3 with missing revision actions still reaches audit-only Phase 6. | `test_contest_graph_v3_missing_revision_actions_still_reaches_audit_only` | integration | PASS |
+
+### Benchmark Fixtures (test_langgraph_benchmark.py)
+
+| # | What is guaranteed | Test | Type | Result |
+| --- | --- | --- | --- | --- |
+| 10 | benchmark_01: v3 stops at Human Gate without approved review. | `test_benchmark_01_human_gate_pause` | integration | PASS |
+| 11 | benchmark_02: full minimal flow completes all phases with all sandboxes. | `test_benchmark_02_full_minimal_flow` | integration | PASS |
+| 12 | benchmark_03: Phase 4 HIGH forces REVISION_REQUIRED, no PASS claimed. | `test_benchmark_03_revision_required` | integration | PASS |
+
+### Release Stabilization
+
+| # | What is guaranteed | Test | Type | Result |
+| --- | --- | --- | --- | --- |
+| 13 | v3 never writes VERIFY_REPORT.md. | `test_stabilization_v3_never_writes_verify_report` | integration | PASS |
+| 14 | v3 never auto-writes HUMAN_MODEL_REVIEW.md or MODELING_DECISION.md. | `test_stabilization_v3_never_writes_human_gate_files` | integration | PASS |
+| 15 | Phase 2 sandbox rejects paper/source writes. | `test_stabilization_phase2_rejects_paper_and_source` | integration | PASS |
+| 16 | Phase 3 sandbox rejects code/results writes. | `test_stabilization_phase3_rejects_code_and_results` | integration | PASS |
+| 17 | Phase 5 validate rejects VERIFY_REPORT.md path. | `test_stabilization_phase5_rejects_verify_report` | unit | PASS |
+| 18 | Phase 6 is audit-only, never writes VERIFY_REPORT.md. | `test_stabilization_phase6_never_writes_verify` | integration | PASS |
+| 19 | Contest graph report exists with all required sections. | `test_stabilization_graph_report_exists` | integration | PASS |
+| 20 | AGENT_RUNS.md has entries for sandbox phases 2, 3, 5. | `test_stabilization_agent_runs_has_phase2_3_5` | integration | PASS |
+| 21 | History includes a langgraph_contest_graph_v3 event. | `test_stabilization_history_has_v3_event` | integration | PASS |
+| 22 | Benchmark report generation produces valid JSON and Markdown. | `test_stabilization_benchmark_report_generation` | integration | PASS |
+
+## Scripts
+
+- `scripts/langgraph_benchmark.py` — batch benchmark runner, compiles and passes test assertion.

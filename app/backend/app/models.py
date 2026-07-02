@@ -214,6 +214,7 @@ class LangGraphRunRequest(BaseModel):
         "contest_graph_v0",
         "contest_graph_v1",
         "contest_graph_v2",
+        "contest_graph_v3",
     ] = "dry_run"
     provider: str = "none"
     model: str | None = None
@@ -264,3 +265,6 @@ class LangGraphRunResponse(BaseModel):
     claim_trace_path: str | None = None
     method_matrix_path: str | None = None
     paper_build_report_path: str | None = None
+    revision_sandbox_status: str | None = None
+    revision_files_written: list[str] = Field(default_factory=list)
+    revision_status_path: str | None = None

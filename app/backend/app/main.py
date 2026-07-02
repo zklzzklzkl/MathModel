@@ -492,6 +492,9 @@ def run_langgraph(workspace_id: str, payload: LangGraphRunRequest) -> LangGraphR
         claim_trace_path=result.get("claim_trace_path"),
         method_matrix_path=result.get("method_matrix_path"),
         paper_build_report_path=result.get("paper_build_report_path"),
+        revision_sandbox_status=result.get("revision_sandbox_status"),
+        revision_files_written=list(result.get("revision_files_written", [])),
+        revision_status_path=result.get("revision_status_path"),
     )
 
 

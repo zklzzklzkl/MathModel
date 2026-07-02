@@ -35,6 +35,10 @@ class LangGraphUnavailableError(RuntimeError):
     """Raised when the optional LangGraph runtime is not installed."""
 
 
+class RevisionSandboxError(ValueError):
+    """Raised when the Phase 5 revision sandbox encounters a controlled rejection."""
+
+
 APPLY_ALLOWED_PATHS: dict[int, set[str]] = {
     1: {
         "reports/MODEL_CANDIDATES.md",
@@ -67,6 +71,7 @@ SUPPORTED_MODES = {
     "contest_graph_v0",
     "contest_graph_v1",
     "contest_graph_v2",
+    "contest_graph_v3",
 }
 HUMAN_MODEL_GATE = "reports/HUMAN_MODEL_REVIEW.md"
 HUMAN_MODEL_APPROVAL_SIGNALS = (
@@ -130,6 +135,31 @@ PHASE3_REQUIRED_REPORTS = {
     "reports/METHOD_IMPLEMENTATION_MATRIX.md",
     "reports/PAPER_BUILD_REPORT.md",
 }
+PHASE5_ALLOWED_FILES = {
+    "paper/main.tex",
+    "paper/main.typ",
+    "paper/README.md",
+    "reports/CLAIM_TRACE.md",
+    "reports/METHOD_IMPLEMENTATION_MATRIX.md",
+    "reports/PAPER_BUILD_REPORT.md",
+    "reports/REVISION_STATUS.md",
+    "reports/REFINEMENT_LOG.md",
+}
+PHASE5_FORBIDDEN_PREFIXES = {
+    "source/",
+    "code/",
+    "figures/",
+    "results/",
+}
+PHASE5_FORBIDDEN_EXACT = {
+    "reports/HUMAN_MODEL_REVIEW.md",
+    "reports/MODELING_DECISION.md",
+    "reports/VERIFY_REPORT.md",
+}
+PHASE5_REQUIRED_REPORTS = {
+    "reports/REVISION_STATUS.md",
+    "reports/REFINEMENT_LOG.md",
+}
 
 
 def _is_apply_mode(mode: str) -> bool:
@@ -137,7 +167,7 @@ def _is_apply_mode(mode: str) -> bool:
 
 
 def _is_contest_graph_mode(mode: str) -> bool:
-    return mode in {"contest_graph_v0", "contest_graph_v1", "contest_graph_v2"}
+    return mode in {"contest_graph_v0", "contest_graph_v1", "contest_graph_v2", "contest_graph_v3"}
 
 
 def langgraph_available() -> bool:
@@ -160,7 +190,7 @@ def langgraph_status() -> dict[str, Any]:
         "available": True,
         "version": version,
         "import_error": None,
-        "note": "LangGraph Phase Runner is available. Supported modes: dry_run, llm_plan, controlled_apply, phase_execute, contest_graph_v0, contest_graph_v1, contest_graph_v2.",
+        "note": "LangGraph Phase Runner is available. Supported modes: dry_run, llm_plan, controlled_apply, phase_execute, contest_graph_v0, contest_graph_v1, contest_graph_v2, contest_graph_v3.",
     }
 
 
@@ -348,6 +378,23 @@ def validate_phase3_path(workspace: Path, relative_path: str) -> Path:
     target = (workspace / normalized).resolve()
     if not _is_relative_to(target, workspace):
         raise ValueError(f"Phase 3 paper sandbox path escapes run workspace: {normalized}")
+    return target
+
+
+def validate_phase5_path(workspace: Path, relative_path: str) -> Path:
+    normalized = _normalize_relative_path(relative_path)
+    allowed = PHASE5_ALLOWED_FILES | LANGGRAPH_INFRA_PATHS
+    if normalized not in allowed:
+        raise ValueError(f"Phase 5 revision sandbox path is not allowed: {normalized}")
+    for prefix in PHASE5_FORBIDDEN_PREFIXES:
+        if normalized == prefix.rstrip("/") or normalized.startswith(prefix):
+            raise ValueError(f"Phase 5 revision sandbox path is forbidden: {normalized}")
+    if normalized in PHASE5_FORBIDDEN_EXACT:
+        raise ValueError(f"Phase 5 revision sandbox path is forbidden: {normalized}")
+    workspace = workspace.resolve()
+    target = (workspace / normalized).resolve()
+    if not _is_relative_to(target, workspace):
+        raise ValueError(f"Phase 5 revision sandbox path escapes run workspace: {normalized}")
     return target
 
 
@@ -856,6 +903,287 @@ def run_phase3_paper_sandbox(state: MathModelGraphState) -> dict[str, Any]:
     _append_phase3_agent_run(state)
     state["history"] = _append_phase3_history(state)
     return summarize_phase3_outputs(state) | {"result_artifact_status": result_status}
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 Revision Integrator Sandbox
+# ---------------------------------------------------------------------------
+
+
+def validate_phase5_writes(workspace: Path, writes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    validated: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for index, item in enumerate(writes, start=1):
+        if not isinstance(item, dict):
+            raise ValueError(f"Phase 5 write item {index} must be an object.")
+        path = _normalize_relative_path(str(item.get("path") or ""))
+        purpose = str(item.get("purpose") or "")
+        content = item.get("content")
+        if not purpose:
+            raise ValueError(f"Phase 5 write {path} purpose is required.")
+        if not isinstance(content, str) or not content:
+            raise ValueError(f"Phase 5 write {path} content must be a non-empty string.")
+        validate_phase5_path(workspace, path)
+        if path == "reports/CLAIM_TRACE.md":
+            _require_text_columns(
+                content,
+                [
+                    "claim_id",
+                    "paper_section",
+                    "claim_text",
+                    "evidence_source",
+                    "source_quality",
+                    "supporting_artifact",
+                    "risk_note",
+                    "status",
+                ],
+                path,
+            )
+        if path == "reports/METHOD_IMPLEMENTATION_MATRIX.md":
+            _require_text_columns(
+                content,
+                [
+                    "method",
+                    "implementation_file",
+                    "input_data",
+                    "output_artifacts",
+                    "validation_status",
+                    "related_claims",
+                    "known_gaps",
+                ],
+                path,
+            )
+        if path == "reports/PAPER_BUILD_REPORT.md":
+            _require_text_columns(
+                content,
+                [
+                    "generated paper files",
+                    "used result artifacts",
+                    "missing artifacts",
+                    "claims generated",
+                    "unresolved risks",
+                    "next human actions",
+                ],
+                path,
+            )
+        if path == "reports/REVISION_STATUS.md":
+            _require_text_columns(
+                content,
+                [
+                    "revision_actions_exists",
+                    "blocker_high_count",
+                    "unresolved_blocker_high",
+                    "next_action",
+                ],
+                path,
+            )
+        seen.add(path)
+        validated.append({"path": path, "purpose": purpose, "content": content, "status": "VALIDATED"})
+    if validated:
+        if not any(item["path"].startswith("paper/") for item in validated) and not any(
+            item["path"] == "reports/REVISION_STATUS.md" for item in validated
+        ):
+            raise ValueError("Phase 5 revision sandbox requires at least one paper file or REVISION_STATUS.md.")
+    return validated
+
+
+def parse_revision_actions(run_workspace: Path) -> dict[str, Any]:
+    path = run_workspace / "reports" / "REVISION_ACTIONS.md"
+    if not path.is_file():
+        return {
+            "exists": False,
+            "path": str(path),
+            "blocker_high_count": 0,
+            "items": [],
+            "raw": "",
+        }
+    raw = path.read_text(encoding="utf-8", errors="replace")
+    lower = raw.lower()
+    items: list[dict[str, str]] = []
+    blocker_high_count = 0
+    for severity in ("blocker", "high"):
+        if severity in lower:
+            count = lower.count(severity)
+            blocker_high_count += count
+            for _ in range(count):
+                items.append({"severity": severity.upper(), "detected": True})
+    return {
+        "exists": True,
+        "path": str(path),
+        "blocker_high_count": blocker_high_count,
+        "items": items,
+        "raw": raw[:2000],
+    }
+
+
+def write_revision_status(state: MathModelGraphState, actions: dict[str, Any], sandbox_status: str) -> Path:
+    path = Path(state["run_workspace"]) / "reports" / "REVISION_STATUS.md"
+    if actions["exists"]:
+        unresolved = actions["blocker_high_count"] > 0
+        status_text = "blocker_high_unresolved" if unresolved else "blocker_high_resolved_or_absent"
+        content = (
+            f"# Revision Status\n\n"
+            f"- revision_actions_exists: true\n"
+            f"- blocker_high_count: {actions['blocker_high_count']}\n"
+            f"- unresolved_blocker_high: {str(unresolved).lower()}\n"
+            f"- sandbox_status: {sandbox_status}\n"
+            f"- next_action: "
+            f"{'Human reviewer must confirm whether BLOCKER/HIGH issues are resolved.' if unresolved else 'Proceed to Phase 6 audit-only; human review still required.'}\n"
+        )
+    else:
+        content = (
+            "# Revision Status\n\n"
+            "- revision_actions_exists: false\n"
+            "- blocker_high_count: 0\n"
+            "- unresolved_blocker_high: false\n"
+            f"- sandbox_status: {sandbox_status}\n"
+            "- next_action: No revision actions file was found. Proceed to Phase 6 audit-only; human review still required.\n"
+        )
+    _write_text_tracked(state, path, content)
+    state["revision_status_path"] = str(path)
+    if "reports/REVISION_STATUS.md" not in state.get("revision_files_written", []):
+        revision_list = state.setdefault("revision_files_written", [])
+        revision_list.append("reports/REVISION_STATUS.md")
+    return path
+
+
+def summarize_revision_outputs(state: MathModelGraphState) -> dict[str, Any]:
+    return {
+        "revision_sandbox_status": state.get("revision_sandbox_status"),
+        "revision_files_written": list(state.get("revision_files_written", [])),
+        "revision_status_path": state.get("revision_status_path"),
+        "revision_sandbox_error": state.get("revision_sandbox_error"),
+    }
+
+
+def _append_phase5_agent_run(state: MathModelGraphState) -> None:
+    written = ", ".join(state.get("revision_files_written", [])) or "none"
+    entry = f"""## LangGraph Phase 5 Revision Sandbox
+
+- Mode: {state['mode']}
+- Provider: {state['provider']}
+- Model: {state['model'] or 'none'}
+- Status: {state.get('revision_sandbox_status') or state.get('status')}
+- Revision files written: {written}
+- Revision status path: {state.get('revision_status_path') or 'none'}
+- Revision sandbox error: {state.get('revision_sandbox_error') or 'none'}
+- Stop reason: {state.get('stop_reason') or 'none'}
+"""
+    _write_langgraph_file(state, "reports/AGENT_RUNS.md", _existing_agent_runs(state) + entry + "\n")
+
+
+def _append_phase5_history(state: MathModelGraphState) -> dict[str, Any]:
+    return append_history(
+        Path(state["source_workspace"]),
+        {
+            "event": "langgraph_phase5_revision_sandbox",
+            "phase": 5,
+            "harness": "LangGraph",
+            "source_workspace": state["source_workspace"],
+            "run_workspace": state["run_workspace"],
+            "prompt_path": state.get("prompt_path"),
+            "status_after": state.get("revision_sandbox_status") or state.get("status"),
+            "note": state.get("stop_reason"),
+        },
+    )
+
+
+def run_phase5_revision_sandbox(state: MathModelGraphState) -> dict[str, Any]:
+    assert_run_workspace_allowed(state)
+    run_workspace = Path(state["run_workspace"]).resolve()
+    source_workspace = Path(state["source_workspace"]).resolve()
+    allowed_root = source_workspace / "runs"
+    if run_workspace == source_workspace or not _is_relative_to(run_workspace, allowed_root):
+        raise ValueError("Phase 5 revision sandbox may only run inside a copied run workspace.")
+    plan = state.get("phase_plan") or {}
+    writes = plan.get("file_writes", []) if isinstance(plan, dict) else []
+    state["revision_files_written"] = []
+    state["revision_sandbox_error"] = None
+    state["revision_status_path"] = None
+
+    actions = parse_revision_actions(run_workspace)
+
+    if not actions["exists"]:
+        write_revision_status(state, actions, "NO_REVISION_ACTIONS")
+        state["revision_sandbox_status"] = "NO_REVISION_ACTIONS"
+        state["status"] = "NO_REVISION_ACTIONS"
+        state["stop_reason"] = "No REVISION_ACTIONS.md found; revision status written, no paper changes applied."
+        state["needs_human"] = True
+        state["contest_status"] = "NO_REVISION_ACTIONS"
+        _append_phase5_agent_run(state)
+        state["history"] = _append_phase5_history(state)
+        return summarize_revision_outputs(state)
+
+    try:
+        validated = validate_phase5_writes(run_workspace, writes) if writes else []
+    except ValueError as exc:
+        state["revision_sandbox_status"] = "REVISION_SANDBOX_REJECTED"
+        state["status"] = "REVISION_SANDBOX_REJECTED"
+        state["revision_sandbox_error"] = str(exc)
+        state["stop_reason"] = str(exc)
+        state["needs_human"] = True
+        _append_phase5_agent_run(state)
+        state["history"] = _append_phase5_history(state)
+        return summarize_revision_outputs(state) | {"revision_files_rejected": [{"reason": str(exc)}]}
+
+    before = _workspace_file_snapshot(run_workspace)
+    try:
+        for item in validated:
+            target = validate_phase5_path(run_workspace, item["path"])
+            _write_text_tracked(state, target, item["content"])
+            if item["path"] not in state["revision_files_written"]:
+                state["revision_files_written"].append(item["path"])
+        write_revision_status(state, actions, "REVISION_SANDBOX_SUCCEEDED")
+    except Exception as exc:
+        _restore_workspace_snapshot(run_workspace, before)
+        state["revision_files_written"] = []
+        state["revision_sandbox_status"] = "REVISION_SANDBOX_ROLLED_BACK"
+        state["status"] = "REVISION_SANDBOX_ROLLED_BACK"
+        state["revision_sandbox_error"] = str(exc)
+        state["stop_reason"] = f"Phase 5 revision sandbox failed and rolled back: {exc}"
+        state["needs_human"] = True
+        _append_phase5_agent_run(state)
+        state["history"] = _append_phase5_history(state)
+        return summarize_revision_outputs(state)
+
+    if "reports/REVISION_STATUS.md" not in state["revision_files_written"]:
+        state["revision_files_written"].append("reports/REVISION_STATUS.md")
+
+    changed = _changed_files_since(run_workspace, before)
+    allowed = PHASE5_ALLOWED_FILES | LANGGRAPH_INFRA_PATHS
+    forbidden_changes = [path for path in changed if path not in allowed]
+    if forbidden_changes:
+        _restore_workspace_snapshot(run_workspace, before)
+        state["revision_files_written"] = []
+        state["revision_sandbox_status"] = "REVISION_SANDBOX_REJECTED"
+        state["status"] = "REVISION_SANDBOX_REJECTED"
+        state["revision_sandbox_error"] = "Phase 5 sandbox attempted forbidden writes: " + ", ".join(forbidden_changes)
+        state["stop_reason"] = state["revision_sandbox_error"]
+        state["needs_human"] = True
+        _append_phase5_agent_run(state)
+        state["history"] = _append_phase5_history(state)
+        return summarize_revision_outputs(state)
+
+    state["revision_sandbox_status"] = "REVISION_SANDBOX_SUCCEEDED"
+    state["status"] = "REVISION_SANDBOX_SUCCEEDED"
+
+    if actions["blocker_high_count"] > 0:
+        state["contest_status"] = "REVISION_REQUIRED"
+        state["stop_reason"] = (
+            f"Phase 5 revision sandbox completed, but {actions['blocker_high_count']} "
+            "BLOCKER/HIGH issues remain unresolved. Phase 6 audit-only is still required."
+        )
+    else:
+        state["contest_status"] = "READY_FOR_FINAL_AUDIT"
+        state["stop_reason"] = (
+            "Phase 5 revision sandbox completed with no unresolved BLOCKER/HIGH. "
+            "Phase 6 audit-only will not write VERIFY_REPORT.md."
+        )
+    state["needs_human"] = True
+
+    _append_phase5_agent_run(state)
+    state["history"] = _append_phase5_history(state)
+    return summarize_revision_outputs(state)
 
 
 def run_phase2_sandbox_executor(settings: Settings, state: MathModelGraphState) -> dict[str, Any]:
@@ -1756,6 +2084,11 @@ def _phase_result_summary(result: dict[str, Any], *, strategy: str) -> dict[str,
         summary["method_matrix_path"] = result.get("method_matrix_path")
         summary["paper_build_report_path"] = result.get("paper_build_report_path")
         summary["paper_sandbox_error"] = result.get("paper_sandbox_error")
+    if "revision_sandbox_status" in result:
+        summary["revision_sandbox_status"] = result.get("revision_sandbox_status")
+        summary["revision_files_written"] = list(result.get("revision_files_written", []))
+        summary["revision_status_path"] = result.get("revision_status_path")
+        summary["revision_sandbox_error"] = result.get("revision_sandbox_error")
     return summary
 
 
@@ -1788,6 +2121,16 @@ def _merge_file_tracking(target: dict[str, Any], result: dict[str, Any]) -> None
             if item not in bucket:
                 bucket.append(item)
     for key in ("claim_trace_path", "method_matrix_path", "paper_build_report_path", "paper_sandbox_error"):
+        if result.get(key):
+            target[key] = result.get(key)
+    if result.get("revision_sandbox_status"):
+        target["revision_sandbox_status"] = result.get("revision_sandbox_status")
+    if result.get("revision_files_written"):
+        bucket = target.setdefault("revision_files_written", [])
+        for item in result.get("revision_files_written", []):
+            if item not in bucket:
+                bucket.append(item)
+    for key in ("revision_status_path", "revision_sandbox_error"):
         if result.get(key):
             target[key] = result.get(key)
 
@@ -2514,6 +2857,288 @@ def run_contest_graph_v2(
     return dict(state)
 
 
+def _phase5_revision_phase(
+    *,
+    settings: Settings,
+    source_workspace: Path,
+    run_workspace: Path,
+    provider: str,
+    model: str | None,
+    temperature: float,
+    max_tokens: int,
+) -> dict[str, Any]:
+    plan_result = _run_phase_in_workspace(
+        settings=settings,
+        source_workspace=source_workspace,
+        run_workspace=run_workspace,
+        phase=5,
+        mode="llm_plan",
+        provider=provider,
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+    if plan_result.get("phase_plan") is None or plan_result.get("provider_error"):
+        return plan_result
+    revision_state = _initial_state(
+        source_workspace=source_workspace,
+        run_workspace=run_workspace,
+        phase=5,
+        mode="contest_graph_v3",
+        provider=provider,
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+    revision_state["prompt_path"] = plan_result.get("prompt_path")
+    revision_state["plan_path"] = plan_result.get("plan_path")
+    revision_state["plan_markdown_path"] = plan_result.get("plan_markdown_path")
+    revision_state["phase_plan"] = plan_result.get("phase_plan")
+    revision_result = run_phase5_revision_sandbox(revision_state)
+    audit = run_audit(settings, run_workspace)
+    merged = dict(plan_result)
+    merged.update(
+        {
+            "mode": "phase5_revision_sandbox",
+            "status": revision_result["revision_sandbox_status"],
+            "revision_sandbox_status": revision_result["revision_sandbox_status"],
+            "revision_files_written": revision_result.get("revision_files_written", []),
+            "revision_status_path": revision_result.get("revision_status_path"),
+            "revision_sandbox_error": revision_result.get("revision_sandbox_error"),
+            "contest_status": revision_state.get("contest_status"),
+            "post_audit": audit.get("result", {}),
+            "issues": list(audit.get("result", {}).get("issues", [])),
+            "stop_reason": revision_state.get("stop_reason"),
+            "created_files": list(dict.fromkeys(plan_result.get("created_files", []) + revision_state.get("created_files", []))),
+            "updated_files": list(dict.fromkeys(plan_result.get("updated_files", []) + revision_state.get("updated_files", []))),
+        }
+    )
+    return merged
+
+
+def run_contest_graph_v3(
+    *,
+    settings: Settings,
+    source_workspace: Path,
+    requested_phase: int,
+    provider: str,
+    model: str | None,
+    copy_workspace: bool,
+    run_name: str | None,
+    temperature: float,
+    max_tokens: int,
+) -> dict[str, Any]:
+    source_workspace = source_workspace.resolve()
+    if not source_workspace.is_dir():
+        raise ValueError(f"Source workspace does not exist: {source_workspace}")
+    run_workspace = (
+        copy_workspace_for_run(source_workspace, run_name or "langgraph-contest-graph-v3")
+        if copy_workspace
+        else source_workspace
+    ).resolve()
+
+    state = _initial_state(
+        source_workspace=source_workspace,
+        run_workspace=run_workspace,
+        phase=requested_phase,
+        mode="contest_graph_v3",
+        provider=provider,
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+    state["contest_graph_steps"] = []
+    state["phase_results"] = []
+    state["completed_phases"] = []
+    state["paused_at"] = None
+    state["human_gate_required"] = False
+    state["human_gate_file"] = HUMAN_MODEL_GATE
+    state["contest_status"] = "RUNNING"
+    state["final_audit"] = {}
+    state["graph_report_path"] = None
+    state["sandbox_commands"] = []
+    state["sandbox_status"] = None
+    state["manifest_created_empty"] = False
+    state["paper_sandbox_status"] = None
+    state["paper_files_written"] = []
+    state["claim_trace_path"] = None
+    state["method_matrix_path"] = None
+    state["paper_build_report_path"] = None
+    state["paper_sandbox_error"] = None
+    state["revision_sandbox_status"] = None
+    state["revision_files_written"] = []
+    state["revision_status_path"] = None
+    state["revision_sandbox_error"] = None
+    assert_run_workspace_allowed(state)
+
+    for phase in range(0, 6):
+        state["current_phase"] = phase
+        try:
+            if phase == 2:
+                result = _phase2_sandbox_phase(
+                    settings=settings,
+                    source_workspace=source_workspace,
+                    run_workspace=run_workspace,
+                    provider=provider,
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                strategy = "phase2_sandbox_executor"
+            elif phase == 3:
+                result = _phase3_paper_phase(
+                    settings=settings,
+                    source_workspace=source_workspace,
+                    run_workspace=run_workspace,
+                    provider=provider,
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                strategy = "phase3_paper_sandbox"
+            elif phase == 5:
+                result = _phase5_revision_phase(
+                    settings=settings,
+                    source_workspace=source_workspace,
+                    run_workspace=run_workspace,
+                    provider=provider,
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                strategy = "phase5_revision_sandbox"
+            else:
+                phase_mode = _contest_phase_mode(phase)
+                strategy = "phase_execute_allowlisted_reports" if phase_mode == "phase_execute" else "llm_plan_only"
+                result = _run_phase_in_workspace(
+                    settings=settings,
+                    source_workspace=source_workspace,
+                    run_workspace=run_workspace,
+                    phase=phase,
+                    mode=phase_mode,
+                    provider=provider,
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+        except Exception as exc:
+            state["contest_status"] = f"CONTEST_GRAPH_FAILED_PHASE_{phase}"
+            state["status"] = state["contest_status"]
+            state["stop_reason"] = str(exc)
+            state["needs_human"] = True
+            break
+        summary = _phase_result_summary(result, strategy=strategy)
+        state["phase_results"].append(summary)
+        state["contest_graph_steps"].append(summary)
+        state["completed_phases"].append(phase)
+        state["pre_audit"] = result.get("pre_audit", state.get("pre_audit", {}))
+        state["post_audit"] = result.get("post_audit", state.get("post_audit", {}))
+        state["issues"] = list(result.get("issues", []))
+        state["prompt_path"] = result.get("prompt_path")
+        _merge_file_tracking(state, result)
+
+        if result.get("status") == "PLAN_PARSE_FAILED" or result.get("provider_error"):
+            state["contest_status"] = f"CONTEST_GRAPH_FAILED_PHASE_{phase}"
+            state["status"] = state["contest_status"]
+            state["stop_reason"] = result.get("provider_error") or result.get("stop_reason")
+            state["needs_human"] = True
+            break
+
+        if phase == 1:
+            gate = check_human_model_gate(run_workspace)
+            state["human_gate"] = gate
+            if not gate["approved"]:
+                state["contest_status"] = "WAITING_FOR_HUMAN_MODEL_REVIEW"
+                state["status"] = "WAITING_FOR_HUMAN_MODEL_REVIEW"
+                state["paused_at"] = "phase_1_human_gate"
+                state["human_gate_required"] = True
+                state["human_gate_file"] = HUMAN_MODEL_GATE
+                state["needs_human"] = True
+                state["stop_reason"] = "Phase 1 completed, but HUMAN_MODEL_REVIEW.md is missing or lacks approval."
+                break
+
+        if phase == 2:
+            sandbox_status = str(result.get("sandbox_status", ""))
+            if sandbox_status != "SANDBOX_SUCCEEDED":
+                state["contest_status"] = sandbox_status or "PHASE2_SANDBOX_FAILED"
+                state["status"] = state["contest_status"]
+                state["paused_at"] = "phase_2_sandbox"
+                state["needs_human"] = True
+                state["stop_reason"] = result.get("stop_reason") or "Phase 2 sandbox did not complete successfully."
+                break
+            if _audit_has_high_or_blocker(result.get("post_audit", {})):
+                state["contest_status"] = "PHASE2_AUDIT_NEEDS_REVIEW"
+                state["status"] = "PHASE2_AUDIT_NEEDS_REVIEW"
+                state["paused_at"] = "phase_2_audit"
+                state["needs_human"] = True
+                state["stop_reason"] = "Phase 2 sandbox completed, but post-audit reports HIGH/BLOCKER issues."
+                break
+
+        if phase == 3:
+            paper_status = str(result.get("paper_sandbox_status", ""))
+            if paper_status != "PAPER_SANDBOX_SUCCEEDED":
+                state["contest_status"] = paper_status or "PHASE3_PAPER_SANDBOX_FAILED"
+                state["status"] = state["contest_status"]
+                state["paused_at"] = "phase_3_paper_sandbox"
+                state["needs_human"] = True
+                state["stop_reason"] = result.get("stop_reason") or "Phase 3 paper sandbox did not complete successfully."
+                break
+
+        if phase == 4 and _audit_has_high_or_blocker(result.get("post_audit", {})):
+            state["contest_status"] = "REVISION_REQUIRED"
+            state["status"] = "REVISION_REQUIRED"
+            state["paused_at"] = "phase_4_review"
+            state["needs_human"] = True
+            state["stop_reason"] = "Phase 4 review found HIGH/BLOCKER issues; revision is required."
+            break
+
+        if phase == 5:
+            revision_status = str(result.get("revision_sandbox_status", ""))
+            state["contest_status"] = result.get("contest_status") or state.get("contest_status") or revision_status
+            if revision_status in {"REVISION_SANDBOX_REJECTED", "REVISION_SANDBOX_ROLLED_BACK"}:
+                state["status"] = state["contest_status"]
+                state["paused_at"] = "phase_5_revision_sandbox"
+                state["needs_human"] = True
+                state["stop_reason"] = result.get("stop_reason") or "Phase 5 revision sandbox encountered a fatal error."
+                break
+    else:
+        phase6 = _audit_only_phase6(settings, state)
+        summary = _phase_result_summary(phase6, strategy="audit_only")
+        state["phase_results"].append(summary)
+        state["contest_graph_steps"].append(summary)
+        state["completed_phases"].append(6)
+        state["post_audit"] = phase6["post_audit"]
+        state["issues"] = list(phase6["post_audit"].get("issues", [])) if isinstance(phase6["post_audit"], dict) else []
+        if not state.get("contest_status") or state.get("contest_status") == "RUNNING":
+            state["contest_status"] = "CONTEST_GRAPH_REVIEW_READY"
+        state["status"] = state["contest_status"]
+        state["needs_human"] = True
+        state["stop_reason"] = "Contest graph v3 completed safe orchestration through Phase 6 audit-only. VERIFY_REPORT.md was not written."
+
+    if "human_gate" not in state:
+        state["human_gate"] = check_human_model_gate(run_workspace)
+    if not state.get("final_audit"):
+        state["final_audit"] = state.get("post_audit", {})
+
+    _write_contest_graph_report(state)
+    history = append_history(
+        source_workspace,
+        {
+            "event": "langgraph_contest_graph_v3",
+            "phase": None,
+            "harness": "LangGraph",
+            "source_workspace": str(source_workspace),
+            "run_workspace": str(run_workspace),
+            "prompt_path": state.get("prompt_path"),
+            "status_before": str(state.get("pre_audit", {}).get("status", "UNKNOWN")),
+            "status_after": str(state.get("post_audit", {}).get("status", "UNKNOWN")),
+            "note": state.get("stop_reason"),
+        },
+    )
+    state["history"] = history
+    return dict(state)
+
+
 def run_langgraph_phase(
     *,
     settings: Settings,
@@ -2535,9 +3160,21 @@ def run_langgraph_phase(
         raise ValueError(
             "LangGraph Phase Runner supports mode='dry_run', mode='llm_plan', "
             "mode='controlled_apply', mode='phase_execute', mode='contest_graph_v0', mode='contest_graph_v1', "
-            "or mode='contest_graph_v2'."
+            "or mode='contest_graph_v3'."
         )
     if _is_contest_graph_mode(mode):
+        if mode == "contest_graph_v3":
+            return run_contest_graph_v3(
+                settings=settings,
+                source_workspace=source_workspace,
+                requested_phase=phase,
+                provider=provider,
+                model=model,
+                copy_workspace=copy_workspace,
+                run_name=run_name,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
         if mode == "contest_graph_v2":
             return run_contest_graph_v2(
                 settings=settings,

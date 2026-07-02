@@ -3,6 +3,7 @@
 数学建模竞赛全流程自动化 —— Skill + Codex 子代理混合工作流，底层由本地 RAG 知识库提供题型识别、模型路由、模型卡、代码模板、图表证据、论文表达和评审反馈能力。
 
 **Workflow**: V2.5 (8 skills + capability layer + shared references + tools)
+**LangGraph Runtime**: `contest_graph_v3` (complete safe closed-loop: Human Gate → Phase 2 sandbox → Phase 3 paper → Phase 4 review → Phase 5 revision → Phase 6 audit-only) + Benchmark Arena
 **Archived**: V1 pipeline → `archive/v1/`
 **Version**: 2.5
 

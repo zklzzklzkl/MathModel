@@ -568,6 +568,129 @@ pre_audit_node
 
 ## Planned Modes
 
-- `contest_graph_v3`: revision integrator sandbox with explicit per-file human approval.
-- Benchmark arena for comparing model-route, experiment, paper, and revision strategies across smoke fixtures and historical cases.
 - More granular human gate records for each transition.
+- Multi-model backend comparison (DeepSeek, OpenAI, Claude, Qwen) for each phase.
+
+---
+
+## Contest Graph v3 (Implemented)
+
+`contest_graph_v3` completes the safe closed-loop: the Phase 5 Revision Integrator Sandbox upgrades `llm_plan`-only to controlled revision writes.
+
+```json
+{
+  "phase": 0,
+  "mode": "contest_graph_v3",
+  "provider": "deepseek",
+  "model": "deepseek-chat",
+  "copy_workspace": true,
+  "run_name": "contest-graph-v3-full",
+  "temperature": 0.2,
+  "max_tokens": 4096
+}
+```
+
+v3 strategy:
+
+- Phase 0: `llm_plan`.
+- Phase 1: `phase_execute`.
+- Human Gate: `reports/HUMAN_MODEL_REVIEW.md` must be approved before Phase 2.
+- Phase 2: sandbox executor; failure or `HIGH/BLOCKER` audit stops the graph.
+- Phase 3: Paper Draft Sandbox.
+- Phase 4: `phase_execute` contest review; `HIGH/BLOCKER` triggers `REVISION_REQUIRED`.
+- **Phase 5: Revision Integrator Sandbox** — reads `REVISION_ACTIONS.md`, performs controlled writes to `paper/` and allowed `reports/`, writes `REVISION_STATUS.md`.
+- Phase 6: audit-only; does not write `reports/VERIFY_REPORT.md` and does not claim final PASS.
+
+### Phase 5 Revision Sandbox
+
+Allowed Phase 5 writes:
+
+- `paper/main.tex`, `paper/main.typ`, `paper/README.md`
+- `reports/CLAIM_TRACE.md`, `reports/METHOD_IMPLEMENTATION_MATRIX.md`, `reports/PAPER_BUILD_REPORT.md`
+- `reports/REVISION_STATUS.md`, `reports/REFINEMENT_LOG.md`
+- LangGraph plan/report/agent log files
+
+Forbidden Phase 5 writes:
+
+- `source/`, `code/`, `figures/`, `results/`
+- `reports/HUMAN_MODEL_REVIEW.md`, `reports/MODELING_DECISION.md`, `reports/VERIFY_REPORT.md`
+- workspace-external paths
+
+Phase 5 rules:
+
+- If `REVISION_ACTIONS.md` is missing, writes only `REVISION_STATUS.md` with `NO_REVISION_ACTIONS`.
+- If `REVISION_ACTIONS.md` has BLOCKER/HIGH, can attempt controlled revision of allowed files.
+- Must not fabricate experimental results, metrics, or citations.
+- Must not upgrade weak claims to strong claims without new evidence.
+- Must not delete BLOCKER/HIGH items to pretend resolution.
+- Writes `REVISION_STATUS.md` after revision.
+- If unresolved BLOCKER/HIGH remain, `contest_status = REVISION_REQUIRED`.
+- If no BLOCKER/HIGH, `contest_status = READY_FOR_FINAL_AUDIT`.
+- Phase 6 remains audit-only; VERIFY_REPORT.md is never auto-written.
+
+### v3 Completion Rules
+
+- All phases 0–6 must complete without fatal errors.
+- Phase 6 audit is recorded but does not claim final PASS.
+- Human review is required at every gate.
+- `VERIFY_REPORT.md` is never written automatically.
+- `HUMAN_MODEL_REVIEW.md` and `MODELING_DECISION.md` remain manual-only.
+
+---
+
+## Benchmark Arena
+
+`scripts/langgraph_benchmark.py` provides batch benchmark runs for contest graph modes. It scans a directory of fixture workspaces, runs each through `contest_graph_v3` (or another mode) with `provider=none`, and produces JSON + Markdown reports.
+
+```powershell
+python scripts/langgraph_benchmark.py --root tests/langgraph_benchmark_fixtures
+python scripts/langgraph_benchmark.py --root <dir> --mode contest_graph_v3 --provider none
+python scripts/langgraph_benchmark.py --root <dir> --json-out bench.json --markdown-out bench.md
+```
+
+Outputs per workspace:
+
+- `contest_status`, `completed_phases`, `paused_at`
+- Human gate required/approved state
+- Per-phase status (sandbox, paper sandbox, revision sandbox)
+- Per-phase files written, audit worst severity
+- Final audit summary
+
+Reports:
+
+- `reports/LANGGRAPH_BENCHMARK_REPORT.md` — Markdown table per workspace
+- `reports/LANGGRAPH_BENCHMARK_REPORT.json` — structured machine-readable format
+
+### Benchmark Fixtures
+
+At minimum:
+
+1. **human_gate_pause** — workspace without `HUMAN_MODEL_REVIEW.md`; contest_graph_v3 must stop at Human Gate.
+2. **full_minimal_flow** — workspace with approved gate, `code/solve.py`, all phase adapters; all 0–6 phases complete, no VERIFY_REPORT auto-written.
+3. **revision_required** — Phase 4 produces HIGH/BLOCKER; Phase 5 writes `REVISION_STATUS.md` with unresolved flag; contest_status does not claim PASS.
+
+All benchmarks use `provider=none` and do not depend on external APIs.
+
+### Release Stabilization Invariants
+
+Test suite in `tests/test_langgraph_benchmark.py` verifies:
+
+- contest_graph_v3 never writes `VERIFY_REPORT.md`, `MODELING_DECISION.md`, or `HUMAN_MODEL_REVIEW.md`.
+- Phase 2 sandbox rejects writes to `paper/`, `source/`, and external paths.
+- Phase 3 sandbox rejects writes to `code/`, `results/`, `source/`.
+- Phase 5 sandbox rejects writes to `code/`, `results/`, `source/`, `VERIFY_REPORT.md`.
+- Phase 6 is audit-only; does not write core reports or claim final PASS.
+- `LANGGRAPH_CONTEST_GRAPH_REPORT.md` exists with all required sections.
+- `AGENT_RUNS.md` has entries for phases 2, 3, 5.
+- History includes a `langgraph_contest_graph_v3` event.
+- Benchmark report generation produces valid JSON and Markdown.
+
+### Next Steps
+
+The Benchmark Arena is a foundation. Future work:
+
+- Multi-model comparison (DeepSeek vs OpenAI vs Claude vs Qwen) on the same fixtures.
+- Historical contest workspace replay.
+- Scorecard-based ranking across model backends.
+
+Do not add `contest_graph_v4` until the Benchmark Arena proves the v3 closed-loop is stable across backends.

@@ -54,4 +54,8 @@ class MathModelGraphState(TypedDict):
     method_matrix_path: NotRequired[str | None]
     paper_build_report_path: NotRequired[str | None]
     paper_sandbox_error: NotRequired[str | None]
+    revision_sandbox_status: NotRequired[str | None]
+    revision_files_written: NotRequired[list[str]]
+    revision_status_path: NotRequired[str | None]
+    revision_sandbox_error: NotRequired[str | None]
     history: NotRequired[dict | None]
