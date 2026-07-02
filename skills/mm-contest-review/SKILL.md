@@ -16,8 +16,11 @@ Read:
 - `../_references/paper_benchmark_profile.md`
 - `../_references/agent_review_protocol.md`
 - `../_references/rag_usage_contract.md`
+- `../_references/source_quality_policy.md`
 - `../_references/judge_skim_review_protocol.md`
 - `../_references/anti_template_review.md`
+- `../_references/figure_evidence_map.md`
+- `../_references/evaluator_optimizer_protocol.md`
 - `../_references/figure_quality_standard.md`
 - `../_references/nature_figure_integration_guide.md` when optional `nature-figure` scientific plotting integration is available
 - `../_references/ars_v2_integration_guide.md` when optional ARS editorial synthesis is available
@@ -32,6 +35,8 @@ Review all current artifacts, especially:
 - `reports/RESULTS_REPORT.md`
 - `reports/FIGURE_PLAN.md`
 - `reports/FIGURE_AUDIT.md`
+- `reports/TEMPLATE_ADAPTATION_LOG.md`
+- `reports/REFINEMENT_LOG.md`
 - `reports/METHOD_IMPLEMENTATION_MATRIX.md`
 - `reports/CLAIM_TRACE.md`
 - `paper/`
@@ -64,10 +69,12 @@ Whether panels are native Codex subagents or simulated roles, log the same metad
 
 Before writing the final scorecard:
 
-1. If local RAG is available, query `review_rubrics` for scoring/fast-review cues and `model_methods` when a model-misuse question appears. Record only sourced hits using `../_references/rag_usage_contract.md`.
+1. If local RAG is available, query `review_rubrics` for scoring/fast-review cues and `model_methods` when a model-misuse question appears. Record only sourced hits using `../_references/rag_usage_contract.md` and `../_references/source_quality_policy.md`; `B` review notes are auxiliary only, and `C/D` hits can only create caution or review actions.
 2. Run the 5-minute judge skim review from `../_references/judge_skim_review_protocol.md`. Add the `Judge Skim Review` section to `reports/PAPER_SCORECARD.md`.
 3. Run the anti-template review from `../_references/anti_template_review.md` against the final paper claims and implemented methods. Add an `Anti-Template Review` section to `reports/PAPER_SCORECARD.md`.
-4. Any actionable `BLOCKER`, `HIGH`, or `MEDIUM` finding from RAG evidence, judge skim, or anti-template review must be represented in `reports/REVISION_ACTIONS.md`.
+4. Review `reports/FIGURE_PLAN.md`, `results/RESULTS_MANIFEST.json`, and paper figures against `../_references/figure_evidence_map.md`. Judge whether each core figure supports the claim, not only whether it is visually clean.
+5. If `reports/TEMPLATE_ADAPTATION_LOG.md` exists, verify field mapping, retained/deleted metrics, applicability, and residual template names. If code templates were used but the log is missing, create a `HIGH` action.
+6. Any actionable `BLOCKER`, `HIGH`, or `MEDIUM` finding from RAG evidence, judge skim, anti-template review, figure evidence, or template adaptation must be represented in `reports/REVISION_ACTIONS.md`.
 
 ## Scorecard
 
@@ -83,6 +90,8 @@ Score these dimensions from 0 to 5:
 - claim evidence
 - validation and sensitivity
 - final submission readiness
+
+When scoring visualization quality and claim evidence, use `../_references/figure_evidence_map.md`: a beautiful figure that does not support a claim should score poorly.
 
 For any dimension below 4, create an action item in `reports/REVISION_ACTIONS.md` and do not mark the review as full `PASS`.
 
@@ -128,6 +137,7 @@ Write or update `reports/FIGURE_AUDIT.md`:
 Rules:
 
 - Inserted figures with garbled text, square-box labels, unreadable ticks, or broken paths are `FAIL` and create a `HIGH` or `BLOCKER` action.
+- Core figures with no claim binding, no evidence-map archetype, missing required metrics, or missing axes/units are `FAIL` or at least `WARN` depending on centrality; core claim figures should create `HIGH` actions.
 - Core generated figures that are not inserted must have a justification or appendix plan.
 - A paper with no technical route, modeling framework, mechanism, or algorithm flow figure in a non-trivial contest must receive a `HIGH` action.
 - When `nature-figure` is enabled, also audit figure contract presence, backend match, editable SVG/PDF text where applicable, source-data traceability, statistics/legend sufficiency, and export bundle completeness. Missing core source data, missing selected-backend script, or missing vector export is at least `HIGH` unless documented as not applicable.

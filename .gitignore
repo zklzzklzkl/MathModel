@@ -75,3 +75,8 @@ knowledge/**/*.sqlite
 knowledge/**/*.sqlite3
 knowledge/**/chroma/
 knowledge/**/.cache/
+
+# Local experience memory runtime data (keep distilled summaries tracked)
+memory/events.jsonl
+memory/*.local.jsonl
+memory/.local/

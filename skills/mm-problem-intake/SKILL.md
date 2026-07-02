@@ -15,6 +15,7 @@ Read:
 - `../_references/v2_pipeline_contract.md`
 - `../_references/codex_subagent_protocol.md`
 - `../_references/rag_usage_contract.md`
+- `../_references/source_quality_policy.md`
 - `../_references/problem_type_router.md`
 
 ## Required Outputs
@@ -32,7 +33,7 @@ Create or update:
 1. Inventory all provided problem statements, PDFs, DOCX files, spreadsheets, CSV files, images, and downloaded resources.
 2. Extract the exact contest title, background, top-level questions, attachment descriptions, submission requirements, and known constraints.
 3. Treat only explicitly numbered top-level questions as `ques1`, `ques2`, etc. Do not inflate small details into fake subproblems.
-4. If local RAG is available, query `cumcm_problems` or `mcm_icm_problems` for similar task wording, attachment patterns, and hidden scoring cues. Record only sourced hits using `../_references/rag_usage_contract.md`; do not infer facts from unsourced memory.
+4. If local RAG is available, query `cumcm_problems` or `mcm_icm_problems` for similar task wording, attachment patterns, and hidden scoring cues. Record only sourced hits using `../_references/rag_usage_contract.md` and `../_references/source_quality_policy.md`; core problem facts should come from the current files or `S` official sources, not unsourced memory.
 5. Audit each data file for rows, columns, field meaning, units, missing values, abnormal values, duplicate records, encodings, and whether it can support each subproblem.
 6. Record ambiguities and risks in `WORKFLOW_STATE.md`; mark any unreadable or semantically unclear data as `HIGH` risk.
 7. If using Codex subagents, run `problem-analyst` and `data-auditor` independently, then summarize their outputs into `reports/AGENT_RUNS.md`.

@@ -15,6 +15,10 @@ Read:
 - `../_references/v2_pipeline_contract.md`
 - `../_references/codex_subagent_protocol.md`
 - `../_references/rag_usage_contract.md`
+- `../_references/source_quality_policy.md`
+- `../_references/executable_model_templates.md`
+- `../_references/figure_evidence_map.md`
+- `../_references/evaluator_optimizer_protocol.md`
 - `../_references/figure_quality_standard.md`
 - `../_references/nature_figure_integration_guide.md` when optional `nature-figure` scientific plotting integration is available
 - `../_references/ars_v2_integration_guide.md` when optional ARS visualization audit is available
@@ -38,6 +42,8 @@ Do not proceed if the human modeling review is missing.
 - `code/outputs/`
 - `figures/`
 - `reports/EXPERIMENT_LOG.md`
+- `reports/TEMPLATE_ADAPTATION_LOG.md` when any `code_templates` hit is used
+- `reports/REFINEMENT_LOG.md`
 - `reports/RESULTS_REPORT.md`
 - `reports/FIGURE_PLAN.md`
 - `reports/FIGURE_AUDIT.md`
@@ -55,7 +61,9 @@ eda -> ques1 -> ques2 -> ... -> sensitivity_analysis
 
 For each step:
 
-1. If local RAG is available, query `code_templates` and `figure_templates` for implementation skeletons, validation patterns, and figure/caption standards. Record sourced template use in `reports/EXPERIMENT_LOG.md`; adapt all variable names and metrics to the current data.
+1. If local RAG is available, query `code_templates` and `figure_templates` for implementation skeletons, validation patterns, and figure/caption standards. Treat `code_templates` as `B` auxiliary sources under `../_references/source_quality_policy.md`; they provide structure only, not core evidence.
+1a. If any `code_templates` hit is used, write or update `reports/TEMPLATE_ADAPTATION_LOG.md` with template source, current data field mapping, template variables replaced, metrics kept, metrics deleted, why the template applies, residual template variable/path/figure names, and status. Code must not retain template field names, template data paths, or template figure names unless they truly exist in the current problem data.
+1b. Convert the accepted route's executable template from `../_references/executable_model_templates.md` into concrete code tasks, result tables, validation metrics, and sensitivity outputs.
 2. Write or update code.
 3. Run syntax checks before execution.
 4. Execute on real data.
@@ -67,6 +75,7 @@ For each step:
 10. Do not use `Pillow` as the backend for core data figures such as heatmaps, bar charts, scatter plots, matrices, distributions, model diagnostics, or quantitative panels. `Pillow` is allowed only for non-data process diagrams or raster annotations.
 11. Append a manifest entry for every metric, table, and figure.
 12. Write a short result narrative in `reports/RESULTS_REPORT.md`.
+12a. Run the `RESULTS_REPORT.md` + `FIGURE_PLAN.md` evaluator-optimizer loop from `../_references/evaluator_optimizer_protocol.md` for at most 2 rounds. Each core result must have data, metric, validation, table/figure evidence, and evidence-map binding. Record the loop in `reports/REFINEMENT_LOG.md`.
 13. If using subagents, ask `visualization-reviewer` to check figure usefulness and record the review.
 
 For complex data cleaning, modeling code, or repeated figure generation, use `experiment-coder` or the installed `mathmodel-experiment-coder` custom agent. Its write scope is limited to `code/`, `code/outputs/`, `figures/`, `results/`, `reports/EXPERIMENT_LOG.md`, `reports/RESULTS_REPORT.md`, and `reports/FIGURE_PLAN.md`.
@@ -89,6 +98,16 @@ Record both native and simulated subagent runs in `reports/AGENT_RUNS.md` using 
 Metric entries require `id`, `problem`, `value`, `unit`, `source_file`, `script`, and `description`.
 
 Figure entries require `id`, `path`, `problem`, `source_data`, `script`, `intended_section`, `caption`, and `supports_claim`.
+
+Core figure entries should also record the evidence-map archetype from `../_references/figure_evidence_map.md` when feasible:
+
+```json
+{
+  "evidence_map_entry": "predicted_vs_actual",
+  "required_metrics": ["MAE", "RMSE", "MAPE"],
+  "claim_id": "C1"
+}
+```
 
 When `nature-figure` is enabled for a core paper figure, figure entries also require `backend`, `contract_id`, `export_bundle`, and `audit_status`:
 
@@ -113,7 +132,7 @@ Table entries require `id`, `path`, `problem`, `source_data`, `script`, `intende
 
 ## Figure Requirements
 
-Generate paper-ready figures, not only debug screenshots. Prefer PDF/SVG for vector plots and PNG only when raster is necessary.
+Generate paper-ready figures, not only debug screenshots. Prefer PDF/SVG for vector plots and PNG only when raster is necessary. Every core figure must bind to a claim and a `figure_evidence_map.md` entry in `reports/FIGURE_PLAN.md`.
 
 Each core subproblem should have at least one of:
 

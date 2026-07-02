@@ -135,6 +135,11 @@ contest: generic
 problem_id: evaluation-demo
 tags: [evaluation, topsis, sensitivity]
 license: project-authored
+source_quality: A
+source_type: model_card
+verified_by: maintainer
+last_verified_at: 2026-07-02
+quality_reason: Curated local model card aligned with V2 workflow.
 ---
 ```
 
@@ -149,6 +154,22 @@ license: project-authored
 - `tags`
 
 脚本会把这些字段写入 SQLite ledger，并在检索结果中返回来源路径、可信度、适用阶段、推荐用法和风险提示。
+
+## Source Quality Fields
+
+Additional recommended metadata:
+
+- `source_quality`: `S/A/B/C/D`; see `skills/_references/source_quality_policy.md`.
+- `source_type`: e.g. `official_problem`, `excellent_paper`, `model_card`, `code_template`.
+- `verified_by`: human or policy that assigned the quality level.
+- `last_verified_at`: date or timestamp.
+- `quality_reason`: short reason for the quality level.
+
+Core modeling and paper evidence should be queried with:
+
+```powershell
+python scripts\rag_query.py "your query" --core-only --json
+```
 
 ## Important Rule
 

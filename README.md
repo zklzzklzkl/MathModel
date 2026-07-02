@@ -63,6 +63,14 @@ cd app
 
 ---
 
+## Capability Updates
+
+- `skills/_references/source_quality_policy.md`: S/A/B/C/D source quality and core-evidence rules.
+- `skills/_references/figure_evidence_map.md`: claim -> figure -> data -> metric -> caption evidence map.
+- `skills/_references/executable_model_templates.md`: executable model templates for route-to-code handoff.
+- `skills/_references/evaluator_optimizer_protocol.md`: file-state refinement loop and `reports/REFINEMENT_LOG.md`.
+- `scripts/memory_log.py`, `scripts/memory_brief.py`, `scripts/memory_distill.py`: local experience-memory capture, briefing, and distillation.
+
 ## Architecture
 
 ```
