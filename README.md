@@ -1,44 +1,47 @@
-# MathModelAgent V2.6
+# MathModelAgent V2.7-alpha
 
 面向全国大学生数学建模竞赛、MCM/ICM 等建模赛事的 AI Agent 工作流系统。
 
-MathModelAgent 不是一个传统软件项目，而是一套以 **Skill 工作流、Codex/Claude Code 子代理、本地 RAG 能力层、证据追踪、论文评审门禁** 为核心的数学建模竞赛生产线。目标不是让 AI 直接“写一篇看起来像论文的文本”，而是把赛题理解、模型选择、代码实验、图表生成、论文写作、评审修订和最终验收拆成可审计、可复盘、可人工把关的阶段。
+MathModelAgent 不是一个传统软件项目，而是一套以 **Skill 工作流、LangGraph Runtime、本地 RAG 能力层、证据追踪、沙箱执行、论文评审门禁** 为核心的数学建模竞赛生产线。目标不是让 AI 直接“写一篇看起来像论文的文本”，而是把赛题理解、模型选择、代码实验、图表生成、论文写作、评审修订和最终验收拆成可审计、可复盘、可人工把关的阶段。
 
 ```text
-Current Workflow: V2.6
-Active Pipeline: 1 orchestrator + 7 phase skills
+Current Project Version: V2.7-alpha
+Skill Workflow Base: V2.6-compatible, 1 orchestrator + 7 phase skills
+LangGraph Runtime: v1.0-alpha, contest_graph_v3 + Benchmark Arena
 Archived Pipeline: V1, preserved under archive/v1/
 Core Principle: workspace files are the shared memory, chat history is not the state source
-LangGraph Runtime: contest_graph_v3 (safe closed-loop: Human Gate → Phase 2 sandbox → Phase 3 paper → Phase 4 review → Phase 5 revision → Phase 6 audit-only) + Benchmark Arena
+Safety Principle: Human Gate + copied run workspace + allowlist writes + audit-only final verify
 ```
 
 ---
 
-## What V2.6 Adds
+## What V2.7-alpha Adds
 
-V2.6 的重点是把原有 V2 高分论文流水线扩展成“能力层 + 管控台 + 证据闭环”的系统：
+V2.7-alpha 的重点是在 V2.6 能力层之上补齐 **LangGraph 安全闭环运行时** 和 **Benchmark Arena**：
 
-1. **本地 RAG 能力底座**  
-   通过 8 个本地知识库为题型识别、模型路由、模型卡、代码模板、图表模板、论文表达和评审反馈提供检索支持。
+1. **LangGraph Contest Runtime v1.0-alpha**  
+   新增 `contest_graph_v3`，将 Human Gate、Phase 2 沙箱实验、Phase 3 论文草稿沙箱、Phase 4 竞赛审稿、Phase 5 受控修订和 Phase 6 audit-only 串成完整安全闭环。
 
-2. **证据驱动的论文生成**  
-   论文中的核心结论必须能回溯到模型决策、代码结果、图表或结果清单，避免“模型写得高级，证据支撑不足”的竞赛硬伤。
+2. **Benchmark Arena**  
+   新增 `scripts/langgraph_benchmark.py`，可批量扫描 benchmark workspace fixtures，运行 `contest_graph_v3`，并输出 Markdown + JSON benchmark 报告。
 
-3. **V2 阶段门禁**  
-   每个阶段输出结构化工作文件和 gate 文件，状态只能在满足条件后推进。
+3. **受控沙箱执行**  
+   Phase 2 仅允许安全 Python 命令在 copied run workspace 内执行；Phase 3 和 Phase 5 只允许写入指定 `paper/` 与 `reports/` 文件，非法路径整批拒绝，异常写入回滚。
 
-4. **本地 Control Center**  
-   `app/` 提供 FastAPI + Vue 3 的本地管理台，默认 Manual-first，不直接越权操控外部 harness。
+4. **Human Gate 保留为硬边界**  
+   LangGraph 可以提出模型路线，但不会自动写 `HUMAN_MODEL_REVIEW.md` 或 `MODELING_DECISION.md`。没有人工确认，流程不会进入实验阶段。
 
-5. **评委视角审查**  
-   引入反模板审查、5 分钟评委快审、图表证据图谱、来源质量分级和修订闭环。
+5. **最终验收保持只读**  
+   Phase 6 只做 audit-only，不自动写 `VERIFY_REPORT.md`，不声称 final PASS。
+
+V2.6 的本地 RAG、source quality、figure evidence map、executable templates、evaluator-optimizer 和 evidence trace 仍然是底层能力基础。
 
 ---
 
 ## System Overview
 
 ```text
-MathModelAgent V2.6
+MathModelAgent V2.7-alpha
 │
 ├── Skill Pipeline
 │   ├── mm-start-contest-v2       # Orchestrator
@@ -49,6 +52,17 @@ MathModelAgent V2.6
 │   ├── mm-contest-review         # Phase 4: contest-style review
 │   ├── mm-revision-integrator    # Phase 5: revision loop
 │   └── mm-final-verify           # Phase 6: final acceptance
+│
+├── LangGraph Runtime
+│   ├── dry_run                   # Safe orchestration smoke
+│   ├── llm_plan                  # Structured plan generation only
+│   ├── controlled_apply          # Allowlist-based report writes
+│   ├── phase_execute             # Phase 1 / Phase 4 one-step execution
+│   ├── contest_graph_v0          # Full graph skeleton + Human Gate pause
+│   ├── contest_graph_v1          # Phase 2 sandbox experiment executor
+│   ├── contest_graph_v2          # Phase 3 paper draft sandbox
+│   ├── contest_graph_v3          # Phase 5 revision sandbox + audit-only final
+│   └── Benchmark Arena           # Batch fixture runner and stability report
 │
 ├── Capability Layer
 │   ├── local RAG knowledge base
@@ -64,7 +78,9 @@ MathModelAgent V2.6
 │   ├── CLAIM_TRACE.md
 │   ├── METHOD_IMPLEMENTATION_MATRIX.md
 │   ├── FIGURE_AUDIT.md
-│   └── PAPER_SCORECARD.md
+│   ├── PAPER_SCORECARD.md
+│   ├── REVISION_ACTIONS.md
+│   └── REVISION_STATUS.md
 │
 └── Control Center
     ├── FastAPI backend
@@ -80,7 +96,7 @@ MathModelAgent V2.6
 
 Contest state lives in the workspace, not in chat history.
 
-Skills and subagents communicate through durable files such as `PROBLEM_BRIEF.md`, `MODELING_DECISION.md`, `RESULTS_MANIFEST.json`, `CLAIM_TRACE.md`, and `VERIFY_REPORT.md`.
+Skills, subagents and LangGraph phases communicate through durable files such as `PROBLEM_BRIEF.md`, `MODELING_DECISION.md`, `RESULTS_MANIFEST.json`, `CLAIM_TRACE.md`, `REVISION_STATUS.md` and `VERIFY_REPORT.md`.
 
 This makes the workflow easier to resume, audit, debug and compare across contest runs.
 
@@ -102,9 +118,13 @@ The system contains independent review roles: model reviewer, devil's advocate, 
 
 They are used to catch weak assumptions, template abuse, unsupported claims, poor figures, missing validation and submission risks.
 
+### 5. Runtime safety over one-click automation
+
+LangGraph Runtime is designed to pause, reject, roll back and audit. It should not bypass Human Gate, write final PASS, or modify forbidden directories just to look more autonomous.
+
 ---
 
-## V2.6 Workflow
+## V2 Skill Workflow
 
 ```text
 Bootstrap: mm-start-contest-v2
@@ -145,6 +165,51 @@ Bootstrap: mm-start-contest-v2
 ```
 
 A contest run is complete only when `VERIFY_REPORT.md = PASS` and all hard gates are satisfied.
+
+---
+
+## LangGraph Runtime
+
+LangGraph is an optional runtime layer under `app/backend`. It does not replace the V2 skills. It orchestrates safe phase execution around the existing file-based workspace contract.
+
+Supported modes:
+
+| Mode | Purpose | Write level |
+|---|---|---|
+| `dry_run` | Smoke-test graph wiring and reports | LangGraph reports only |
+| `llm_plan` | Generate structured PhasePlan JSON | Plan files only |
+| `controlled_apply` | Apply allowlisted low-risk report writes | Phase 1 / Phase 4 reports |
+| `phase_execute` | One-step plan + apply for Phase 1 / Phase 4 | Allowlisted phase reports |
+| `contest_graph_v0` | Full graph skeleton with Human Gate pause | Safe mixed strategy |
+| `contest_graph_v1` | Adds Phase 2 sandbox experiment executor | `code/`, `figures/`, `results/`, selected reports in copied run workspace |
+| `contest_graph_v2` | Adds Phase 3 paper draft sandbox | `paper/` and evidence reports in copied run workspace |
+| `contest_graph_v3` | Adds Phase 5 revision sandbox and audit-only final | Revised `paper/` and selected evidence reports |
+
+Key runtime outputs:
+
+```text
+reports/LANGGRAPH_RUN_REPORT.md
+reports/LANGGRAPH_PHASE_PLAN.json
+reports/LANGGRAPH_PHASE_PLAN.md
+reports/LANGGRAPH_APPLY_DIFF.md
+reports/LANGGRAPH_CONTEST_GRAPH_REPORT.md
+reports/LANGGRAPH_BENCHMARK_REPORT.md
+reports/LANGGRAPH_BENCHMARK_REPORT.json
+reports/AGENT_RUNS.md
+```
+
+Benchmark runner:
+
+```bash
+python scripts/langgraph_benchmark.py --root tests/langgraph_benchmark_fixtures --mode contest_graph_v3 --provider none
+```
+
+More details:
+
+```text
+docs/langgraph-runner.md
+docs/testing/langgraph-phase-runner.tdd.md
+```
 
 ---
 
@@ -252,7 +317,7 @@ The Control Center can create or inspect workspaces, read artifacts, generate ph
 ├── FILE_RELATIONSHIP_MAP.md          # Full dependency graph and execution logic
 ├── mathmodelagent.skills.sh.json     # Skill manifest
 │
-├── knowledge/                        # V2.6 local RAG knowledge base
+├── knowledge/                        # V2.6+ local RAG knowledge base
 │   ├── README.md
 │   ├── libraries.json
 │   ├── samples/
@@ -296,20 +361,25 @@ The Control Center can create or inspect workspaces, read artifacts, generate ph
 │   ├── rag_query.py
 │   ├── import_zhanwen_mathmodel.py
 │   ├── audit_benchmark.py
+│   ├── langgraph_benchmark.py         # LangGraph Benchmark Arena runner
 │   ├── new_v2_workspace.py
 │   ├── memory_log.py
 │   ├── memory_brief.py
 │   └── memory_distill.py
 │
-├── app/                              # Local Control Center
+├── app/                              # Local Control Center + LangGraph Runtime backend
 │   ├── backend/
 │   ├── frontend/
 │   └── start.bat
 │
 ├── docs/
 │   ├── control-center-beginner-guide.md
-│   └── control-center-ui-spec.md
+│   ├── control-center-ui-spec.md
+│   ├── langgraph-runner.md
+│   └── testing/
+│       └── langgraph-phase-runner.tdd.md
 │
+├── tests/                            # Runtime, API, benchmark and stabilization tests
 ├── examples/                         # Sanitized example contest workspaces
 ├── workspaces/                       # Local active contest workspaces, normally ignored
 └── archive/v1/                       # Archived V1 legacy pipeline
@@ -353,6 +423,8 @@ A V2 workspace should contain the following artifacts:
 ├── figures/
 └── paper/
 ```
+
+LangGraph runs may additionally create `reports/LANGGRAPH_*.md`, `reports/LANGGRAPH_*.json`, `reports/AGENT_RUNS.md` and local history files.
 
 ---
 
@@ -401,6 +473,8 @@ The project is complete only when all of the following are true:
 6. `CLAIM_TRACE.md` has no missing core claims and no weak claims stated as strong
 7. The paper compiles cleanly and the final PDF opens correctly
 8. Internal workflow files are not leaked into the final paper text
+
+LangGraph `contest_graph_v3` can help reach these conditions, but it does not write final PASS by itself.
 
 ---
 
@@ -478,6 +552,12 @@ cd app/backend
 pip install -e .
 ```
 
+Install optional LangGraph runtime dependencies when using graph modes:
+
+```bash
+pip install -r app/backend/requirements-langgraph.txt
+```
+
 For Claude Code skills, copy skills into your local skills directory if needed:
 
 ```bash
@@ -508,13 +588,19 @@ python scripts/new_v2_workspace.py workspaces/my-contest --contest CUMCM --engin
 python skills/_references/scripts/audit_v2_run.py --workspace workspaces/my-contest
 ```
 
-### 4. Batch-audit benchmark examples
+### 4. Run LangGraph Benchmark Arena
+
+```bash
+python scripts/langgraph_benchmark.py --root tests/langgraph_benchmark_fixtures --mode contest_graph_v3 --provider none
+```
+
+### 5. Batch-audit benchmark examples
 
 ```bash
 python scripts/audit_benchmark.py --root examples/2022C
 ```
 
-### 5. Use the Control Center
+### 6. Use the Control Center
 
 ```powershell
 cd app
@@ -575,11 +661,13 @@ Commit only sanitized examples, scripts, templates, contracts and source notes.
 
 ## Current Project Status
 
-V2.6 is the active workflow version.
+V2.7-alpha is the active project version.
+
+The stable workflow foundation remains the V2 skill pipeline. The current experimental runtime milestone is **LangGraph Runtime v1.0-alpha**, centered on `contest_graph_v3` and Benchmark Arena.
 
 V1 is archived under `archive/v1/` and should not be used for new contests.
 
-This repository is best understood as a contest-oriented AI workflow framework. The most important deliverable is not a single script, but a reproducible workspace containing model decisions, code results, figures, evidence traces, review reports and a final compiled paper.
+This repository is best understood as a contest-oriented AI workflow framework. The most important deliverable is not a single script, but a reproducible workspace containing model decisions, code results, figures, evidence traces, review reports, revision records and a final compiled paper.
 
 ---
 
