@@ -1,12 +1,12 @@
 ---
 name: mm-contest-review
-description: "数学建模竞赛 V2 高分论文对标评审阶段。用于按高分论文标准审查模型、实验、图表、论文结构、结论追踪和可提交性，并给出修改清单。"
+description: "数学建模竞赛 V2.6 高分论文对标评审阶段。用于按高分论文标准审查模型、实验、图表、论文结构、结论追踪和可提交性，并给出修改清单。"
 allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetch
 ---
 
 # Contest Review
 
-> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: [[skills/mm-paper-build/SKILL|Phase 4 Paper]] · 下游: [[skills/mm-revision-integrator/SKILL|Phase 6 Revise]] · 共享规范: [[skills/_references/SKILL|_references]]
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: [[skills/mm-paper-build/SKILL|Phase 3 Paper]] · 下游: [[skills/mm-revision-integrator/SKILL|Phase 5 Revise]] · 共享规范: [[skills/_references/SKILL|_references]]
 
 ## Load First
 
@@ -97,7 +97,7 @@ For any dimension below 4, create an action item in `reports/REVISION_ACTIONS.md
 
 Conclusion rules:
 
-- `PASS`: every dimension is 4 or 5, no `BLOCKER`/`HIGH` actions remain, figure audit has no failed inserted figures, Nature/V2.3 audit has no `HIGH`/`BLOCKER` issue, and method implementation matrix has no `not_implemented` core rows.
+- `PASS`: every dimension is 4 or 5, no `BLOCKER`/`HIGH` actions remain, figure audit has no failed inserted figures, automated audit has no `HIGH`/`BLOCKER` issue, and method implementation matrix has no `not_implemented` core rows.
 - `CONDITIONAL_PASS`: no fatal correctness issue, but at least one `MEDIUM` or justified score weakness remains.
 - `FAIL`: any hard failure, unimplemented approved core method, missing core evidence, or judge-facing defect that would likely cause major score loss.
 
@@ -143,7 +143,7 @@ Rules:
 - When `nature-figure` is enabled, also audit figure contract presence, backend match, editable SVG/PDF text where applicable, source-data traceability, statistics/legend sufficiency, and export bundle completeness. Missing core source data, missing selected-backend script, or missing vector export is at least `HIGH` unless documented as not applicable.
 - Core data figures generated with `Pillow` are at least `HIGH` when Nature is available. `Pillow` is acceptable only for non-data diagrams or raster annotations.
 - Core figures that are PNG-only when SVG/PDF export is feasible are at least `HIGH`.
-- `reports/FIGURE_AUDIT.md` missing the V2.3 extended columns is itself a `HIGH` issue when Nature rules are enabled.
+- `reports/FIGURE_AUDIT.md` missing the extended figure-evidence columns is itself a `HIGH` issue when Nature rules are enabled.
 
 ## Paper Density Review
 
@@ -178,7 +178,3 @@ Mark review as `FAIL` if:
 - model route was never reviewed or approved
 - code results do not match paper claims
 - sensitivity/validation is missing without justification
-- figures exist only as files but are not inserted in the paper
-- inserted figures are unreadable or visibly garbled
-- approved model route is materially different from implemented code/results without disclosure
-- `CLAIM_TRACE.md` has missing core claims or strongly worded weak core claims

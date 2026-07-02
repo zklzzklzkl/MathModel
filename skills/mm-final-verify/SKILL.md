@@ -1,12 +1,12 @@
 ---
 name: mm-final-verify
-description: "数学建模竞赛 V2 最终验收阶段。用于检查完整产物、图表插入、结果追踪、论文编译、代码可复现、高分论文评分和提交就绪状态。"
+description: "数学建模竞赛 V2.6 最终验收阶段。用于检查完整产物、图表插入、结果追踪、论文编译、代码可复现、高分论文评分和提交就绪状态。"
 allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetch
 ---
 
 # Final Verify
 
-> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: [[skills/mm-revision-integrator/SKILL|Phase 6 Revise]]（或 [[skills/mm-contest-review/SKILL|Phase 5 Review]] 若无需修订） · 下游: 无（终点） · 共享规范: [[skills/_references/SKILL|_references]]
+> 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: [[skills/mm-revision-integrator/SKILL|Phase 5 Revise]]（或 [[skills/mm-contest-review/SKILL|Phase 4 Review]] 若无需修订） · 下游: 无（终点） · 共享规范: [[skills/_references/SKILL|_references]]
 
 ## Load First
 
@@ -54,7 +54,7 @@ Check:
 - every core figure in `reports/FIGURE_PLAN.md` binds to a paper claim, source data, required metrics, axes/units, and an entry in `figure_evidence_map.md`
 - if `nature-figure` was used or available for core paper figures, core paper figures have figure contracts, selected-backend scripts, traceable source data, SVG/PDF vector exports when feasible, preview exports, and conclusion-forward captions
 - no core data figure relies on `Pillow` as its Nature backend
-- `reports/FIGURE_AUDIT.md` uses the V2.3 extended columns when Nature rules are enabled
+- `reports/FIGURE_AUDIT.md` uses the extended figure-evidence columns when Nature rules are enabled
 - every paper figure path resolves
 - LaTeX contains `\includegraphics` or Typst contains `#figure(` / `image(`
 - `reports/CLAIM_TRACE.md` has no missing core claims and no strongly worded weak core claims
@@ -123,7 +123,7 @@ Return `PASS` only when:
 ## Claim Trace Results
 ## Method Implementation Results
 ## Figure Audit Results
-## V2.3 Automated Audit Results
+## Automated Audit Results
 ## Score And Revision Gate Results
 ## Reproducibility Results
 ## Paper Build Results

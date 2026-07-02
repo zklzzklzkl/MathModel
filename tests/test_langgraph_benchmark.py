@@ -81,7 +81,7 @@ class Benchmark02Adapter:
 
     def generate(self, prompt, *_args, **_kwargs) -> str:
         import re
-        match = re.search(r"V2\.3 Phase (\d)", prompt)
+        match = re.search(r"V2.6 Phase (\d)", prompt)
         phase = int(match.group(1)) if match else 0
         if phase == 2:
             plan = make_phase_plan(2, [])
@@ -201,7 +201,7 @@ class Benchmark03Adapter:
 
     def generate(self, prompt, *_args, **_kwargs) -> str:
         import re
-        match = re.search(r"V2\.3 Phase (\d)", prompt)
+        match = re.search(r"V2.6 Phase (\d)", prompt)
         phase = int(match.group(1)) if match else 0
         if phase == 2:
             plan = make_phase_plan(2, [])
@@ -375,7 +375,7 @@ def test_stabilization_phase2_rejects_paper_and_source(
         provider = "none"
         def generate(self, prompt, *_args, **_kwargs) -> str:
             import re
-            match = re.search(r"V2\.3 Phase (\d)", prompt)
+            match = re.search(r"V2.6 Phase (\d)", prompt)
             phase = int(match.group(1)) if match else 0
             if phase == 2:
                 plan = make_phase_plan(2, [])
@@ -419,7 +419,7 @@ def test_stabilization_phase3_rejects_code_and_results(
         provider = "none"
         def generate(self, prompt, *_args, **_kwargs) -> str:
             import re
-            match = re.search(r"V2\.3 Phase (\d)", prompt)
+            match = re.search(r"V2.6 Phase (\d)", prompt)
             phase = int(match.group(1)) if match else 0
             if phase == 2:
                 plan = make_phase_plan(2, [])

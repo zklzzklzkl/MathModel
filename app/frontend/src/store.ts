@@ -57,7 +57,7 @@ export const useControlStore = defineStore("control", () => {
       harnesses.value = await api.harnesses();
       workspaces.value = await api.workspaces();
       if (!selectedWorkspaceId.value && workspaces.value.length > 0) {
-        const preferred = workspaces.value.find((item) => item.name.includes("V2.3")) ?? workspaces.value[0];
+        const preferred = workspaces.value.find((item) => item.name.includes("V2.6")) ?? workspaces.value[0];
         selectedWorkspaceId.value = preferred.id;
       }
       await refreshWorkspace();

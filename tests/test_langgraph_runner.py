@@ -798,7 +798,7 @@ def test_contest_graph_v0_reuses_phase_execute_allowlist_for_phase1(
         provider = "none"
 
         def generate(self, prompt, *_args, **_kwargs) -> str:
-            match = __import__("re").search(r"V2\.3 Phase (\d)", prompt)
+            match = __import__("re").search(r"V2.6 Phase (\d)", prompt)
             phase = int(match.group(1)) if match else 0
             if phase == 1:
                 return json.dumps(
@@ -1160,7 +1160,7 @@ def test_contest_graph_v1_runs_phase2_sandbox_after_gate(
         provider = "none"
 
         def generate(self, prompt, *_args, **_kwargs) -> str:
-            match = __import__("re").search(r"V2\.3 Phase (\d)", prompt)
+            match = __import__("re").search(r"V2.6 Phase (\d)", prompt)
             phase = int(match.group(1)) if match else 0
             plan = make_phase_plan(phase, [])
             if phase == 2:
@@ -1220,7 +1220,7 @@ def test_contest_graph_v1_stops_when_phase2_command_is_rejected(
         provider = "none"
 
         def generate(self, prompt, *_args, **_kwargs) -> str:
-            match = __import__("re").search(r"V2\.3 Phase (\d)", prompt)
+            match = __import__("re").search(r"V2.6 Phase (\d)", prompt)
             phase = int(match.group(1)) if match else 0
             plan = make_phase_plan(phase, [])
             if phase == 2:
@@ -1495,7 +1495,7 @@ def test_contest_graph_v2_runs_phase3_then_phase4_review_and_audit_only_phase6(
         provider = "none"
 
         def generate(self, prompt, *_args, **_kwargs) -> str:
-            match = __import__("re").search(r"V2\.3 Phase (\d)", prompt)
+            match = __import__("re").search(r"V2.6 Phase (\d)", prompt)
             phase = int(match.group(1)) if match else 0
             if phase == 2:
                 plan = make_phase_plan(2, [])
@@ -1580,7 +1580,7 @@ def test_contest_graph_v2_marks_revision_required_after_phase4_high(
         provider = "none"
 
         def generate(self, prompt, *_args, **_kwargs) -> str:
-            match = __import__("re").search(r"V2\.3 Phase (\d)", prompt)
+            match = __import__("re").search(r"V2.6 Phase (\d)", prompt)
             phase = int(match.group(1)) if match else 0
             if phase == 2:
                 plan = make_phase_plan(2, [])
@@ -1858,7 +1858,7 @@ def test_contest_graph_v3_revision_smoke_runs_to_phase6_audit_only(
         provider = "none"
 
         def generate(self, prompt, *_args, **_kwargs) -> str:
-            match = __import__("re").search(r"V2\.3 Phase (\d)", prompt)
+            match = __import__("re").search(r"V2.6 Phase (\d)", prompt)
             phase = int(match.group(1)) if match else 0
             if phase == 2:
                 plan = make_phase_plan(2, [])
@@ -1941,7 +1941,7 @@ def test_contest_graph_v3_missing_revision_actions_still_reaches_audit_only(
         provider = "none"
 
         def generate(self, prompt, *_args, **_kwargs) -> str:
-            match = __import__("re").search(r"V2\.3 Phase (\d)", prompt)
+            match = __import__("re").search(r"V2.6 Phase (\d)", prompt)
             phase = int(match.group(1)) if match else 0
             if phase == 2:
                 plan = make_phase_plan(2, [])

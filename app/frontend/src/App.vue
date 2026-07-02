@@ -3,7 +3,7 @@
     <aside class="sidebar">
       <div class="brand">
         <strong>MathModel Control</strong>
-        <span>V2.3 workspace shell</span>
+        <span>V2.6 workspace shell</span>
       </div>
 
       <nav class="nav">
