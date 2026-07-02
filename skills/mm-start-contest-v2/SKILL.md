@@ -1,14 +1,14 @@
 ---
 name: mm-start-contest-v2
-description: "数学建模竞赛 V2 总控入口。用于启动高分论文对标的 Skill + Codex 子代理混合工作流，创建持久化上下文、调度题面拆解、建模评审、代码实验、图表、论文写作和最终验收。"
+description: "数学建模竞赛 V2.6 总控入口。用于启动高分论文对标的 Skill + Codex 子代理混合工作流，创建持久化上下文、调度题面拆解、建模评审、代码实验、图表、论文写作和最终验收。"
 allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetch
 ---
 
-# Math Modeling Contest V2 Orchestrator
+# Math Modeling Contest V2.6 Orchestrator
 
 > 文件关系全貌请见 [[FILE_RELATIONSHIP_MAP]] · 上游: 无（入口点） · 下游调度: [[skills/mm-problem-intake/SKILL|Phase 0 Intake]] → [[skills/mm-model-strategy/SKILL|Phase 1 Strategy]] → [[skills/mm-data-experiment/SKILL|Phase 2 Experiment]] → [[skills/mm-paper-build/SKILL|Phase 3 Paper]] → [[skills/mm-contest-review/SKILL|Phase 4 Review]] → [[skills/mm-revision-integrator/SKILL|Phase 5 Revise]] → [[skills/mm-final-verify/SKILL|Phase 6 Verify]] · 共享规范: [[skills/_references/SKILL|_references]]
 
-Use this skill as the only V2 entrypoint. Keep legacy skills untouched unless the user explicitly asks to run V1.
+Use this skill as the only V2.6 entrypoint. Keep legacy skills untouched unless the user explicitly asks to run V1.
 
 ## Load First
 
@@ -32,7 +32,7 @@ Do not let one long-context chat hold the whole contest state. Persist state to 
 
 Optional ARS review must be summarized into existing V2 artifacts (`MODEL_REVIEW_AI.md`, `FIGURE_AUDIT.md`, `CLAIM_TRACE.md`, `PAPER_SCORECARD.md`, `REVISION_ACTIONS.md`, `VERIFY_REPORT.md`). Do not create ad hoc long ARS transcripts.
 
-V2.3 Nature audit is a hard quality gate when Nature is available for core paper figures. The workflow may continue without Nature when unavailable, but it may not claim Nature-quality figures unless the resolver result, backend, source data, SVG/PDF export bundle, and figure audit are recorded.
+Nature audit is a hard quality gate when Nature is available for core paper figures. The workflow may continue without Nature when unavailable, but it may not claim Nature-quality figures unless the resolver result, backend, source data, SVG/PDF export bundle, and figure audit are recorded.
 
 ## Required Setup
 
@@ -77,7 +77,7 @@ Create or update these files in the contest workspace:
 Write `plan.md` with this minimum structure:
 
 ```markdown
-# V2 数学建模执行方案
+# V2.6 数学建模执行方案
 
 用户偏好：
 - 排版引擎：<LaTeX / Typst，默认 LaTeX>
@@ -111,7 +111,7 @@ figure_policy:
 Write `todo.md`:
 
 ```markdown
-# V2 待办事项
+# V2.6 待办事项
 
 - [ ] 0. 题面与数据建档 - `mm-problem-intake`
 - [ ] 1. 候选模型与评审 - `mm-model-strategy`
