@@ -27,6 +27,50 @@ DEFAULT_CONFIG = REPO_ROOT / "knowledge" / "libraries.json"
 DEFAULT_DB = REPO_ROOT / "knowledge" / ".local" / "rag.sqlite3"
 DEFAULT_CHROMA_DIR = REPO_ROOT / "knowledge" / ".local" / "chroma"
 
+SOURCE_QUALITY_LEVELS = {"S", "A", "B", "C", "D"}
+LIBRARY_SOURCE_DEFAULTS: dict[str, tuple[str, str, str]] = {
+    "cumcm_problems": (
+        "S",
+        "official_problem",
+        "Official contest problem, rule, attachment, or data source library.",
+    ),
+    "mcm_icm_problems": (
+        "S",
+        "official_problem",
+        "Official MCM/ICM problem, rule, attachment, or data source library.",
+    ),
+    "excellent_papers": (
+        "A",
+        "excellent_paper",
+        "High-score or curated paper case; suitable as route and expression evidence after fit checks.",
+    ),
+    "model_methods": (
+        "A",
+        "model_card",
+        "Curated model-method card or authoritative method note maintained for this workflow.",
+    ),
+    "code_templates": (
+        "B",
+        "code_template",
+        "Code templates are implementation structures only and require field adaptation.",
+    ),
+    "figure_templates": (
+        "B",
+        "figure_template",
+        "Figure templates are auxiliary evidence-design patterns, not core factual evidence.",
+    ),
+    "paper_expression": (
+        "B",
+        "writing_template",
+        "Writing templates guide expression only and must not become factual evidence.",
+    ),
+    "review_rubrics": (
+        "B",
+        "review_rubric",
+        "Review notes and rubrics are auxiliary judge-perspective checks unless official.",
+    ),
+}
+
 SUPPORTED_EXTENSIONS = {
     ".md",
     ".markdown",
@@ -74,6 +118,8 @@ class Library:
     stage: str
     default_license: str
     default_tags: tuple[str, ...]
+    default_source_quality: str
+    default_source_type: str
 
 
 @dataclass
@@ -95,16 +141,61 @@ class Chunk:
     stage: str
     recommended_use: str
     risk_warning: str
+    source_quality: str
+    source_type: str
+    verified_by: str
+    last_verified_at: str
+    allowed_use: str
+    quality_reason: str
 
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def source_defaults_for_library(library_id: str) -> tuple[str, str, str]:
+    return LIBRARY_SOURCE_DEFAULTS.get(
+        library_id,
+        ("B", "local_note", "Local source with no stronger quality default."),
+    )
+
+
+def normalize_source_quality(value: Any, library_id: str) -> str:
+    default_quality, _, _ = source_defaults_for_library(library_id)
+    quality = str(value or default_quality).strip().upper()
+    if quality not in SOURCE_QUALITY_LEVELS:
+        raise IngestSkip(f"invalid_source_quality:{quality}")
+    return quality
+
+
+def allowed_use_for_quality(source_quality: str) -> str:
+    quality = source_quality.strip().upper()
+    if quality in {"S", "A"}:
+        return "core_evidence"
+    if quality == "B":
+        return "auxiliary_only"
+    return "risk_signal_only"
+
+
+def core_evidence_allowed(source_quality: str) -> bool:
+    return source_quality.strip().upper() in {"S", "A"}
+
+
+def quality_reason_for(library_id: str, source_quality: str, explicit_reason: Any = None) -> str:
+    if explicit_reason:
+        return str(explicit_reason)
+    _, _, default_reason = source_defaults_for_library(library_id)
+    return f"{source_quality} by library default: {default_reason}"
+
+
 def load_libraries(config_path: Path = DEFAULT_CONFIG) -> dict[str, Library]:
     data = json.loads(config_path.read_text(encoding="utf-8"))
     libraries: dict[str, Library] = {}
     for item in data["libraries"]:
+        default_quality, default_type, _ = LIBRARY_SOURCE_DEFAULTS.get(
+            item["id"],
+            ("B", "local_note", "Local note with no stronger default source class."),
+        )
         libraries[item["id"]] = Library(
             id=item["id"],
             name=item.get("name", item["id"]),
@@ -112,8 +203,16 @@ def load_libraries(config_path: Path = DEFAULT_CONFIG) -> dict[str, Library]:
             stage=item.get("stage", data.get("default_stage", "capability")),
             default_license=item.get("default_license", "local-use-only"),
             default_tags=tuple(item.get("default_tags", [])),
+            default_source_quality=str(item.get("default_source_quality") or default_quality),
+            default_source_type=str(item.get("default_source_type") or default_type),
         )
     return libraries
+
+
+def ensure_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
+    existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    if column not in existing:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
 
 def init_db(db_path: Path) -> sqlite3.Connection:
@@ -141,6 +240,12 @@ def init_db(db_path: Path) -> sqlite3.Connection:
             stage TEXT NOT NULL,
             recommended_use TEXT NOT NULL,
             risk_warning TEXT NOT NULL,
+            source_quality TEXT NOT NULL DEFAULT 'B',
+            source_type TEXT NOT NULL DEFAULT 'local_note',
+            verified_by TEXT NOT NULL DEFAULT 'library_default_policy',
+            last_verified_at TEXT NOT NULL DEFAULT '',
+            allowed_use TEXT NOT NULL DEFAULT 'auxiliary_only',
+            quality_reason TEXT NOT NULL DEFAULT 'Legacy row before source quality policy.',
             ingested_at TEXT NOT NULL,
             UNIQUE(library_id, source_relpath, chunk_index, chunk_hash)
         )
@@ -157,6 +262,17 @@ def init_db(db_path: Path) -> sqlite3.Connection:
             created_at TEXT NOT NULL
         )
         """
+    )
+    ensure_column(conn, "chunks", "source_quality", "TEXT NOT NULL DEFAULT 'B'")
+    ensure_column(conn, "chunks", "source_type", "TEXT NOT NULL DEFAULT 'local_note'")
+    ensure_column(conn, "chunks", "verified_by", "TEXT NOT NULL DEFAULT 'library_default_policy'")
+    ensure_column(conn, "chunks", "last_verified_at", "TEXT NOT NULL DEFAULT ''")
+    ensure_column(conn, "chunks", "allowed_use", "TEXT NOT NULL DEFAULT 'auxiliary_only'")
+    ensure_column(
+        conn,
+        "chunks",
+        "quality_reason",
+        "TEXT NOT NULL DEFAULT 'Legacy row before source quality policy.'",
     )
     try:
         conn.execute(
@@ -463,6 +579,12 @@ def make_chunks(path: Path, libraries: dict[str, Library], forced_library: str |
     contest = str(meta["contest"]) if meta.get("contest") is not None else None
     problem_id = str(meta["problem_id"]) if meta.get("problem_id") is not None else None
     stage = str(meta.get("stage") or library.stage)
+    source_quality = normalize_source_quality(meta.get("source_quality") or library.default_source_quality, library_id)
+    source_type = str(meta.get("source_type") or library.default_source_type)
+    verified_by = str(meta.get("verified_by") or "library_default_policy")
+    last_verified_at = str(meta.get("last_verified_at") or utc_now())
+    allowed_use = allowed_use_for_quality(source_quality)
+    quality_reason = quality_reason_for(library_id, source_quality, meta.get("quality_reason"))
     recommended_use = str(
         meta.get("recommended_use")
         or f"Use as local evidence during {stage}; compare against the current problem before adopting."
@@ -496,6 +618,12 @@ def make_chunks(path: Path, libraries: dict[str, Library], forced_library: str |
                 stage=stage,
                 recommended_use=recommended_use,
                 risk_warning=risk_warning,
+                source_quality=source_quality,
+                source_type=source_type,
+                verified_by=verified_by,
+                last_verified_at=last_verified_at,
+                allowed_use=allowed_use,
+                quality_reason=quality_reason,
             )
         )
     return chunks
@@ -540,6 +668,12 @@ def insert_chunks(conn: sqlite3.Connection, chunks: list[Chunk]) -> None:
             chunk.stage,
             chunk.recommended_use,
             chunk.risk_warning,
+            chunk.source_quality,
+            chunk.source_type,
+            chunk.verified_by,
+            chunk.last_verified_at,
+            chunk.allowed_use,
+            chunk.quality_reason,
             now,
         )
         for chunk in chunks
@@ -550,9 +684,10 @@ def insert_chunks(conn: sqlite3.Connection, chunks: list[Chunk]) -> None:
             chunk_id, library_id, source_path, source_relpath, content_hash,
             chunk_hash, chunk_index, text, title, license, year, contest,
             problem_id, tags_json, stage, recommended_use, risk_warning,
-            ingested_at
+            source_quality, source_type, verified_by, last_verified_at,
+            allowed_use, quality_reason, ingested_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         rows,
     )
@@ -656,6 +791,10 @@ def update_chroma(chunks: list[Chunk], chroma_dir: Path, embedding_model: str, e
                 "problem_id": chunk.problem_id or "",
                 "tags": ",".join(chunk.tags),
                 "stage": chunk.stage,
+                "source_quality": chunk.source_quality,
+                "source_type": chunk.source_type,
+                "allowed_use": chunk.allowed_use,
+                "quality_reason": chunk.quality_reason,
                 "embedding_mode": status_mode,
             }
             for chunk in chunks

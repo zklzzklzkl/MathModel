@@ -17,6 +17,10 @@ Read these references before starting:
 - `../_references/v2_pipeline_contract.md`
 - `../_references/codex_subagent_protocol.md`
 - `../_references/contest_score_rubric.md`
+- `../_references/source_quality_policy.md`
+- `../_references/evaluator_optimizer_protocol.md`
+- `../_references/figure_evidence_map.md`
+- `../_references/executable_model_templates.md`
 - `../_references/nature_figure_integration_guide.md` when optional `nature-figure` scientific plotting integration is available
 - `../_references/ars_v2_integration_guide.md` when optional ARS deep-review integration is available
 
@@ -44,6 +48,8 @@ Create or update these files in the contest workspace:
 - `reports/MODEL_REVIEW_AI.md`
 - `reports/HUMAN_MODEL_REVIEW.md`
 - `reports/MODELING_DECISION.md`
+- `reports/TEMPLATE_ADAPTATION_LOG.md`
+- `reports/REFINEMENT_LOG.md`
 - `reports/FIGURE_PLAN.md`
 - `reports/FIGURE_AUDIT.md`
 - `reports/CLAIM_TRACE.md`
@@ -52,6 +58,7 @@ Create or update these files in the contest workspace:
 - `reports/REVISION_STATUS.md`
 - `reports/METHOD_IMPLEMENTATION_MATRIX.md`
 - `reports/VERIFY_REPORT.md`
+- `reports/PROJECT_RETROSPECTIVE.md`
 - `results/RESULTS_MANIFEST.json`
 
 ## Workflow
@@ -63,6 +70,7 @@ Create or update these files in the contest workspace:
 4. Contest review: run `mm-contest-review`. Compare against high-score paper standards and request revisions.
 5. Revision loop: run `mm-revision-integrator` when `REVISION_ACTIONS.md` contains any `BLOCKER`, `HIGH`, or score-dimension action. Repair or explicitly resolve those items before final verification.
 6. Final verification: run `mm-final-verify`. Do not call the work complete until every hard gate and quality gate passes.
+7. Retrospective: after final review or project stop, run `python scripts/memory_distill.py --workspace <contest-workspace>` from the repository root when available, then review `reports/PROJECT_RETROSPECTIVE.md` before committing distilled summaries.
 
 ## Plan Template
 

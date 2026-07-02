@@ -15,7 +15,11 @@ Read:
 - `../_references/v2_pipeline_contract.md`
 - `../_references/contest_score_rubric.md`
 - `../_references/rag_usage_contract.md`
+- `../_references/source_quality_policy.md`
 - `../_references/anti_template_review.md`
+- `../_references/figure_evidence_map.md`
+- `../_references/evaluator_optimizer_protocol.md`
+- `../_references/executable_model_templates.md`
 - `../_references/figure_quality_standard.md`
 - `../_references/nature_figure_integration_guide.md` when optional `nature-figure` scientific plotting integration was used
 - `../_references/agent_review_protocol.md`
@@ -43,8 +47,11 @@ Check:
 - `reports/HUMAN_MODEL_REVIEW.md` records final route approval
 - `reports/HUMAN_MODEL_REVIEW.md`, `reports/MODELING_DECISION.md`, and `WORKFLOW_STATE.md` do not contradict each other
 - `results/RESULTS_MANIFEST.json` has metrics and figures
+- if any `code_templates` RAG hit was used, `reports/TEMPLATE_ADAPTATION_LOG.md` exists and maps current fields, kept/deleted metrics, applicability, and residual template names
+- `reports/REFINEMENT_LOG.md` exists when evaluator-optimizer loops were run, and max-round residual `HIGH/BLOCKER` issues are copied to `REVISION_ACTIONS.md`
 - `reports/METHOD_IMPLEMENTATION_MATRIX.md` exists and has no unresolved `not_implemented` core method rows
 - `reports/FIGURE_AUDIT.md` exists and inserted paper figures have no `FAIL` status
+- every core figure in `reports/FIGURE_PLAN.md` binds to a paper claim, source data, required metrics, axes/units, and an entry in `figure_evidence_map.md`
 - if `nature-figure` was used or available for core paper figures, core paper figures have figure contracts, selected-backend scripts, traceable source data, SVG/PDF vector exports when feasible, preview exports, and conclusion-forward captions
 - no core data figure relies on `Pillow` as its Nature backend
 - `reports/FIGURE_AUDIT.md` uses the V2.3 extended columns when Nature rules are enabled
@@ -53,6 +60,8 @@ Check:
 - `reports/CLAIM_TRACE.md` has no missing core claims and no strongly worded weak core claims
 - `reports/PAPER_SCORECARD.md` exists and all critical dimensions are acceptable
 - `reports/PAPER_SCORECARD.md` records judge-skim and anti-template findings when those reviews were run
+- core RAG evidence cited in `MODEL_CANDIDATES.md`, `PAPER_BUILD_REPORT.md`, or final claims is `S/A`; `B` is auxiliary only and `C/D` is risk-only
+- `reports/PROJECT_RETROSPECTIVE.md` exists at project close, or `VERIFY_REPORT.md` explicitly states why retrospective distillation was deferred
 - `reports/REVISION_ACTIONS.md` and `reports/REVISION_STATUS.md` show no unresolved `BLOCKER` or `HIGH` items
 - code files compile or have a documented execution method
 - paper compiles where the engine is installed
@@ -84,6 +93,9 @@ Return `FAIL` if any condition is true:
 - `nature-figure` was used but a core inserted figure lacks selected-backend provenance, source-data traceability, required vector export, or a resolved figure contract
 - Nature is available and a core paper data figure is PNG-only, generated with `Pillow`, or missing SVG/PDF export without a documented raster-only exception
 - `scripts/audit_v2_run.py` reports any `BLOCKER` or `HIGH` issue
+- a core modeling route or paper claim relies on `B/C/D` RAG evidence as its main evidence
+- code templates were used but `reports/TEMPLATE_ADAPTATION_LOG.md` is missing or leaves unresolved template field names, template paths, or template figure names
+- a core figure lacks claim binding, source data, required metrics, axes/units, or evidence-map support
 - a formal contest paper with four or more subproblems is shorter than 8 pages without a documented short-report mode or appendix evidence
 - a formal contest paper with four or more subproblems is 5 pages or fewer and lacks sufficient formulas, result tables/figures, or validation evidence
 

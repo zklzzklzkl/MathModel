@@ -16,7 +16,16 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from rag_ingest import DEFAULT_CONFIG, DEFAULT_DB, load_libraries
+from rag_ingest import (
+    DEFAULT_CONFIG,
+    DEFAULT_DB,
+    allowed_use_for_quality,
+    core_evidence_allowed,
+    load_libraries,
+    normalize_source_quality,
+    quality_reason_for,
+    source_defaults_for_library,
+)
 
 
 def configure_stdout() -> None:
@@ -32,6 +41,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--library", action="append", help="Restrict to one or more library ids.")
     parser.add_argument("--limit", type=int, default=8)
     parser.add_argument("--min-score", type=float, default=1.0)
+    parser.add_argument("--core-only", action="store_true", help="Return only S/A sources allowed as core evidence.")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--show-text", action="store_true", help="Include longer chunk text in Markdown output.")
     return parser.parse_args()
@@ -46,6 +56,42 @@ def connect(db_path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def row_get(row: sqlite3.Row, key: str, default: Any = None) -> Any:
+    try:
+        return row[key]
+    except (IndexError, KeyError):
+        return default
+
+
+def row_source_policy(row: sqlite3.Row) -> dict[str, Any]:
+    library_id = str(row_get(row, "library_id", ""))
+    default_quality, default_type, _ = source_defaults_for_library(library_id)
+    try:
+        source_quality = normalize_source_quality(row_get(row, "source_quality", default_quality), library_id)
+    except Exception:
+        source_quality = default_quality
+    source_type = str(row_get(row, "source_type", default_type) or default_type)
+    if source_type == "local_note" and default_type != "local_note":
+        source_type = default_type
+    allowed_use = str(row_get(row, "allowed_use", "") or allowed_use_for_quality(source_quality))
+    if source_quality == "B":
+        allowed_use = "auxiliary_only"
+    elif source_quality in {"C", "D"}:
+        allowed_use = "risk_signal_only"
+    quality_reason = str(row_get(row, "quality_reason", "") or quality_reason_for(library_id, source_quality))
+    if quality_reason == "Legacy row before source quality policy.":
+        quality_reason = quality_reason_for(library_id, source_quality)
+    return {
+        "source_quality": source_quality,
+        "source_type": source_type,
+        "verified_by": row_get(row, "verified_by", "library_default_policy") or "library_default_policy",
+        "last_verified_at": row_get(row, "last_verified_at", "") or "",
+        "allowed_use": allowed_use,
+        "quality_reason": quality_reason,
+        "core_evidence_allowed": core_evidence_allowed(source_quality),
+    }
 
 
 def cjk_ngrams(text: str) -> list[str]:
@@ -140,12 +186,22 @@ def fetch_rows(conn: sqlite3.Connection, libraries: list[str] | None) -> list[sq
     return conn.execute("SELECT * FROM chunks").fetchall()
 
 
-def query_ledger(db_path: Path, query: str, libraries: list[str] | None, limit: int, min_score: float) -> dict[str, Any]:
+def query_ledger(
+    db_path: Path,
+    query: str,
+    libraries: list[str] | None,
+    limit: int,
+    min_score: float,
+    core_only: bool = False,
+) -> dict[str, Any]:
     conn = connect(db_path)
     terms = tokenize(query)
     rows = fetch_rows(conn, libraries)
     scored: list[tuple[float, sqlite3.Row]] = []
     for row in rows:
+        policy = row_source_policy(row)
+        if core_only and not policy["core_evidence_allowed"]:
+            continue
         score = lexical_score(row, terms)
         if score >= min_score:
             scored.append((score, row))
@@ -154,6 +210,7 @@ def query_ledger(db_path: Path, query: str, libraries: list[str] | None, limit: 
     hits = []
     for score, row in scored[:limit]:
         tags = json.loads(row["tags_json"] or "[]")
+        policy = row_source_policy(row)
         hits.append(
             {
                 "chunk_id": row["chunk_id"],
@@ -172,6 +229,13 @@ def query_ledger(db_path: Path, query: str, libraries: list[str] | None, limit: 
                 "tags": tags,
                 "recommended_use": row["recommended_use"],
                 "risk_warning": row["risk_warning"],
+                "source_quality": policy["source_quality"],
+                "source_type": policy["source_type"],
+                "verified_by": policy["verified_by"],
+                "last_verified_at": policy["last_verified_at"],
+                "allowed_use": policy["allowed_use"],
+                "quality_reason": policy["quality_reason"],
+                "core_evidence_allowed": policy["core_evidence_allowed"],
                 "snippet": snippet(row["text"], terms),
                 "text": row["text"],
             }
@@ -180,6 +244,7 @@ def query_ledger(db_path: Path, query: str, libraries: list[str] | None, limit: 
         "query": query,
         "terms": terms,
         "libraries": libraries or "all",
+        "core_only": core_only,
         "hit_count": len(hits),
         "hits": hits,
     }
@@ -207,6 +272,8 @@ def markdown_result(result: dict[str, Any], config_path: Path, show_text: bool) 
                 f"- Library: `{hit['library_id']}` ({library_name})",
                 f"- Source: `{hit['source_relpath']}`",
                 f"- Confidence: `{hit['confidence']}` (score {hit['score']})",
+                f"- Source quality: `{hit['source_quality']}`; allowed use: `{hit['allowed_use']}`; core evidence: `{hit['core_evidence_allowed']}`",
+                f"- Quality reason: {hit['quality_reason']}",
                 f"- Stage: `{hit['stage']}`",
                 f"- Tags: {', '.join(hit['tags']) if hit['tags'] else 'none'}",
                 f"- Recommended use: {hit['recommended_use']}",
@@ -228,6 +295,7 @@ def main() -> None:
         libraries=args.library,
         limit=args.limit,
         min_score=args.min_score,
+        core_only=args.core_only,
     )
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))

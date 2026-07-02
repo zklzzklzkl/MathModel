@@ -133,6 +133,26 @@ Not used. Reason: <local index unavailable / query returned no reliable sourced 
 6. 没有来源的内容不得写入“RAG evidence used”。
 7. RAG 推荐的高级模型必须通过反模板审查和人工模型 gate。
 
+## Source Quality Addendum
+
+Follow `source_quality_policy.md` for every RAG hit.
+
+Required returned fields:
+
+- `source_quality`: `S/A/B/C/D`.
+- `allowed_use`: `core_evidence`, `auxiliary_only`, or `risk_signal_only`.
+- `quality_reason`: why this level was assigned.
+- `core_evidence_allowed`: true only for `S/A`.
+
+For core modeling routes and paper claims, use `python scripts/rag_query.py "<query>" --core-only` or manually filter to `S/A`. `B` sources can guide templates and checks only. `C/D` sources can only trigger risks, cautions, or review actions.
+
+Expanded evidence table:
+
+```markdown
+| Use | Library | Source | Confidence | Source Quality | Allowed Use | Core Evidence | Stage | Risk |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+```
+
 ## Failure Handling
 
 - 本地索引不存在：继续执行 skill，但记录 RAG unavailable。

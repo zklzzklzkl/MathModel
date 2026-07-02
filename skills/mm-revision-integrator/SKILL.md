@@ -14,6 +14,7 @@ Read:
 
 - `../_references/v2_pipeline_contract.md`
 - `../_references/contest_score_rubric.md`
+- `../_references/evaluator_optimizer_protocol.md`
 - `../_references/figure_quality_standard.md`
 - `../_references/nature_figure_integration_guide.md` when optional `nature-figure` figure actions exist
 - `../_references/agent_review_protocol.md`
@@ -52,6 +53,7 @@ Require:
 6b. If an action reports `Pillow` data figures, PNG-only core figures, missing vector export, missing selected-backend script, missing source-data trace, or incomplete `FIGURE_AUDIT.md` columns, repair the artifact and rerun or replicate `../_references/scripts/audit_v2_run.py --workspace <contest-workspace>` before marking it resolved.
 7. For ARS-origin findings, treat ARS as reviewer evidence and priority guidance only. Do not let ARS directly override V2 artifacts; apply fixes through the owning V2 stage and record the result in `REVISION_STATUS.md`.
 8. Update `REVISION_STATUS.md` with one row per action item.
+9. For resolved `BLOCKER`/`HIGH` actions, optionally log a `revision_resolved` event with `python scripts/memory_log.py` from the repository root, or ensure `memory_distill.py` can later extract the lesson from `REVISION_STATUS.md` and `REVISION_ACTIONS.md`.
 
 ## Revision Status Format
 

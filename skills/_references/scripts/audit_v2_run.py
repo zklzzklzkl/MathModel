@@ -282,6 +282,10 @@ def audit_workspace(workspace: Path, nature_mode: str) -> dict[str, Any]:
     manifest_raw = load_json(workspace / "results" / "RESULTS_MANIFEST.json")
     plan_text = read_text(reports / "FIGURE_PLAN.md")
     audit_text = read_text(reports / "FIGURE_AUDIT.md")
+    experiment_text = read_text(reports / "EXPERIMENT_LOG.md")
+    template_adaptation_text = read_text(reports / "TEMPLATE_ADAPTATION_LOG.md")
+    model_candidates_text = read_text(reports / "MODEL_CANDIDATES.md")
+    paper_build_text = read_text(reports / "PAPER_BUILD_REPORT.md")
     verify_text = read_text(reports / "VERIFY_REPORT.md")
     scorecard_text = read_text(reports / "PAPER_SCORECARD.md")
     revision_actions_text = read_text(reports / "REVISION_ACTIONS.md")
@@ -300,6 +304,59 @@ def audit_workspace(workspace: Path, nature_mode: str) -> dict[str, Any]:
             "manifest_figures_missing",
             "Final workspaces must trace paper figures through manifest.figures.",
             "results/RESULTS_MANIFEST.json",
+        )
+
+    template_used = bool(re.search(r"code_templates|code template|template source", experiment_text, re.IGNORECASE))
+    if final_workspace and template_used and not template_adaptation_text.strip():
+        add_issue(
+            issues,
+            "HIGH",
+            "template_adaptation_log_missing",
+            "Code template use requires reports/TEMPLATE_ADAPTATION_LOG.md.",
+            "reports/EXPERIMENT_LOG.md references a code template",
+        )
+    residual_template_rows = []
+    for line in template_adaptation_text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|") or "Residual Template Names" in stripped or "---" in stripped:
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if len(cells) >= 7:
+            residual = cells[-2].lower()
+            status = cells[-1].lower()
+            if residual not in {"", "none", "n/a", "not_applicable"} and status not in {"accepted", "pass", "resolved"}:
+                residual_template_rows.append(stripped)
+    if residual_template_rows:
+        add_issue(
+            issues,
+            "HIGH",
+            "template_residual_names_unresolved",
+            "Template adaptation log leaves residual template names unresolved.",
+            " ; ".join(residual_template_rows[:3]),
+        )
+
+    low_quality_core = []
+    for report_name, report_text in {
+        "reports/MODEL_CANDIDATES.md": model_candidates_text,
+        "reports/PAPER_BUILD_REPORT.md": paper_build_text,
+    }.items():
+        for line in report_text.splitlines():
+            lower = line.lower()
+            if ("core" in lower or "核心" in line) and (
+                "source_quality: b" in lower
+                or "source quality | b" in lower
+                or "source_quality: c" in lower
+                or "source_quality: d" in lower
+                or "core_evidence_allowed: false" in lower
+            ):
+                low_quality_core.append(f"{report_name}: {line.strip()}")
+    if low_quality_core:
+        add_issue(
+            issues,
+            "HIGH",
+            "low_quality_core_rag_evidence",
+            "Core modeling or paper evidence appears to rely on B/C/D RAG evidence.",
+            " ; ".join(low_quality_core[:3]),
         )
 
     audit_columns = parse_audit_columns(audit_text)
@@ -324,6 +381,9 @@ def audit_workspace(workspace: Path, nature_mode: str) -> dict[str, Any]:
         plan_row = find_plan_row(entry, fig_path, plan_rows)
         backend = str(entry.get("backend") or plan_row.get("backend") or "")
         archetype = str(entry.get("archetype") or plan_row.get("archetype") or "")
+        evidence_map_entry = str(entry.get("evidence_map_entry") or entry.get("archetype") or plan_row.get("archetype") or "")
+        supports_claim = str(entry.get("supports_claim") or entry.get("claim_id") or plan_row.get("supports_claim") or "")
+        required_metrics = entry.get("required_metrics") or entry.get("metrics") or plan_row.get("stats") or ""
         is_data = is_data_archetype(archetype)
         bundle = entry.get("export_bundle")
         bundle_paths: list[str] = []
@@ -337,6 +397,24 @@ def audit_workspace(workspace: Path, nature_mode: str) -> dict[str, Any]:
         if not fig_path.is_file():
             add_issue(issues, "BLOCKER", "figure_file_missing", "Manifest figure path does not resolve.", raw_path)
             continue
+
+        missing_evidence = []
+        if not supports_claim:
+            missing_evidence.append("claim_binding")
+        if not evidence_map_entry:
+            missing_evidence.append("evidence_map_entry")
+        if not (entry.get("source_data") or plan_row.get("source_data")):
+            missing_evidence.append("source_data")
+        if not required_metrics:
+            missing_evidence.append("required_metrics")
+        if final_workspace and missing_evidence:
+            add_issue(
+                issues,
+                "HIGH",
+                "figure_evidence_map_incomplete",
+                "Core figure lacks claim/data/metric/evidence-map binding.",
+                f"{entry.get('id', fig_path.stem)} missing={','.join(missing_evidence)}",
+            )
 
         if "pillow" in backend.lower() and is_data:
             add_issue(
