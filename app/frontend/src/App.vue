@@ -344,6 +344,27 @@
         <section v-else-if="view === 'benchmark'" class="view benchmark-lab">
           <!-- Overview -->
           <Panel title="Benchmark Lab" subtitle="报告浏览器 · 只读">
+            <!-- Safe Benchmark Launcher -->
+            <div class="safe-benchmark-card">
+              <strong>Safe LangGraph Benchmark (provider=none)</strong>
+              <p style="margin:4px 0 8px;color:var(--muted);font-size:12px">此按钮只运行 provider=none 安全基线，不调用真实 API，不代表真实 LLM 自动效果。mode 固定为 contest_graph_v3，provider 固定为 none，copy_workspace 固定为 true。</p>
+              <div class="button-row">
+                <button class="primary" :disabled="store.safeBenchmarkRunning" @click="store.runSafeLangGraphBenchmark">
+                  {{ store.safeBenchmarkRunning ? "运行中..." : "Run provider=none safety benchmark" }}
+                </button>
+              </div>
+              <div v-if="store.safeBenchmarkResult" style="margin-top:10px" class="field-grid">
+                <div class="field"><label>Status</label><span :class="['badge', statusClass(store.safeBenchmarkResult.status)]">{{ store.safeBenchmarkResult.status }}</span></div>
+                <div class="field"><label>Contest Status</label><strong>{{ store.safeBenchmarkResult.contest_status ?? '-' }}</strong></div>
+                <div class="field"><label>Run Workspace</label><strong style="font-size:11px;word-break:break-all">{{ store.safeBenchmarkResult.run_workspace }}</strong></div>
+                <div class="field"><label>Completed Phases</label><strong>{{ store.safeBenchmarkResult.completed_phases.join(", ") || '-' }}</strong></div>
+                <div class="field"><label>Sandbox</label><strong>{{ store.safeBenchmarkResult.sandbox_status ?? '-' }}</strong></div>
+                <div class="field"><label>Paper Sandbox</label><strong>{{ store.safeBenchmarkResult.paper_sandbox_status ?? '-' }}</strong></div>
+                <div class="field"><label>Revision Sandbox</label><strong>{{ store.safeBenchmarkResult.revision_sandbox_status ?? '-' }}</strong></div>
+                <div class="field"><label>Final Audit</label><span :class="['badge', statusClass(store.safeBenchmarkResult.final_audit?.worst_severity)]">{{ store.safeBenchmarkResult.final_audit?.worst_severity ?? 'NONE' }}</span></div>
+              </div>
+            </div>
+            <!-- /Safe Benchmark Launcher -->
             <div class="status-strip">
               <div class="metric">
                 <label>Total</label>
