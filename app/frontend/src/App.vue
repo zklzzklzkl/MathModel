@@ -272,6 +272,75 @@
           </Panel>
         </section>
 
+        <!-- Runs page -->
+        <section v-else-if="view === 'runs'" class="view runs-layout">
+          <Panel title="Run Workspaces" :subtitle="`${store.runWorkspaces.length} runs`">
+            <div class="button-row" style="margin-bottom:10px">
+              <button class="primary" @click="store.loadRunWorkspaces">刷新 Runs</button>
+            </div>
+            <div v-if="!store.runWorkspaces.length" class="empty">暂无 run workspace。运行 LangGraph 后将在此显示。</div>
+            <div v-else class="run-workspace-list">
+              <button
+                v-for="run in store.runWorkspaces"
+                :key="run.id"
+                :class="['artifact-item', { selected: store.selectedRunWorkspaceId === run.id }]"
+                @click="store.selectRunWorkspace(run.id)"
+              >
+                <span>
+                  <strong>{{ run.name }}</strong>
+                  <small>{{ run.updated_at ?? '-' }}</small>
+                </span>
+                <span class="badge-group">
+                  <span v-if="run.has_langgraph_report" class="badge good">LG</span>
+                  <span v-if="run.has_agent_runs" class="badge info">AR</span>
+                  <span v-if="run.has_phase_plan" class="badge warn">PP</span>
+                </span>
+              </button>
+            </div>
+          </Panel>
+
+          <Panel :title="`Run Artifacts (${filteredRunArtifacts.length})`" subtitle="只读 · run workspace">
+            <div v-if="!store.selectedRunWorkspaceId" class="empty">请先选择一个 run workspace。</div>
+            <div v-else>
+              <input v-model="artifactQuery" class="search" placeholder="搜索..." />
+              <div class="quick-filter-row">
+                <button
+                  v-for="group in RUN_ARTIFACT_GROUPS_ORDER"
+                  :key="group"
+                  :class="{ active: runArtifactFilterGroup === group }"
+                  @click="runArtifactFilterGroup = runArtifactFilterGroup === group ? '' : group"
+                >{{ group }}</button>
+                <button v-if="runArtifactFilterGroup" class="clear-filter" @click="runArtifactFilterGroup = ''">清除</button>
+              </div>
+              <div class="artifact-list" style="max-height:400px;overflow:auto">
+                <button
+                  v-for="artifact in filteredRunArtifacts"
+                  :key="artifact.path"
+                  class="artifact-item"
+                  @click="store.openRunArtifact(artifact.path)"
+                >
+                  <span><strong>{{ artifact.path }}</strong><small>{{ artifact.type }} · {{ artifact.size }} bytes</small></span>
+                  <span :class="['badge', artifact.exists ? 'info' : 'bad']">{{ artifact.exists ? "file" : "missing" }}</span>
+                </button>
+              </div>
+            </div>
+          </Panel>
+
+          <Panel :title="store.selectedRunArtifact?.path ?? 'Preview'" :subtitle="store.selectedRunArtifact?.absolute_path ?? ''">
+            <div v-if="!store.selectedRunArtifact" class="empty">未选择文件。</div>
+            <div v-else-if="!store.selectedRunArtifact.exists" class="missing-box">
+              <strong>文件不存在</strong>
+            </div>
+            <div v-else-if="store.selectedRunArtifact.type === 'markdown'" class="markdown-preview" v-html="renderMarkdown(store.selectedRunArtifact.content ?? '')"></div>
+            <pre v-else-if="store.selectedRunArtifact.type === 'json' || store.selectedRunArtifact.type === 'text'" class="code-box">{{ store.selectedRunArtifact.content }}</pre>
+            <img v-else-if="store.selectedRunArtifact.type === 'image' && store.selectedWorkspaceId && store.selectedRunWorkspaceId" class="image-preview" :src="api.runRawUrl(store.selectedWorkspaceId, store.selectedRunWorkspaceId, store.selectedRunArtifact.path)" />
+            <div v-else-if="store.selectedRunArtifact.type === 'pdf' && store.selectedWorkspaceId && store.selectedRunWorkspaceId" class="pdf-box">
+              <iframe :src="api.runRawUrl(store.selectedWorkspaceId, store.selectedRunWorkspaceId, store.selectedRunArtifact.path)" title="PDF preview"></iframe>
+            </div>
+            <div v-else class="code-box">{{ store.selectedRunArtifact.content ?? 'binary file' }}</div>
+          </Panel>
+        </section>
+
         <section v-else-if="view === 'benchmark'" class="view benchmark-lab">
           <!-- Overview -->
           <Panel title="Benchmark Lab" subtitle="报告浏览器 · 只读">
@@ -742,7 +811,7 @@ skipped: {{ store.uploadResult.skipped.join(", ") }}</div>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { BarChart3, Copy, FileText, Gauge, LayoutDashboard, RefreshCw, Settings, ShieldCheck, TerminalSquare, Workflow } from "lucide-vue-next";
+import { BarChart3, Copy, FileText, FolderOpen, Gauge, LayoutDashboard, RefreshCw, Settings, ShieldCheck, TerminalSquare, Workflow } from "lucide-vue-next";
 import { api } from "./api";
 import { useControlStore } from "./store";
 import Panel from "./components/Panel.vue";
@@ -770,6 +839,7 @@ const navItems = [
   { id: "artifacts", label: "文件", icon: FileText },
   { id: "console", label: "执行", icon: TerminalSquare },
   { id: "langgraph", label: "LangGraph", icon: Workflow },
+  { id: "runs", label: "Runs", icon: FolderOpen },
   { id: "benchmark", label: "对标", icon: BarChart3 },
   { id: "settings", label: "设置", icon: Settings },
 ];
@@ -837,6 +907,28 @@ const ARTIFACT_GROUPS: Record<string, string[]> = {
 };
 
 const ARTIFACT_GROUPS_ORDER = ["Core Gates", "LangGraph Reports", "Evidence", "Review"];
+
+const runArtifactFilterGroup = ref("");
+
+const filteredRunArtifacts = computed(() => {
+  const query = artifactQuery.value.trim().toLowerCase();
+  let pool = store.runArtifacts;
+  if (runArtifactFilterGroup.value && RUN_ARTIFACT_GROUPS[runArtifactFilterGroup.value]) {
+    const tokens = RUN_ARTIFACT_GROUPS[runArtifactFilterGroup.value];
+    pool = pool.filter((a) => tokens.some((t) => a.path.includes(t)));
+  }
+  if (!query) return pool;
+  return pool.filter((a) => a.path.toLowerCase().includes(query));
+});
+
+const RUN_ARTIFACT_GROUPS: Record<string, string[]> = {
+  "LangGraph": ["LANGGRAPH_", "CONTROL_LANGGRAPH_", "AGENT_RUNS.md"],
+  "Evidence": ["RESULTS_MANIFEST", "CLAIM_TRACE", "METHOD_IMPLEMENTATION", "FIGURE_AUDIT", "RESULTS_REPORT"],
+  "Review": ["PAPER_SCORECARD", "REVISION_ACTIONS", "REVISION_STATUS"],
+  "Paper": ["paper/", "main.tex", "main.typ"],
+};
+
+const RUN_ARTIFACT_GROUPS_ORDER = ["LangGraph", "Evidence", "Review", "Paper"];
 
 const filteredBenchmarkReports = computed(() => {
   let pool = store.benchmarkReports;

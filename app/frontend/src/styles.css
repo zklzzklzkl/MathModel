@@ -698,6 +698,41 @@ label {
   margin-top: 8px;
 }
 
+/* ---- Runs page ---- */
+
+.runs-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 400px) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.run-workspace-list {
+  display: grid;
+  gap: 6px;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.badge-group {
+  display: flex;
+  gap: 4px;
+}
+
+/* ---- Safe benchmark card ---- */
+
+.safe-benchmark-card {
+  border: 2px solid var(--good);
+  background: #eaf7ee;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.safe-benchmark-card strong {
+  color: var(--good);
+}
+
 table {
   width: 100%;
   min-width: 720px;
@@ -732,7 +767,7 @@ th {
   .nav { grid-auto-flow: column; overflow-x: auto; flex: 1; }
   .nav button { white-space: nowrap; }
   .workspace-mini { display: none; }
-  .grid-dashboard, .phase-layout, .artifact-layout, .console-layout, .settings-grid, .check-grid, .langgraph-layout, .benchmark-lab { grid-template-columns: 1fr; }
+  .grid-dashboard, .phase-layout, .artifact-layout, .console-layout, .settings-grid, .check-grid, .langgraph-layout, .benchmark-lab, .runs-layout { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {

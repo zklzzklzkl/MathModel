@@ -271,6 +271,45 @@ export interface BenchmarkReportReadResponse {
   summary: Record<string, unknown>;
 }
 
+// ---------------------------------------------------------------------------
+// Run workspace browser types
+// ---------------------------------------------------------------------------
+
+export interface RunWorkspaceItem {
+  id: string;
+  name: string;
+  path: string;
+  updated_at: string | null;
+  has_langgraph_report: boolean;
+  has_agent_runs: boolean;
+  has_phase_plan: boolean;
+}
+
+export interface RunArtifactItem {
+  path: string;
+  exists: boolean;
+  type: string;
+  size: number | null;
+  updated_at: string | null;
+  required: boolean;
+}
+
+export interface RunArtifactReadResponse {
+  path: string;
+  exists: boolean;
+  type: string;
+  content: string | null;
+  data: unknown;
+  absolute_path: string | null;
+}
+
+export interface SafeLangGraphBenchmarkRequest {
+  mode: "contest_graph_v3";
+  provider: "none";
+  copy_workspace: true;
+  run_name?: string | null;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     headers: {
@@ -351,4 +390,25 @@ export const api = {
 
   benchmarkReport: (id: string) =>
     request<BenchmarkReportReadResponse>(`/api/benchmark-reports/${encodeURIComponent(id)}`),
+
+  // Run Workspace Browser
+  runs: (id: string) =>
+    request<RunWorkspaceItem[]>(`/api/workspaces/${id}/runs`),
+
+  runArtifacts: (id: string, runId: string) =>
+    request<RunArtifactItem[]>(`/api/workspaces/${id}/runs/${encodeURIComponent(runId)}/artifacts`),
+
+  runArtifact: (id: string, runId: string, path: string) =>
+    request<RunArtifactReadResponse>(
+      `/api/workspaces/${id}/runs/${encodeURIComponent(runId)}/artifact?path=${encodeURIComponent(path)}`,
+    ),
+
+  runRawUrl: (id: string, runId: string, path: string) =>
+    `${API_BASE}/api/workspaces/${id}/runs/${encodeURIComponent(runId)}/raw?path=${encodeURIComponent(path)}`,
+
+  safeLangGraphBenchmark: (id: string, payload: SafeLangGraphBenchmarkRequest) =>
+    request<LangGraphRunResponse>(`/api/workspaces/${id}/benchmarks/langgraph-safe`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 };
