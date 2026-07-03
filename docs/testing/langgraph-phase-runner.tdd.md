@@ -497,3 +497,131 @@ git diff --check passed with CRLF warnings only
 ## Scripts
 
 - `scripts/langgraph_benchmark.py` — batch benchmark runner, compiles and passes test assertion.
+
+---
+
+# TDD Evidence: Real Provider Benchmark Stabilization
+
+## Source Plan
+
+Derived from user request to stabilize real API benchmark reports, repair the
+DeepSeek Phase 1 `llm_plan` report path, and make provider benchmarks repeatable
+without leaking secrets.
+
+## RED Evidence
+
+Command:
+
+```powershell
+python -m pytest tests/test_real_provider_benchmark.py -q
+```
+
+Initial result:
+
+```text
+ModuleNotFoundError: No module named 'scripts.real_provider_benchmark'
+```
+
+This was expected because the dedicated real provider benchmark entry point did
+not exist yet.
+
+## GREEN Evidence
+
+Command:
+
+```powershell
+python -m pytest tests/test_real_provider_benchmark.py -q
+```
+
+Result:
+
+```text
+4 passed
+```
+
+## Test Specification
+
+| # | What is guaranteed | Test | Type | Result |
+| --- | --- | --- | --- | --- |
+| 1 | JSON reports escape Chinese text, newlines, and control-character edges, then round-trip through `json.loads`. | `test_safe_json_report_escapes_control_characters` | unit | PASS |
+| 2 | Simulated `PLAN_READY` provider run writes summary fields for phase, provider, model, planned steps, RAG queries, risks, human gate, and unchanged source verify hash. | `test_run_benchmark_plan_ready_writes_summary_without_secret` | integration | PASS |
+| 3 | Provider failures produce a structured benchmark report instead of crashing. | `test_run_benchmark_provider_error_writes_report` | integration | PASS |
+| 4 | Existing copied run workspaces can regenerate official JSON/Markdown reports without another API call. | `test_report_from_existing_run_workspace` | integration | PASS |
+
+## Real Report Repair
+
+Command:
+
+```powershell
+python scripts/real_provider_benchmark.py --workspace examples/2022C/DeepSeekV4Pro_V2.3 --mode llm_plan --phase 1 --provider deepseek --model deepseek-chat --from-run-workspace examples/2022C/DeepSeekV4Pro_V2.3/runs/20260703-122255-deepseek-llm-plan-phase1-DeepSeekV4Pro_V2.3 --json-out docs/real_benchmarks/LANGGRAPH_DEEPSEEK_LLM_PLAN_PHASE1_DeepSeekV4Pro_V2.3.json --markdown-out docs/real_benchmarks/LANGGRAPH_DEEPSEEK_LLM_PLAN_PHASE1_DeepSeekV4Pro_V2.3.md
+```
+
+Result:
+
+- Status: `PLAN_READY`
+- Planned steps: 7
+- RAG queries: 3
+- Risks: 3
+- Human gates: 1
+- Source `reports/VERIFY_REPORT.md` hash unchanged: true
+- Secret hits: 0
+
+## Known Gaps
+
+- No fresh API call was made during this repair because `MATHMODEL_LLM_API_KEY`
+  was not set in the current shell.
+- Future multi-model comparison should reuse `scripts/real_provider_benchmark.py`
+  rather than hand-building reports.
+
+---
+
+# TDD Evidence: Real Provider Comparison MVP
+
+## Source Plan
+
+Derived from the next-step plan to move from one-off DeepSeek Phase 1 reports
+to a repeatable multi-provider comparison surface while keeping all real API
+calls outside unit tests.
+
+## RED Evidence
+
+Command:
+
+```powershell
+python -m pytest tests/test_real_provider_compare.py -q
+```
+
+Initial result:
+
+```text
+ModuleNotFoundError: No module named 'scripts.real_provider_compare'
+```
+
+## GREEN Evidence
+
+Command:
+
+```powershell
+python -m pytest tests/test_real_provider_compare.py -q
+```
+
+Result:
+
+```text
+3 passed
+```
+
+## Test Specification
+
+| # | What is guaranteed | Test | Type | Result |
+| --- | --- | --- | --- | --- |
+| 1 | Provider/model specs parse consistently, including provider-only specs. | `test_parse_provider_specs` | unit | PASS |
+| 2 | Multiple simulated providers produce a ranked JSON/Markdown comparison report without real API calls. | `test_compare_real_providers_writes_ranked_reports` | integration | PASS |
+| 3 | The deterministic smoke score penalizes missing human gates and secret hits. | `test_quality_score_penalizes_missing_gate_and_secret_hit` | unit | PASS |
+
+## Known Gaps
+
+- The comparison score is a structural PhasePlan smoke score, not a final paper
+  quality score.
+- Real provider execution still requires local environment keys and should be
+  run only after rotating any key that was previously pasted into chat.

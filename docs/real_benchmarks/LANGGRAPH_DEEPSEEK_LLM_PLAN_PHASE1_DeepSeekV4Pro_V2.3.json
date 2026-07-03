@@ -1,0 +1,211 @@
+{
+  "kind": "real_provider_benchmark",
+  "created_at_utc": "2026-07-03T04:33:12.011151+00:00",
+  "source_workspace": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3",
+  "run_workspace": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-122255-deepseek-llm-plan-phase1-DeepSeekV4Pro_V2.3",
+  "run_workspace_under_source_runs": true,
+  "mode": "llm_plan",
+  "phase": 1,
+  "provider": "deepseek",
+  "model": "deepseek-chat",
+  "status": "PLAN_READY",
+  "provider_error": null,
+  "prompt_path": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-122255-deepseek-llm-plan-phase1-DeepSeekV4Pro_V2.3\\CONTROL_LANGGRAPH_PHASE_1.md",
+  "plan_path": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-122255-deepseek-llm-plan-phase1-DeepSeekV4Pro_V2.3\\reports\\LANGGRAPH_PHASE_PLAN.json",
+  "plan_markdown_path": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-122255-deepseek-llm-plan-phase1-DeepSeekV4Pro_V2.3\\reports\\LANGGRAPH_PHASE_PLAN.md",
+  "raw_output_path": null,
+  "report_path": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-122255-deepseek-llm-plan-phase1-DeepSeekV4Pro_V2.3\\reports\\LANGGRAPH_RUN_REPORT.md",
+  "pre_audit_status": null,
+  "pre_audit_worst": null,
+  "post_audit_status": null,
+  "post_audit_worst": null,
+  "issue_count": 0,
+  "source_verify_hash_before": "3e18c13a5a34cd6469c5a15d41e2841b2140daf98ce1efa85f1c4ad52ceb2824",
+  "source_verify_hash_after": "3e18c13a5a34cd6469c5a15d41e2841b2140daf98ce1efa85f1c4ad52ceb2824",
+  "source_verify_hash_unchanged": true,
+  "phase_plan_summary": "分析问题背景与数据，提出候选模型，进行反驳与风险评估，生成人工确认材料，确保在编码前完成HUMAN_MODEL_REVIEW.md。",
+  "phase_name": "建模策略与人工闸门",
+  "planned_step_count": 7,
+  "rag_query_count": 3,
+  "risk_count": 3,
+  "human_gate_count": 1,
+  "expected_artifacts": [
+    "reports/MODEL_CANDIDATES.md",
+    "reports/MODEL_REVIEW_AI.md",
+    "reports/HUMAN_MODEL_REVIEW.md",
+    "reports/MODELING_DECISION.md",
+    "reports/ANALYSIS_MODELING_REPORT.md",
+    "reports/ANALYSIS_GATE.md"
+  ],
+  "do_not_do": [
+    "不要自动修改或删除workspace中已有的任何文件（包括paper/、code/、figures/、results/目录）",
+    "不要在人工确认前进入实验或编码阶段",
+    "不要覆盖或修改V2核心报告（如RESULTS_MANIFEST.json）",
+    "不要使用Markdown代码块包裹输出JSON",
+    "不要执行任何bash命令或文件系统写操作（除非在planned_steps中明确列出）"
+  ],
+  "next_action": "执行step-1：读取问题描述与数据。",
+  "planned_steps": [
+    {
+      "id": "step-1",
+      "title": "读取问题描述与数据",
+      "description": "读取problem.json和data/目录下的所有数据文件，理解问题背景、目标、约束和可用数据。",
+      "reads": [
+        "problem.json",
+        "data/*"
+      ],
+      "writes": [],
+      "checks": [
+        "数据文件存在且可读",
+        "问题描述清晰"
+      ],
+      "requires_human": false
+    },
+    {
+      "id": "step-2",
+      "title": "分解子问题并列出候选模型",
+      "description": "将原问题分解为若干子问题，对每个子问题提出至少2个候选模型，说明模型公式、所需数据、假设条件和评分风险。",
+      "reads": [
+        "step-1输出"
+      ],
+      "writes": [
+        "reports/MODEL_CANDIDATES.md"
+      ],
+      "checks": [
+        "每个子问题至少2个候选模型",
+        "每个模型包含公式、数据需求、假设、风险"
+      ],
+      "requires_human": false
+    },
+    {
+      "id": "step-3",
+      "title": "AI反驳与风险评估",
+      "description": "对每个候选模型进行反驳分析，指出潜在缺陷、数据不匹配、过拟合风险、可解释性问题等，并评估整体风险。",
+      "reads": [
+        "reports/MODEL_CANDIDATES.md"
+      ],
+      "writes": [
+        "reports/MODEL_REVIEW_AI.md"
+      ],
+      "checks": [
+        "反驳覆盖所有候选模型",
+        "风险等级明确"
+      ],
+      "requires_human": false
+    },
+    {
+      "id": "step-4",
+      "title": "生成人工确认材料",
+      "description": "基于候选模型和AI反驳，生成HUMAN_MODEL_REVIEW.md，包含子问题-模型映射、关键决策点、风险摘要、确认清单。",
+      "reads": [
+        "reports/MODEL_CANDIDATES.md",
+        "reports/MODEL_REVIEW_AI.md"
+      ],
+      "writes": [
+        "reports/HUMAN_MODEL_REVIEW.md"
+      ],
+      "checks": [
+        "包含确认清单",
+        "明确要求人工签字"
+      ],
+      "requires_human": true
+    },
+    {
+      "id": "step-5",
+      "title": "等待人工确认",
+      "description": "暂停自动化流程，等待人工审阅HUMAN_MODEL_REVIEW.md并写入确认标记。",
+      "reads": [
+        "reports/HUMAN_MODEL_REVIEW.md"
+      ],
+      "writes": [],
+      "checks": [
+        "HUMAN_MODEL_REVIEW.md中包含人工确认签名或标记"
+      ],
+      "requires_human": true
+    },
+    {
+      "id": "step-6",
+      "title": "制定最终建模路线",
+      "description": "根据人工确认结果，确定最终模型选择、数据预处理方案、评估指标和实验计划，写入MODELING_DECISION.md。",
+      "reads": [
+        "reports/HUMAN_MODEL_REVIEW.md",
+        "reports/MODEL_CANDIDATES.md",
+        "reports/MODEL_REVIEW_AI.md"
+      ],
+      "writes": [
+        "reports/MODELING_DECISION.md"
+      ],
+      "checks": [
+        "决策与人工确认一致",
+        "包含实验计划概要"
+      ],
+      "requires_human": false
+    },
+    {
+      "id": "step-7",
+      "title": "生成建模分析报告与闸门文件",
+      "description": "汇总所有分析结果，生成ANALYSIS_MODELING_REPORT.md和ANALYSIS_GATE.md，标记Phase 1完成状态。",
+      "reads": [
+        "reports/MODELING_DECISION.md",
+        "reports/HUMAN_MODEL_REVIEW.md"
+      ],
+      "writes": [
+        "reports/ANALYSIS_MODELING_REPORT.md",
+        "reports/ANALYSIS_GATE.md"
+      ],
+      "checks": [
+        "ANALYSIS_GATE.md中明确gate状态为PASS或BLOCKED"
+      ],
+      "requires_human": false
+    }
+  ],
+  "rag_queries": [
+    {
+      "library": "mm-model-strategy",
+      "query": "典型建模策略模板与子问题分解方法",
+      "core_only": true,
+      "reason": "获取标准建模策略框架，确保子问题分解和候选模型列表符合规范。"
+    },
+    {
+      "library": "mm-model-strategy",
+      "query": "人工闸门HUMAN_MODEL_REVIEW.md模板与确认清单示例",
+      "core_only": true,
+      "reason": "确保人工确认材料包含所有必要元素，避免遗漏关键确认点。"
+    },
+    {
+      "library": "mm-model-strategy",
+      "query": "候选模型反驳与风险评估指南",
+      "core_only": false,
+      "reason": "学习如何系统性地反驳候选模型并量化风险，提高MODEL_REVIEW_AI.md质量。"
+    }
+  ],
+  "risk_register": [
+    {
+      "severity": "HIGH",
+      "risk": "人工确认延迟或缺失导致Phase 1无法推进",
+      "mitigation": "在HUMAN_MODEL_REVIEW.md中明确确认截止时间和升级路径；提供清晰的确认清单降低审阅负担。"
+    },
+    {
+      "severity": "MEDIUM",
+      "risk": "候选模型过多导致分析发散",
+      "mitigation": "限制每个子问题最多3个候选模型，并在MODEL_CANDIDATES.md中优先排序。"
+    },
+    {
+      "severity": "LOW",
+      "risk": "数据质量问题未被及时发现",
+      "mitigation": "在step-1中增加数据质量检查（缺失值、异常值、类型一致性），并在MODEL_CANDIDATES.md中记录数据风险。"
+    }
+  ],
+  "human_gates": [
+    {
+      "gate_file": "reports/HUMAN_MODEL_REVIEW.md",
+      "required": true,
+      "reason": "在编码前必须由人工确认模型选择，避免自动化决策导致方向错误。"
+    }
+  ],
+  "verify_report_auto_written": false,
+  "scope_note": "Real provider benchmark for planning only. It does not run controlled_apply, does not edit paper/code/results, and does not claim final PASS.",
+  "secret_hits": [],
+  "json_valid": true,
+  "source_verify_report_path": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\reports\\VERIFY_REPORT.md"
+}

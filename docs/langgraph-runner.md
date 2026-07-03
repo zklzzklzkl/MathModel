@@ -671,6 +671,81 @@ At minimum:
 
 All benchmarks use `provider=none` and do not depend on external APIs.
 
+### Real Provider Benchmark
+
+`scripts/real_provider_benchmark.py` runs one real workspace through a provider-backed
+LangGraph planning mode and writes validated JSON plus Markdown reports. This is
+the repeatable entry point for DeepSeek/OpenAI-compatible smoke tests.
+
+```powershell
+python scripts/real_provider_benchmark.py `
+  --workspace examples/2022C/DeepSeekV4Pro_V2.3 `
+  --mode llm_plan `
+  --phase 1 `
+  --provider deepseek `
+  --model deepseek-chat
+```
+
+By default, reports are written under `docs/real_benchmarks/`. To regenerate a
+report from an existing copied run workspace without calling the provider:
+
+```powershell
+python scripts/real_provider_benchmark.py `
+  --workspace examples/2022C/DeepSeekV4Pro_V2.3 `
+  --mode llm_plan `
+  --phase 1 `
+  --provider deepseek `
+  --model deepseek-chat `
+  --from-run-workspace examples/2022C/DeepSeekV4Pro_V2.3/runs/<run-name>
+```
+
+Safety rules:
+
+- API keys must come from local environment variables such as `MATHMODEL_LLM_API_KEY`.
+- Reports never include API keys or full environment dumps.
+- JSON reports are written through `json.dumps` and reloaded with `json.loads` before completion.
+- The script records the source workspace `reports/VERIFY_REPORT.md` hash before and after the run.
+- Current real-provider scope is Phase 1 `llm_plan` only. It does not run `controlled_apply`, edit `paper/`, edit `code/`, edit `results/`, or claim final PASS.
+
+The checked-in DeepSeek Phase 1 report is a real provider smoke record, but it is
+still only a planning benchmark. Rotate any API key that was ever pasted into a
+chat before running future provider benchmarks.
+
+### Real Provider Comparison
+
+`scripts/real_provider_compare.py` runs the same Phase 1 planning benchmark
+against multiple provider/model pairs and ranks the structural quality of their
+PhasePlan outputs.
+
+```powershell
+python scripts/real_provider_compare.py `
+  --workspace examples/2022C/DeepSeekV4Pro_V2.3 `
+  --mode llm_plan `
+  --phase 1 `
+  --provider-model deepseek:deepseek-chat `
+  --provider-model openai-compatible:gpt-4.1-mini
+```
+
+Outputs:
+
+- `docs/real_benchmarks/LANGGRAPH_PROVIDER_COMPARISON_PHASE1_<workspace>.json`
+- `docs/real_benchmarks/LANGGRAPH_PROVIDER_COMPARISON_PHASE1_<workspace>.md`
+- Per-provider single-run reports under `docs/real_benchmarks/single/`
+
+The comparison score is deterministic and intentionally simple:
+
+- `PLAN_READY` plus valid JSON.
+- Enough planned steps for a Phase 1 modeling strategy.
+- RAG queries are present.
+- Risk register is present.
+- Human gate is preserved.
+- `do_not_do` safety boundaries are present.
+- Source `VERIFY_REPORT.md` hash is unchanged.
+- No secret hits are detected.
+
+This score is not a paper-quality grade. It only answers: "Did this provider
+produce a complete, safe, schema-valid Phase 1 plan for this workspace?"
+
 ### Release Stabilization Invariants
 
 Test suite in `tests/test_langgraph_benchmark.py` verifies:
@@ -689,7 +764,7 @@ Test suite in `tests/test_langgraph_benchmark.py` verifies:
 
 The Benchmark Arena is a foundation. Future work:
 
-- Multi-model comparison (DeepSeek vs OpenAI vs Claude vs Qwen) on the same fixtures.
+- Multi-model comparison (DeepSeek vs OpenAI-compatible endpoints vs Claude-compatible harnesses vs Qwen) on the same Phase 1 planning task, using `scripts/real_provider_compare.py`.
 - Historical contest workspace replay.
 - Scorecard-based ranking across model backends.
 

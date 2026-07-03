@@ -27,6 +27,15 @@ python skills/_references/scripts/audit_v2_run.py --workspace <contest-workspace
 # Batch audit benchmark examples
 python scripts/audit_benchmark.py --root examples/2022C
 
+# LangGraph provider-free benchmark arena
+python scripts/langgraph_benchmark.py --root tests/langgraph_benchmark_fixtures --mode contest_graph_v3 --provider none
+
+# Real provider Phase 1 planning smoke; key comes from MATHMODEL_LLM_API_KEY
+python scripts/real_provider_benchmark.py --workspace examples/2022C/DeepSeekV4Pro_V2.3 --mode llm_plan --phase 1 --provider deepseek --model deepseek-chat
+
+# Multi-provider Phase 1 planning comparison
+python scripts/real_provider_compare.py --workspace examples/2022C/DeepSeekV4Pro_V2.3 --mode llm_plan --phase 1 --provider-model deepseek:deepseek-chat --provider-model openai-compatible:<model>
+
 # Create a new V2 workspace skeleton
 python scripts/new_v2_workspace.py workspaces/my-contest --contest CUMCM --engine LaTeX --language 中文
 
@@ -66,6 +75,23 @@ Each phase writes gate artifacts that downstream phases read. Gates produce:
 ```text
 PASS | CONDITIONAL_PASS | FAIL
 ```
+
+### LangGraph Runtime and Benchmark Arena
+
+LangGraph is an optional orchestration layer. The current alpha runtime is
+`contest_graph_v3`: Human Gate, Phase 2 sandbox, Phase 3 paper sandbox,
+Phase 4 review, Phase 5 revision sandbox, and Phase 6 audit-only.
+
+Benchmark Arena has three levels:
+
+- `scripts/langgraph_benchmark.py`: provider-free fixture benchmark.
+- `scripts/real_provider_benchmark.py`: one real provider Phase 1 `llm_plan` smoke report.
+- `scripts/real_provider_compare.py`: deterministic multi-provider Phase 1 planning comparison.
+
+Real provider benchmark commands must not write API keys to reports. They only
+read local environment variables, write sanitized reports under
+`docs/real_benchmarks/`, and do not run `controlled_apply`, experiments, paper
+drafting or final verification.
 
 ### Capability Layer
 
@@ -203,6 +229,10 @@ English: MCM/ICM, APMCM, Default.
 ## Safety
 
 Do not commit private contest data, large PDFs, local vector stores, local databases, active workspaces or runtime logs.
+
+Sanitized benchmark reports under `docs/real_benchmarks/` may be committed when
+they contain no API keys, no private contest data and no active workspace
+payloads.
 
 Local-only paths normally include:
 
