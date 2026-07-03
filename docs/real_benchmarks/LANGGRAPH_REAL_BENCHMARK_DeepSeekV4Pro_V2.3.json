@@ -1,0 +1,317 @@
+{
+  "kind": "real_workspace_benchmark",
+  "created_at_utc": "2026-07-03T04:17:08.890157+00:00",
+  "mode": "contest_graph_v3",
+  "provider": "none",
+  "model": null,
+  "source_workspace": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3",
+  "run_workspace": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-121706-real-benchmark-DeepSeekV4Pro_V2.3",
+  "run_workspace_under_source_runs": true,
+  "contest_status": "PHASE2_PLAN_ONLY",
+  "status": "PHASE2_PLAN_ONLY",
+  "completed_phases": [
+    0,
+    1,
+    2
+  ],
+  "paused_at": "phase_2_sandbox",
+  "human_gate_required": false,
+  "human_gate": {
+    "gate_file": "reports/HUMAN_MODEL_REVIEW.md",
+    "path": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-121706-real-benchmark-DeepSeekV4Pro_V2.3\\reports\\HUMAN_MODEL_REVIEW.md",
+    "exists": true,
+    "approved": true,
+    "approval_signal": "confirm",
+    "reason": "Human model review approval found."
+  },
+  "final_audit": {
+    "workspace": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-121706-real-benchmark-DeepSeekV4Pro_V2.3",
+    "status": "FAIL",
+    "worst_severity": "HIGH",
+    "nature": {
+      "available": false,
+      "mode": "auto",
+      "root": null,
+      "layout": null,
+      "nature_figure": null,
+      "checked": [
+        "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-121706-real-benchmark-DeepSeekV4Pro_V2.3\\nature-skills",
+        "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\nature-skills",
+        "C:\\Users\\zklzk\\Downloads\\Compressed\\nature-skills-main\\nature-skills-main",
+        "C:\\Users\\zklzk\\.codex\\skills",
+        "C:\\Users\\zklzk\\.codex\\skills\\nature-figure"
+      ],
+      "required_files_missing": [
+        "SKILL.md",
+        "manifest.yaml",
+        "static/core/contract.md",
+        "static/core/stance.md",
+        "static/fragments/backend/python.md",
+        "static/fragments/backend/r.md"
+      ]
+    },
+    "summary": {
+      "figures": 0,
+      "metrics": 69,
+      "tables": 0,
+      "scripts": 0,
+      "paper_pages": 16,
+      "pass_claimed": false,
+      "issue_count": 2
+    },
+    "issues": [
+      {
+        "severity": "HIGH",
+        "code": "manifest_schema_legacy",
+        "message": "RESULTS_MANIFEST.json uses the legacy list schema; V2.3 requires an object with metrics, tables, figures, and scripts.",
+        "evidence": "results/RESULTS_MANIFEST.json"
+      },
+      {
+        "severity": "HIGH",
+        "code": "manifest_figures_missing",
+        "message": "Final workspaces must trace paper figures through manifest.figures.",
+        "evidence": "results/RESULTS_MANIFEST.json"
+      }
+    ]
+  },
+  "final_audit_worst": "HIGH",
+  "graph_report_path": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-121706-real-benchmark-DeepSeekV4Pro_V2.3\\reports\\LANGGRAPH_CONTEST_GRAPH_REPORT.md",
+  "phase_rows": [
+    {
+      "phase": 0,
+      "hit": true,
+      "status": "PLAN_READY",
+      "strategy": "llm_plan_only",
+      "files_written": [],
+      "sandbox_status": null,
+      "paper_sandbox_status": null,
+      "revision_sandbox_status": null,
+      "manifest_created_empty": false,
+      "post_audit_worst": "HIGH"
+    },
+    {
+      "phase": 1,
+      "hit": true,
+      "status": "APPLY_PLAN_ONLY",
+      "strategy": "phase_execute_allowlisted_reports",
+      "files_written": [],
+      "sandbox_status": null,
+      "paper_sandbox_status": null,
+      "revision_sandbox_status": null,
+      "manifest_created_empty": false,
+      "post_audit_worst": "HIGH"
+    },
+    {
+      "phase": 2,
+      "hit": true,
+      "status": "PHASE2_PLAN_ONLY",
+      "strategy": "phase2_sandbox_executor",
+      "files_written": [],
+      "sandbox_status": "PHASE2_PLAN_ONLY",
+      "paper_sandbox_status": null,
+      "revision_sandbox_status": null,
+      "manifest_created_empty": false,
+      "post_audit_worst": "HIGH"
+    },
+    {
+      "phase": 3,
+      "hit": false,
+      "status": "NOT_EXECUTED",
+      "strategy": "none"
+    },
+    {
+      "phase": 4,
+      "hit": false,
+      "status": "NOT_EXECUTED",
+      "strategy": "none"
+    },
+    {
+      "phase": 5,
+      "hit": false,
+      "status": "NOT_EXECUTED",
+      "strategy": "none"
+    },
+    {
+      "phase": 6,
+      "hit": false,
+      "status": "NOT_EXECUTED",
+      "strategy": "none"
+    }
+  ],
+  "source_verify_report_sha256_before": "3e18c13a5a34cd6469c5a15d41e2841b2140daf98ce1efa85f1c4ad52ceb2824",
+  "source_verify_report_sha256_after": "3e18c13a5a34cd6469c5a15d41e2841b2140daf98ce1efa85f1c4ad52ceb2824",
+  "source_verify_report_unchanged": true,
+  "run_verify_report_exists": true,
+  "run_verify_report_sha256": "3e18c13a5a34cd6469c5a15d41e2841b2140daf98ce1efa85f1c4ad52ceb2824",
+  "is_provider_none_baseline": true,
+  "conclusion": "provider=none safety baseline on a real workspace; this records real orchestration/audit behavior and is not evidence of a real LLM fully executing the contest workflow.",
+  "raw_result_excerpt": {
+    "phase_results": [
+      {
+        "phase": 0,
+        "mode": "llm_plan",
+        "strategy": "llm_plan_only",
+        "status": "PLAN_READY",
+        "prompt_path": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-121706-real-benchmark-DeepSeekV4Pro_V2.3\\CONTROL_LANGGRAPH_PHASE_0.md",
+        "report_path": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-121706-real-benchmark-DeepSeekV4Pro_V2.3\\reports\\LANGGRAPH_RUN_REPORT.md",
+        "plan_path": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-121706-real-benchmark-DeepSeekV4Pro_V2.3\\reports\\LANGGRAPH_PHASE_PLAN.json",
+        "apply_diff_path": null,
+        "provider_error": null,
+        "files_planned": [],
+        "files_written": [],
+        "files_rejected": [],
+        "pre_audit": {
+          "status": "FAIL",
+          "worst_severity": "HIGH",
+          "issue_count": 2,
+          "summary": {
+            "figures": 0,
+            "metrics": 69,
+            "tables": 0,
+            "scripts": 0,
+            "paper_pages": 16,
+            "pass_claimed": false,
+            "issue_count": 2
+          },
+          "returncode": null
+        },
+        "post_audit": {
+          "status": "FAIL",
+          "worst_severity": "HIGH",
+          "issue_count": 2,
+          "summary": {
+            "figures": 0,
+            "metrics": 69,
+            "tables": 0,
+            "scripts": 0,
+            "paper_pages": 16,
+            "pass_claimed": false,
+            "issue_count": 2
+          },
+          "returncode": null
+        },
+        "stop_reason": "LLM plan generated and validated. No Bash was executed and no paper/code/figures/results files were modified.",
+        "sandbox_status": null,
+        "sandbox_commands": [],
+        "manifest_created_empty": false,
+        "paper_sandbox_status": null,
+        "paper_files_written": [],
+        "claim_trace_path": null,
+        "method_matrix_path": null,
+        "paper_build_report_path": null,
+        "paper_sandbox_error": null
+      },
+      {
+        "phase": 1,
+        "mode": "phase_execute",
+        "strategy": "phase_execute_allowlisted_reports",
+        "status": "APPLY_PLAN_ONLY",
+        "prompt_path": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-121706-real-benchmark-DeepSeekV4Pro_V2.3\\CONTROL_LANGGRAPH_PHASE_1.md",
+        "report_path": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-121706-real-benchmark-DeepSeekV4Pro_V2.3\\reports\\LANGGRAPH_RUN_REPORT.md",
+        "plan_path": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-121706-real-benchmark-DeepSeekV4Pro_V2.3\\reports\\LANGGRAPH_PHASE_PLAN.json",
+        "apply_diff_path": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-121706-real-benchmark-DeepSeekV4Pro_V2.3\\reports\\LANGGRAPH_APPLY_DIFF.md",
+        "provider_error": null,
+        "files_planned": [],
+        "files_written": [],
+        "files_rejected": [],
+        "pre_audit": {
+          "status": "FAIL",
+          "worst_severity": "HIGH",
+          "issue_count": 2,
+          "summary": {
+            "figures": 0,
+            "metrics": 69,
+            "tables": 0,
+            "scripts": 0,
+            "paper_pages": 16,
+            "pass_claimed": false,
+            "issue_count": 2
+          },
+          "returncode": null
+        },
+        "post_audit": {
+          "status": "FAIL",
+          "worst_severity": "HIGH",
+          "issue_count": 2,
+          "summary": {
+            "figures": 0,
+            "metrics": 69,
+            "tables": 0,
+            "scripts": 0,
+            "paper_pages": 16,
+            "pass_claimed": false,
+            "issue_count": 2
+          },
+          "returncode": null
+        },
+        "stop_reason": "Validated phase plan did not include file_writes; no controlled files were written.",
+        "sandbox_status": null,
+        "sandbox_commands": [],
+        "manifest_created_empty": false,
+        "paper_sandbox_status": null,
+        "paper_files_written": [],
+        "claim_trace_path": null,
+        "method_matrix_path": null,
+        "paper_build_report_path": null,
+        "paper_sandbox_error": null
+      },
+      {
+        "phase": 2,
+        "mode": "phase2_sandbox",
+        "strategy": "phase2_sandbox_executor",
+        "status": "PHASE2_PLAN_ONLY",
+        "prompt_path": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-121706-real-benchmark-DeepSeekV4Pro_V2.3\\CONTROL_LANGGRAPH_PHASE_2.md",
+        "report_path": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-121706-real-benchmark-DeepSeekV4Pro_V2.3\\reports\\LANGGRAPH_RUN_REPORT.md",
+        "plan_path": "D:\\WorkSpace_MathModel\\examples\\2022C\\DeepSeekV4Pro_V2.3\\runs\\20260703-121706-real-benchmark-DeepSeekV4Pro_V2.3\\reports\\LANGGRAPH_PHASE_PLAN.json",
+        "apply_diff_path": null,
+        "provider_error": null,
+        "files_planned": [],
+        "files_written": [],
+        "files_rejected": [],
+        "pre_audit": {
+          "status": "FAIL",
+          "worst_severity": "HIGH",
+          "issue_count": 2,
+          "summary": {
+            "figures": 0,
+            "metrics": 69,
+            "tables": 0,
+            "scripts": 0,
+            "paper_pages": 16,
+            "pass_claimed": false,
+            "issue_count": 2
+          },
+          "returncode": null
+        },
+        "post_audit": {
+          "status": "FAIL",
+          "worst_severity": "HIGH",
+          "issue_count": 2,
+          "summary": {
+            "figures": 0,
+            "metrics": 69,
+            "tables": 0,
+            "scripts": 0,
+            "paper_pages": 16,
+            "pass_claimed": false,
+            "issue_count": 2
+          },
+          "returncode": null
+        },
+        "stop_reason": "Phase 2 plan did not include sandbox commands; no experiment commands were executed.",
+        "sandbox_status": "PHASE2_PLAN_ONLY",
+        "sandbox_commands": [],
+        "manifest_created_empty": false,
+        "paper_sandbox_status": null,
+        "paper_files_written": [],
+        "claim_trace_path": null,
+        "method_matrix_path": null,
+        "paper_build_report_path": null,
+        "paper_sandbox_error": null
+      }
+    ],
+    "files_written": [],
+    "paper_files_written": [],
+    "revision_files_written": []
+  }
+}

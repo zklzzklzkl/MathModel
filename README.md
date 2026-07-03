@@ -11,6 +11,7 @@ LangGraph Runtime: v1.0-alpha, contest_graph_v3 + Benchmark Arena
 Archived Pipeline: V1, preserved under archive/v1/
 Core Principle: workspace files are the shared memory, chat history is not the state source
 Safety Principle: Human Gate + copied run workspace + allowlist writes + audit-only final verify
+Benchmark Track: provider-free fixtures + real-provider Phase 1 planning smoke + multi-provider comparison
 ```
 
 ---
@@ -590,9 +591,25 @@ python skills/_references/scripts/audit_v2_run.py --workspace workspaces/my-cont
 
 ### 4. Run LangGraph Benchmark Arena
 
+Provider-free fixture benchmark:
+
 ```bash
 python scripts/langgraph_benchmark.py --root tests/langgraph_benchmark_fixtures --mode contest_graph_v3 --provider none
 ```
+
+Real provider Phase 1 planning smoke:
+
+```bash
+python scripts/real_provider_benchmark.py --workspace examples/2022C/DeepSeekV4Pro_V2.3 --mode llm_plan --phase 1 --provider deepseek --model deepseek-chat
+```
+
+Multi-provider Phase 1 planning comparison:
+
+```bash
+python scripts/real_provider_compare.py --workspace examples/2022C/DeepSeekV4Pro_V2.3 --mode llm_plan --phase 1 --provider-model deepseek:deepseek-chat --provider-model openai-compatible:<model>
+```
+
+Real provider commands read API keys only from local environment variables such as `MATHMODEL_LLM_API_KEY`. They write sanitized reports under `docs/real_benchmarks/` and do not run `controlled_apply`, experiments, paper drafting or final verification.
 
 ### 5. Batch-audit benchmark examples
 
@@ -657,6 +674,8 @@ dist/
 
 Commit only sanitized examples, scripts, templates, contracts and source notes.
 
+Sanitized benchmark reports under `docs/real_benchmarks/` may be committed when they contain no API keys, no private contest data and no active workspace payloads.
+
 ---
 
 ## Current Project Status
@@ -664,6 +683,8 @@ Commit only sanitized examples, scripts, templates, contracts and source notes.
 V2.7-alpha is the active project version.
 
 The stable workflow foundation remains the V2 skill pipeline. The current experimental runtime milestone is **LangGraph Runtime v1.0-alpha**, centered on `contest_graph_v3` and Benchmark Arena.
+
+Benchmark Arena now includes provider-free fixture benchmarks, real-provider Phase 1 planning smoke reports, and a deterministic multi-provider comparison MVP.
 
 V1 is archived under `archive/v1/` and should not be used for new contests.
 
