@@ -7,9 +7,9 @@
       </div>
 
       <nav class="nav">
-        <button v-for="item in navItems" :key="item.id" :class="{ active: view === item.id }" @click="view = item.id">
+        <button v-for="item in orderedNavItems" :key="item.id" :class="{ active: view === item.id }" @click="view = item.id">
           <component :is="item.icon" :size="17" />
-          {{ item.label }}
+          {{ navLabel(item.id) }}
         </button>
       </nav>
 
@@ -17,7 +17,7 @@
         <label>工作区</label>
         <select v-model="store.selectedWorkspaceId" @change="store.selectWorkspace(store.selectedWorkspaceId)">
           <option v-for="workspace in store.workspaces" :key="workspace.id" :value="workspace.id">
-            {{ workspace.name }}
+            {{ workspaceOptionLabel(workspace) }}
           </option>
         </select>
         <label>Harness</label>
@@ -31,28 +31,84 @@
       <header class="topbar">
         <div class="title-block">
           <h1>{{ title }}</h1>
+          <div class="workspace-context-bar">
+            <span :class="['workspace-type-badge', workspaceTypeClass]">{{ workspaceTypeLabel }}</span>
+            <span class="workspace-path" :title="store.selectedWorkspace?.path ?? ''">{{ workspaceKindTag }} {{ workspaceDisplayPath }}</span>
+            <button v-if="store.selectedWorkspace?.path" class="copy-path-button" :title="store.selectedWorkspace.path" @click="copyWorkspacePath">复制路径</button>
+            <span v-if="selectedIsRunWorkspace" class="badge warn">Result context only</span>
+          </div>
           <p>{{ store.selectedWorkspace?.path ?? "未选择工作区" }}</p>
         </div>
         <div class="top-actions">
           <button @click="store.initialize"><RefreshCw :size="16" />刷新</button>
           <button @click="store.runAudit"><ShieldCheck :size="16" />运行审计</button>
-          <button class="primary" @click="store.generatePrompt(selectedPhase, harness)"><Copy :size="16" />生成 Prompt</button>
+          <button v-if="view !== 'dashboard'" class="primary top-run-button" :disabled="store.langGraphRunning || selectedIsRunWorkspace" :title="selectedIsRunWorkspace ? runDisabledHelp : ''" @click="runRecommendedFromUi">
+            <PlayCircle :size="16" />{{ store.langGraphRunning ? "运行中..." : "Run Recommended" }}
+          </button>
         </div>
       </header>
 
       <main class="main">
         <div v-if="store.error" class="alert">{{ store.error }}</div>
+        <div v-if="selectedIsRunWorkspace" class="warning-box workspace-warning">
+          当前选择的是 Run Workspace，只适合查看运行结果。再次运行请先选择对应的 Source Workspace。
+        </div>
         <div v-if="store.loading" class="loading">正在读取本地工作区...</div>
 
         <section v-if="view === 'dashboard'" class="view">
+          <div v-if="showBeginnerGuide" class="beginner-guide-card">
+            <div class="beginner-guide-head">
+              <div>
+                <span class="badge info">新手模式</span>
+                <h2>第一次使用？按这 3 步开始</h2>
+              </div>
+              <button @click="dismissBeginnerGuide">我知道了，隐藏此提示</button>
+            </div>
+            <div class="onboarding-steps">
+              <div>
+                <strong>Step 1：选择或新建工作区</strong>
+                <p>一个工作区就是一道数学建模题目的文件夹。</p>
+              </div>
+              <div>
+                <strong>Step 2：上传题目和附件</strong>
+                <p>在“设置”页上传 PDF、Excel、CSV、图片等 source 文件。</p>
+              </div>
+              <div>
+                <strong>Step 3：点击 Run Recommended Graph</strong>
+                <p>默认 provider=none，不需要 API key，不会花钱，用来验证流程是否跑通。</p>
+              </div>
+            </div>
+            <div v-if="looksLikeFreshWorkspace" class="warning-box">
+              看起来还没有完整结果。建议先上传题目和附件，然后点击 Run Recommended Graph 跑一次安全基线。
+            </div>
+            <div class="button-row">
+              <button @click="goUploadSource">去设置页上传题目</button>
+              <button class="primary" :disabled="store.langGraphRunning || selectedIsRunWorkspace" :title="selectedIsRunWorkspace ? runDisabledHelp : ''" @click="runRecommendedFromUi">
+                Run Recommended Graph
+              </button>
+              <button @click="openLatestRun">查看运行结果</button>
+              <button @click="view = 'help'">查看帮助</button>
+            </div>
+          </div>
+
+          <div v-if="looksLikeFreshWorkspace" class="empty-state-guide">
+            <strong>这个工作区还没有完整结果。</strong>
+            <p>建议先上传题目和附件，然后点击 Run Recommended Graph 跑一次安全基线。</p>
+            <div class="button-row">
+              <button @click="goUploadSource">上传 source</button>
+              <button class="primary" :disabled="store.langGraphRunning || selectedIsRunWorkspace" @click="runRecommendedFromUi">Run Recommended Graph</button>
+              <button @click="view = 'help'">查看帮助</button>
+            </div>
+          </div>
+
           <div class="status-strip">
             <div class="metric">
-              <label>Audit</label>
-              <strong :class="['badge', statusClass(store.summary?.status)]">{{ store.summary?.status ?? "UNKNOWN" }}</strong>
-              <small>Worst: {{ store.summary?.worst_severity ?? "NONE" }}</small>
+              <label title="审计检查：发现缺失文件、图表路径、证据链等问题">Audit</label>
+              <strong :class="['badge', statusClass(store.summary?.status)]">{{ humanStatus(store.summary?.status ?? "UNKNOWN") }}</strong>
+              <small>Raw: {{ store.summary?.status ?? "UNKNOWN" }} · Worst: {{ store.summary?.worst_severity ?? "NONE" }}</small>
             </div>
             <div class="metric">
-              <label>Manifest</label>
+              <label title="结果清单：记录生成了哪些指标、表格、图像和脚本">Manifest</label>
               <strong>{{ store.summary?.manifest.schema ?? "-" }}</strong>
               <small>figures: {{ store.summary?.manifest.figures ?? 0 }}</small>
             </div>
@@ -66,6 +122,31 @@
               <strong>{{ store.summary?.required_missing.length ?? 0 }}</strong>
               <small>required artifacts</small>
             </div>
+          </div>
+
+          <div class="primary-action-card">
+            <div>
+              <span class="badge info">Recommended Action</span>
+              <h2>运行 contest_graph_v3 安全基线</h2>
+              <p>
+                当前推荐：provider=none，不调用真实 API，用于验证流程、安全边界和产物链路。
+                provider=none 是安全基线，不代表真实 LLM 建模质量；Human Gate 不会被前端绕过。
+              </p>
+            </div>
+            <div class="action-grid">
+              <button class="primary" :disabled="store.langGraphRunning || selectedIsRunWorkspace" :title="selectedIsRunWorkspace ? runDisabledHelp : ''" @click="runRecommendedFromUi">
+                <PlayCircle :size="16" />{{ store.langGraphRunning ? "运行中..." : "Run Recommended Graph" }}
+              </button>
+              <button :disabled="store.langGraphRunning || selectedIsRunWorkspace || !selectedPhaseCanExecute" :title="selectedPhaseRunTitle" @click="runCurrentSkillFromUi">
+                <Gauge :size="16" />{{ selectedPhaseCanExecute ? "Run Current Skill" : "Skill Run Unsupported" }}
+              </button>
+              <button @click="openLatestRun">
+                <FolderOpen :size="16" />Open Latest Run
+              </button>
+            </div>
+            <p v-if="!selectedPhaseCanExecute" class="disabled-help">
+              当前阶段暂不支持单阶段执行，请使用 Run Recommended Graph 或进入阶段页点击 Dry Run。
+            </p>
           </div>
 
           <div class="grid-dashboard">
@@ -89,18 +170,30 @@
 
             <Panel title="下一步建议" subtitle="audit + required files">
               <div class="recommendation-list">
-                <button
-                  v-for="item in store.summary?.recommendations ?? []"
-                  :key="`${item.title}-${item.artifact}`"
-                  class="recommendation-item"
-                  @click="selectRecommendation(item)"
+                <div
+                  v-for="group in groupedRecommendationItems"
+                  :key="group.key"
+                  class="recommendation-item recommendation-group"
                 >
-                  <span :class="['badge', statusClass(item.severity)]">{{ item.severity }}</span>
-                  <span>
-                    <strong>{{ item.title }}</strong>
-                    <small>{{ item.detail }}</small>
-                  </span>
-                </button>
+                  <button class="recommendation-main" @click="selectRecommendation(group.first)">
+                    <span :class="['badge', statusClass(group.first.severity)]">{{ group.first.severity }}</span>
+                    <span>
+                      <strong>{{ group.first.title }}<em v-if="group.count > 1"> × {{ group.count }}</em></strong>
+                      <small>{{ group.first.detail }}</small>
+                    </span>
+                  </button>
+                  <details v-if="group.count > 1" class="recommendation-details">
+                    <summary>查看 {{ group.count }} 条原始建议</summary>
+                    <button
+                      v-for="(item, index) in group.items"
+                      :key="`${group.key}-${index}`"
+                      class="path-pill recommendation-raw"
+                      @click="selectRecommendation(item)"
+                    >
+                      {{ item.artifact ?? item.title ?? item.detail }}
+                    </button>
+                  </details>
+                </div>
               </div>
               <div class="button-row">
                 <button class="primary" @click="store.generateRevisionTasks">生成修订任务</button>
@@ -159,7 +252,7 @@
                   <span :class="['badge', currentPhase?.missing_inputs.includes(path) ? 'bad' : 'good']">
                     {{ currentPhase?.missing_inputs.includes(path) ? "missing" : "ok" }}
                   </span>
-                  <button @click="openArtifact(path)">{{ path }}</button>
+                  <button class="path-pill" :title="path" @click="openArtifact(path)">{{ path }}</button>
                 </div>
               </div>
               <div>
@@ -168,16 +261,31 @@
                   <span :class="['badge', currentPhase?.missing_outputs.includes(path) ? 'warn' : 'good']">
                     {{ currentPhase?.missing_outputs.includes(path) ? "pending" : "ok" }}
                   </span>
-                  <button @click="openArtifact(path)">{{ path }}</button>
+                  <button class="path-pill" :title="path" @click="openArtifact(path)">{{ path }}</button>
                 </div>
               </div>
             </div>
-            <div class="prompt-box">{{ store.prompt?.phase === selectedPhase ? store.prompt.prompt : "点击生成 Prompt 获取当前阶段执行指令。" }}</div>
             <div class="button-row">
-              <button class="primary" @click="store.generatePrompt(selectedPhase, harness)">生成 Prompt</button>
-              <button @click="store.prepareHarness(selectedPhase, harness, true)">准备安全副本</button>
-              <button @click="copyPrompt">复制</button>
+              <button class="primary" :disabled="store.langGraphRunning || selectedIsRunWorkspace || !selectedPhaseCanExecute" :title="selectedPhaseRunTitle" @click="runCurrentSkillFromUi">
+                <PlayCircle :size="16" />{{ store.langGraphRunning ? "运行中..." : recommendedPhaseActionLabel(selectedPhase) }}
+              </button>
+              <button :disabled="store.langGraphRunning || selectedIsRunWorkspace" :title="selectedIsRunWorkspace ? runDisabledHelp : 'Dry Run 是安全预检，不会正式产出完整结果。'" @click="dryRunSkillFromUi">
+                <ShieldCheck :size="16" />Dry Run
+              </button>
             </div>
+            <p class="muted-help">{{ phaseRunHint(selectedPhase) }}</p>
+            <p v-if="!selectedPhaseCanExecute" class="human-status-note">
+              单阶段执行暂不可用；可 Dry Run 预检，或运行完整 contest_graph_v3。
+            </p>
+            <details class="advanced-tools">
+              <summary>Advanced Tools</summary>
+              <div class="prompt-box">{{ store.prompt?.phase === selectedPhase ? store.prompt.prompt : "使用 Generate Prompt 生成当前阶段手动执行指令。" }}</div>
+              <div class="button-row">
+                <button @click="store.generatePrompt(selectedPhase, harness)">Generate Prompt</button>
+                <button @click="store.prepareHarness(selectedPhase, harness, true)">Prepare Harness Copy</button>
+                <button @click="copyPrompt">Copy Prompt</button>
+              </div>
+            </details>
           </Panel>
 
           <Panel title="阶段文件" :subtitle="`${currentPhase?.artifacts.length ?? 0} files`">
@@ -191,7 +299,8 @@
         </section>
 
         <section v-else-if="view === 'artifacts'" class="view artifact-layout">
-          <Panel title="Artifact Index" subtitle="workspace truth">
+          <Panel title="Artifact Index" :subtitle="artifactContextSubtitle">
+            <p v-if="selectedIsRunWorkspace" class="human-status-note">当前查看的是运行产物，不是原始题目工作区。</p>
             <input v-model="artifactQuery" class="search" placeholder="搜索 artifact..." />
             <div class="quick-filter-row">
               <button
@@ -217,7 +326,17 @@
             <div v-else-if="!store.selectedArtifact.exists" class="missing-box">
               <strong>文件不存在</strong>
               <p>{{ missingSuggestion(store.selectedArtifact.path) }}</p>
-              <button class="primary" @click="store.generatePrompt(selectedPhase, harness)">生成修复 Prompt</button>
+              <button @click="view = 'console'">打开高级 Prompt 工具</button>
+            </div>
+            <div v-else-if="store.selectedArtifact.type === 'directory'" class="directory-box">
+              <strong>目录</strong>
+              <p>这是一个目录。请从左侧文件索引选择具体文件查看内容。</p>
+              <div v-if="directoryChildArtifacts.length" class="artifact-list">
+                <button v-for="artifact in directoryChildArtifacts" :key="artifact.path" class="artifact-item" @click="openArtifact(artifact.path)">
+                  <span><strong>{{ artifact.path }}</strong><small>{{ artifact.type }} · {{ artifact.exists ? "exists" : "missing" }}</small></span>
+                  <span class="badge info">open</span>
+                </button>
+              </div>
             </div>
             <div v-else-if="store.selectedArtifact.type === 'markdown'" class="markdown-preview" v-html="markdownPreview"></div>
             <pre v-else-if="store.selectedArtifact.type === 'json' || store.selectedArtifact.type === 'text'" class="code-box">{{ artifactPreview }}</pre>
@@ -231,7 +350,10 @@
         </section>
 
         <section v-else-if="view === 'console'" class="view console-layout">
-          <Panel title="执行 Prompt" subtitle="Manual harness mode">
+          <Panel title="高级手动工具" subtitle="Prompt / Harness 调试流程">
+            <p class="muted-help">
+              这里保留 Prompt/Harness 工作流，用于调试或外部 Agent 手动执行。普通使用请优先使用 Run Recommended 或 Run This Skill。
+            </p>
             <div class="field-grid">
               <div class="field">
                 <label>Phase</label>
@@ -247,9 +369,9 @@
               </div>
             </div>
             <div class="button-row">
-              <button class="primary" @click="store.generatePrompt(selectedPhase, harness)">生成</button>
-              <button @click="store.prepareHarness(selectedPhase, harness, true)">准备安全副本</button>
-              <button @click="copyPrompt">复制</button>
+              <button @click="store.generatePrompt(selectedPhase, harness)">Generate Prompt</button>
+              <button @click="store.prepareHarness(selectedPhase, harness, true)">Prepare Harness Copy</button>
+              <button @click="copyPrompt">Copy Prompt</button>
             </div>
             <div v-if="store.preparedRun" class="prepared-box">
               <strong>Run workspace</strong>
@@ -343,19 +465,20 @@
 
         <section v-else-if="view === 'benchmark'" class="view benchmark-lab">
           <!-- Overview -->
-          <Panel title="Benchmark Lab" subtitle="报告浏览器 · 只读">
+          <Panel title="评测实验室（Benchmark Lab）" subtitle="报告浏览器 · 只读">
             <!-- Safe Benchmark Launcher -->
             <div class="safe-benchmark-card">
-              <strong>Safe LangGraph Benchmark (provider=none)</strong>
+              <strong>安全评测基线（provider=none）</strong>
               <p style="margin:4px 0 8px;color:var(--muted);font-size:12px">此按钮只运行 provider=none 安全基线，不调用真实 API，不代表真实 LLM 自动效果。mode 固定为 contest_graph_v3，provider 固定为 none，copy_workspace 固定为 true。</p>
               <div class="button-row">
-                <button class="primary" :disabled="store.safeBenchmarkRunning" @click="store.runSafeLangGraphBenchmark">
-                  {{ store.safeBenchmarkRunning ? "运行中..." : "Run provider=none safety benchmark" }}
+                <button class="primary" :disabled="store.safeBenchmarkRunning || selectedIsRunWorkspace" :title="selectedIsRunWorkspace ? runDisabledHelp : ''" @click="store.runSafeLangGraphBenchmark">
+                  {{ store.safeBenchmarkRunning ? "运行中..." : "运行 provider=none 安全评测" }}
                 </button>
               </div>
+              <p v-if="selectedIsRunWorkspace" class="disabled-help">{{ runDisabledHelp }}</p>
               <div v-if="store.safeBenchmarkResult" style="margin-top:10px" class="field-grid">
-                <div class="field"><label>Status</label><span :class="['badge', statusClass(store.safeBenchmarkResult.status)]">{{ store.safeBenchmarkResult.status }}</span></div>
-                <div class="field"><label>Contest Status</label><strong>{{ store.safeBenchmarkResult.contest_status ?? '-' }}</strong></div>
+                <div class="field"><label>Status</label><span :class="['badge', statusClass(store.safeBenchmarkResult.status)]">{{ humanStatus(store.safeBenchmarkResult.status) }}</span><small>Raw: {{ store.safeBenchmarkResult.status }}</small></div>
+                <div class="field"><label>Contest Status</label><strong>{{ humanStatus(store.safeBenchmarkResult.contest_status ?? '-') }}</strong><small>Raw: {{ store.safeBenchmarkResult.contest_status ?? '-' }}</small></div>
                 <div class="field"><label>Run Workspace</label><strong style="font-size:11px;word-break:break-all">{{ store.safeBenchmarkResult.run_workspace }}</strong></div>
                 <div class="field"><label>Completed Phases</label><strong>{{ store.safeBenchmarkResult.completed_phases.join(", ") || '-' }}</strong></div>
                 <div class="field"><label>Sandbox</label><strong>{{ store.safeBenchmarkResult.sandbox_status ?? '-' }}</strong></div>
@@ -489,7 +612,7 @@
           </Panel>
 
           <!-- Legacy 2022C -->
-          <Panel title="Legacy 2022C Audit Benchmark" subtitle="examples/2022C · audit_benchmark.py">
+          <Panel title="旧版 2022C 审计评测" subtitle="examples/2022C · audit_benchmark.py">
             <div class="button-row"><button class="primary" @click="store.loadBenchmark">刷新 Benchmark</button></div>
             <div class="table-wrap" style="margin-top:10px">
               <table>
@@ -506,7 +629,7 @@
                 <tbody>
                   <tr v-for="row in benchmarkRows" :key="row.workspace">
                     <td>{{ row.workspace }}</td>
-                    <td><span :class="['badge', statusClass(row.status)]">{{ row.status }}</span></td>
+                    <td><span :class="['badge', statusClass(row.status)]">{{ humanStatus(row.status) }}</span><small>{{ row.status }}</small></td>
                     <td><span :class="['badge', statusClass(row.worst)]">{{ row.worst }}</span></td>
                     <td>{{ row.figures }}</td>
                     <td>{{ row.pages }}</td>
@@ -518,7 +641,7 @@
           </Panel>
 
           <!-- LangGraph Benchmark Arena -->
-          <Panel title="LangGraph Benchmark Arena" subtitle="contest_graph_v3 provider=none fixture runs">
+          <Panel title="LangGraph 评测竞技场" subtitle="contest_graph_v3 provider=none fixture runs">
             <div class="report-card">
               <strong>Fixture Benchmark Report</strong>
               <small>docs/LANGGRAPH_BENCHMARK_REPORT.md · docs/LANGGRAPH_BENCHMARK_REPORT.json</small>
@@ -530,7 +653,7 @@
           </Panel>
 
           <!-- Real Provider Benchmark -->
-          <Panel title="Real Provider Benchmark" subtitle="DeepSeek Phase 1 llm_plan smoke">
+          <Panel title="真实 Provider 评测" subtitle="DeepSeek Phase 1 llm_plan smoke">
             <div class="report-card" v-for="(label, path) in realBenchmarkReports" :key="path">
               <strong>{{ label }}</strong>
               <small>{{ path }}</small>
@@ -540,7 +663,7 @@
           </Panel>
 
           <!-- Multi-model comparison -->
-          <Panel title="Multi-Model Comparison" subtitle="scripts/multi_model_benchmark.py">
+          <Panel title="多模型对比" subtitle="scripts/multi_model_benchmark.py">
             <div class="report-card">
               <strong>Provider comparison reports</strong>
               <small>docs/real_benchmarks/LANGGRAPH_PROVIDER_COMPARISON_*.md</small>
@@ -550,8 +673,21 @@
         </section>
 
         <section v-else-if="view === 'langgraph'" class="view langgraph-layout">
+          <div class="compact-runtime-bar">
+            <span><strong>LangGraph:</strong> {{ store.langGraphStatus?.available ? "ready" : "unavailable" }}</span>
+            <span v-if="store.langGraphStatus?.version">version {{ store.langGraphStatus.version }}</span>
+            <span>modes: contest_graph_v3 available</span>
+            <button @click="store.loadLangGraphStatus">刷新</button>
+            <details>
+              <summary>Runtime details</summary>
+              <div class="runtime-details">
+                <span>{{ store.langGraphStatus?.note ?? "loading..." }}</span>
+                <span v-if="store.langGraphStatus?.import_error">{{ store.langGraphStatus.import_error }}</span>
+              </div>
+            </details>
+          </div>
           <!-- Runtime Status -->
-          <Panel title="Runtime 状态" subtitle="LangGraph optional dependency">
+          <Panel v-if="false" title="Runtime 状态" subtitle="LangGraph optional dependency">
             <div class="service-row">
               <span><strong>Available</strong><small>{{ store.langGraphStatus?.note ?? "loading..." }}</small></span>
               <span :class="['badge', store.langGraphStatus?.available ? 'good' : 'bad']">
@@ -560,80 +696,119 @@
             </div>
             <div v-if="store.langGraphStatus?.version" class="service-row">
               <span><strong>Version</strong></span>
-              <span class="badge info">{{ store.langGraphStatus.version }}</span>
+              <span class="badge info">{{ store.langGraphStatus?.version }}</span>
             </div>
             <div v-if="store.langGraphStatus?.import_error" class="warning-box">
-              {{ store.langGraphStatus.import_error }}
+              {{ store.langGraphStatus?.import_error }}
             </div>
             <div class="button-row" style="margin-top:10px">
               <button @click="store.loadLangGraphStatus">刷新 LangGraph 状态</button>
             </div>
           </Panel>
 
-          <!-- Run Config -->
-          <Panel title="Run Config" subtitle="contest_graph_v3 · provider=none 默认安全">
-            <div class="warning-box" style="margin-bottom:12px">
-              contest_graph_v3 不会自动写 VERIFY_REPORT.md；进入 Phase 2 前必须通过 HUMAN_MODEL_REVIEW.md；建议保持 copy_workspace=true。
-            </div>
-            <div class="field-grid">
-              <div class="field">
-                <label>Mode</label>
-                <select v-model="store.selectedLangGraphMode">
-                  <option v-for="m in LANGGRAPH_MODES" :key="m" :value="m">{{ m }}</option>
-                </select>
+          <!-- Recommended Run -->
+          <Panel title="Run Recommended" subtitle="contest_graph_v3 · provider=none · copy_workspace=true">
+            <div class="primary-action-card compact">
+              <div>
+                <span class="badge info">Safe baseline</span>
+                <h2>contest_graph_v3</h2>
+                <p>
+                  mode=contest_graph_v3, provider=none, copy_workspace=true。它验证流程、安全边界和产物链路；
+                  不调用真实 API，不代表真实 LLM 建模质量，不会绕过 Human Gate，也不会自动写 VERIFY_REPORT.md。
+                </p>
               </div>
-              <div class="field">
-                <label>Phase (P0-P6)</label>
-                <select v-model.number="store.selectedLangGraphPhase">
-                  <option v-for="p in 7" :key="p - 1" :value="p - 1">P{{ p - 1 }}</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Provider</label>
-                <select v-model="store.selectedProvider">
-                  <option value="none">none</option>
-                  <option value="dry-run">dry-run</option>
-                  <option value="openai-compatible">openai-compatible</option>
-                  <option value="deepseek">deepseek</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Model (optional)</label>
-                <input v-model="store.selectedModel" placeholder="deepseek-chat" />
-              </div>
-              <div class="field">
-                <label>Run name (optional)</label>
-                <input v-model="store.langGraphRunName" placeholder="ui-contest-graph-v3" />
-              </div>
-              <div class="field">
-                <label>Temperature</label>
-                <input v-model.number="store.langGraphTemperature" type="number" step="0.1" min="0" max="2" />
-              </div>
-              <div class="field">
-                <label>Max Tokens</label>
-                <input v-model.number="store.langGraphMaxTokens" type="number" step="512" min="512" max="32768" />
-              </div>
-              <div class="field checkbox-line">
-                <label>Copy workspace</label>
-                <input v-model="store.langGraphCopyWorkspace" type="checkbox" />
+              <div class="action-grid">
+                <button class="primary" :disabled="store.langGraphRunning || selectedIsRunWorkspace" :title="selectedIsRunWorkspace ? runDisabledHelp : ''" @click="runRecommendedFromUi">
+                  <PlayCircle :size="16" />{{ store.langGraphRunning ? "运行中..." : "Run Recommended" }}
+                </button>
+                <button @click="openLatestRun"><FolderOpen :size="16" />Open Latest Run</button>
               </div>
             </div>
-            <div class="button-row" style="margin-top:10px">
-              <button class="primary" :disabled="store.langGraphRunning" @click="store.runLangGraph">
-                {{ store.langGraphRunning ? "运行中..." : "Run LangGraph" }}
-              </button>
-            </div>
+
+            <details class="advanced-tools">
+              <summary>Advanced Run Config</summary>
+              <div class="warning-box" style="margin-bottom:12px">
+                Advanced config is for debugging provider/model behavior. Keep copy_workspace=true unless you are intentionally inspecting a copied run.
+              </div>
+              <div class="field-grid">
+                <div class="field">
+                  <label>Mode</label>
+                  <select v-model="store.selectedLangGraphMode">
+                    <option v-for="m in LANGGRAPH_MODES" :key="m" :value="m">{{ m }}</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Phase (P0-P6)</label>
+                  <select v-model.number="store.selectedLangGraphPhase">
+                    <option v-for="p in 7" :key="p - 1" :value="p - 1">P{{ p - 1 }}</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Provider</label>
+                  <select v-model="store.selectedProvider">
+                    <option value="none">none</option>
+                    <option value="dry-run">dry-run</option>
+                    <option value="openai-compatible">openai-compatible</option>
+                    <option value="deepseek">deepseek</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Model (optional)</label>
+                  <input v-model="store.selectedModel" placeholder="deepseek-chat" />
+                </div>
+                <div class="field">
+                  <label>Run name (optional)</label>
+                  <input v-model="store.langGraphRunName" placeholder="ui-contest-graph-v3" />
+                </div>
+                <div class="field">
+                  <label>Temperature</label>
+                  <input v-model.number="store.langGraphTemperature" type="number" step="0.1" min="0" max="2" />
+                </div>
+                <div class="field">
+                  <label>Max Tokens</label>
+                  <input v-model.number="store.langGraphMaxTokens" type="number" step="512" min="512" max="32768" />
+                </div>
+                <div class="field checkbox-line">
+                  <label>Copy workspace</label>
+                  <input v-model="store.langGraphCopyWorkspace" type="checkbox" />
+                </div>
+              </div>
+              <div class="button-row" style="margin-top:10px">
+                <button :disabled="store.langGraphRunning || selectedIsRunWorkspace" :title="selectedIsRunWorkspace ? runDisabledHelp : ''" @click="store.runLangGraph">
+                  {{ store.langGraphRunning ? "运行中..." : "Run Custom Config" }}
+                </button>
+              </div>
+            </details>
             <div v-if="store.langGraphRun?.provider_error" class="warning-box" style="margin-top:10px">
               {{ store.langGraphRun.provider_error }}
             </div>
           </Panel>
 
+          <Panel title="Human Gate" subtitle="HUMAN_MODEL_REVIEW.md remains manual">
+            <div class="field-grid">
+              <div class="field">
+                <label>Gate State</label>
+                <span :class="['badge', humanGateStatus.className]">{{ humanGateStatus.label }}</span>
+                <small>{{ store.langGraphRun?.human_gate_file ?? "reports/HUMAN_MODEL_REVIEW.md" }}</small>
+              </div>
+              <div class="field">
+                <label>Safety</label>
+                <strong>Manual approval only</strong>
+                <small>前端不会写 HUMAN_MODEL_REVIEW.md / MODELING_DECISION.md / VERIFY_REPORT.md。</small>
+              </div>
+            </div>
+            <p class="human-status-note">{{ humanGateStatus.note }}</p>
+            <div v-if="store.langGraphRun && (store.langGraphRun.needs_human || store.langGraphRun.human_gate_required)" class="human-gate-alert">
+              需要人工确认 HUMAN_MODEL_REVIEW.md 后才能继续危险阶段。
+            </div>
+          </Panel>
+
           <!-- Run Summary -->
-          <Panel title="Run Summary" subtitle="最近一次运行结果">
-            <div v-if="!store.langGraphRun" class="empty">尚未运行。请配置 Run Config 后点击 Run LangGraph。</div>
+          <Panel title="Latest Run Summary" subtitle="最近一次运行结果">
+            <div v-if="!store.langGraphRun" class="empty">尚未运行。点击 Run Recommended 后将在这里显示最新摘要。</div>
             <div v-else class="field-grid">
-              <div class="field"><label>Status</label><span :class="['badge', statusClass(store.langGraphRun.status)]">{{ store.langGraphRun.status }}</span></div>
-              <div class="field"><label>Contest Status</label><strong>{{ store.langGraphRun.contest_status ?? "-" }}</strong></div>
+              <div class="field"><label>Status</label><span :class="['badge', statusClass(store.langGraphRun.status)]">{{ humanStatus(store.langGraphRun.status) }}</span><small>Raw: {{ store.langGraphRun.status }}</small></div>
+              <div class="field"><label>Contest Status</label><strong>{{ humanStatus(store.langGraphRun.contest_status ?? "-") }}</strong><small>Raw: {{ store.langGraphRun.contest_status ?? "-" }}</small></div>
               <div class="field"><label>Mode</label><strong>{{ store.langGraphRun.mode }}</strong></div>
               <div class="field"><label>Provider</label><strong>{{ store.langGraphRun.provider }} / {{ store.langGraphRun.model ?? "none" }}</strong></div>
               <div class="field wide"><label>Run Workspace</label><strong style="font-size:12px;word-break:break-all">{{ store.langGraphRun.run_workspace }}</strong></div>
@@ -642,21 +817,11 @@
             </div>
             <div v-if="store.langGraphRun" class="field-grid" style="margin-top:8px">
               <div class="field">
-                <label>Human Gate</label>
-                <span :class="['badge', store.langGraphRun.human_gate_required ? 'warn' : 'good']">
-                  {{ store.langGraphRun.human_gate_required ? "required" : "ok" }}
-                </span>
-                <small>{{ store.langGraphRun.human_gate_file ?? "HUMAN_MODEL_REVIEW.md" }}</small>
-              </div>
-              <div class="field">
                 <label>Needs Human</label>
                 <span :class="['badge', store.langGraphRun.needs_human ? 'warn' : 'good']">
                   {{ store.langGraphRun.needs_human ? "yes" : "no" }}
                 </span>
               </div>
-            </div>
-            <div v-if="store.langGraphRun && (store.langGraphRun.needs_human || store.langGraphRun.human_gate_required)" class="human-gate-alert">
-              需要人工确认 HUMAN_MODEL_REVIEW.md
             </div>
           </Panel>
 
@@ -680,10 +845,10 @@
                   <tr v-for="(row, idx) in (store.langGraphRun?.phase_results ?? [])" :key="idx">
                     <td><span class="badge info">P{{ field(row, ["phase", "phase_id", "id"], "?") }}</span></td>
                     <td>{{ field(row, ["strategy", "mode"], "-") }}</td>
-                    <td><span :class="['badge', statusClass(field(row, 'status', 'UNKNOWN'))]">{{ field(row, "status", "-") }}</span></td>
-                    <td>{{ field(row, "sandbox_status", "-") }}</td>
-                    <td>{{ field(row, "paper_sandbox_status", "-") }}</td>
-                    <td>{{ field(row, "revision_sandbox_status", "-") }}</td>
+                    <td><span :class="['badge', statusClass(field(row, 'status', 'UNKNOWN'))]">{{ humanStatus(field(row, "status", "-")) }}</span><small>{{ field(row, "status", "-") }}</small></td>
+                    <td>{{ humanStatus(field(row, "sandbox_status", "-")) }}</td>
+                    <td>{{ humanStatus(field(row, "paper_sandbox_status", "-")) }}</td>
+                    <td>{{ humanStatus(field(row, "revision_sandbox_status", "-")) }}</td>
                     <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" :title="phaseResultNote(row)">{{ phaseResultNote(row) }}</td>
                   </tr>
                 </tbody>
@@ -780,8 +945,73 @@
           </Panel>
         </section>
 
+        <section v-else-if="view === 'help'" class="view help-page">
+          <Panel title="帮助" subtitle="第一次使用 Control Center">
+            <div class="help-section">
+              <h3>快速开始</h3>
+              <ol>
+                <li>在“设置”页新建工作区。</li>
+                <li>上传题目 PDF 和附件数据。</li>
+                <li>回到“总览”。</li>
+                <li>点击 Run Recommended Graph。</li>
+                <li>去“运行结果”查看每次运行生成的报告。</li>
+                <li>去“文件”查看当前工作区的论文、结果清单和审计报告。</li>
+              </ol>
+            </div>
+            <div class="help-section">
+              <h3>按钮说明</h3>
+              <div class="glossary-grid">
+                <div><strong>Run Recommended Graph</strong><p>运行推荐完整流程。默认 provider=none，不调用真实 API，不会花钱，用于安全验证流程。</p></div>
+                <div><strong>Run Current Skill</strong><p>只运行当前阶段。当前 Runtime 只支持 P1/P4 单阶段执行，其它阶段请使用 Dry Run 或完整流程。</p></div>
+                <div><strong>Dry Run</strong><p>只做预检，检查流程和文件路径，不代表正式建模结果。</p></div>
+                <div><strong>Open Latest Run</strong><p>打开最近一次运行的产物文件夹。</p></div>
+                <div><strong>运行审计</strong><p>检查当前工作区文件是否完整，是否存在缺失结果、图表路径、论文证据链问题。</p></div>
+              </div>
+            </div>
+            <div class="help-section">
+              <h3>术语解释</h3>
+              <div class="glossary-grid">
+                <div><strong>Workspace / 工作区</strong><p>一道题目的项目文件夹，包含 source、code、paper、results、reports 等目录。</p></div>
+                <div><strong>Source Workspace</strong><p>原始题目工作区。推荐在这里启动运行。</p></div>
+                <div><strong>Run Workspace</strong><p>每次运行复制出来的安全副本。主要用于查看结果，不建议在里面再次运行。</p></div>
+                <div><strong>LangGraph</strong><p>负责把数学建模流程按阶段串起来的执行器。</p></div>
+                <div><strong>contest_graph_v3</strong><p>当前推荐的完整安全流程。</p></div>
+                <div><strong>Skill</strong><p>某个阶段的能力模块，例如建模策略、实验可视化、论文构建、评分审查。</p></div>
+                <div><strong>Human Gate</strong><p>人工确认闸门。进入高风险阶段前必须人工确认模型选择和建模方案。</p></div>
+                <div><strong>provider=none</strong><p>不调用真实大模型 API 的安全基线。不会花钱，用于验证流程和产物链路。</p></div>
+                <div><strong>API key</strong><p>真实调用 DeepSeek / OpenAI-compatible 模型时需要的密钥。provider=none 不需要。</p></div>
+                <div><strong>Audit</strong><p>审计检查，用于发现文件缺失、图表路径错误、证据链缺失等问题。</p></div>
+                <div><strong>Manifest</strong><p>结果清单，记录生成了哪些指标、表格、图像和脚本。</p></div>
+                <div><strong>Benchmark</strong><p>评测，用已有工作区或报告检查系统稳定性和不同模型表现。</p></div>
+              </div>
+            </div>
+            <div class="help-section">
+              <h3>API 配置说明</h3>
+              <p>默认情况下可以不配置 API。provider=none 可以跑安全基线，不会产生真实模型质量结果。</p>
+              <p>当你想让 DeepSeek / OpenAI-compatible 真正生成建模计划、代码、论文内容，或比较不同模型效果时，才需要 API key。</p>
+              <p><strong>API key 应配置在后端运行环境中，不要粘贴到浏览器页面。</strong>配置后需要重启后端服务。</p>
+              <pre class="code-box">DeepSeek 示例：
+DEEPSEEK_API_KEY=你的密钥
+
+OpenAI-compatible 示例：
+OPENAI_API_KEY=你的密钥
+OPENAI_BASE_URL=兼容接口地址</pre>
+            </div>
+            <div class="help-section">
+              <h3>常见问题</h3>
+              <div class="faq-item"><strong>Q：不配置 API 能用吗？</strong><p>A：能。默认 provider=none 可以验证流程和安全边界，但不代表真实 LLM 建模效果。</p></div>
+              <div class="faq-item"><strong>Q：Run Recommended 会花钱吗？</strong><p>A：默认 provider=none 不会调用真实 API，因此不会产生模型调用费用。</p></div>
+              <div class="faq-item"><strong>Q：为什么 Run This Skill 按钮不可用？</strong><p>A：当前单阶段执行只支持 P1/P4，其它阶段请用 Dry Run 或完整 contest_graph_v3。</p></div>
+              <div class="faq-item"><strong>Q：为什么有很多 Audit 问题？</strong><p>A：Audit 是检查器，发现缺图表、缺结果、缺证据链是正常的，它帮助你知道下一步该修哪里。</p></div>
+              <div class="faq-item"><strong>Q：Human Gate 是错误吗？</strong><p>A：不是。它是人工确认机制，用来防止模型自动选择错误建模路线。</p></div>
+              <div class="faq-item"><strong>Q：Run Workspace 是什么？</strong><p>A：每次运行的安全副本。查看结果可以用它，但不要在 run workspace 里继续嵌套运行。</p></div>
+            </div>
+          </Panel>
+        </section>
+
         <section v-else class="view settings-grid">
           <Panel title="新建工作区" subtitle="scripts/new_v2_workspace.py">
+            <p class="help-text">工作区是一道题目的项目文件夹。建议每道数学建模题单独创建一个工作区。</p>
             <form class="form-grid" @submit.prevent="createWorkspace">
               <label>名称<input v-model="createForm.name" placeholder="2026-demo" /></label>
               <label>竞赛<input v-model="createForm.contest" /></label>
@@ -802,9 +1032,16 @@
           </Panel>
 
           <Panel title="上传 source" subtitle="题面/附件/数据">
+            <p class="help-text">请上传题目 PDF、附件 Excel/CSV、图片或其它数据文件。上传后系统会保存到 source/ 目录。</p>
             <input type="file" multiple @change="uploadSource" />
-            <div v-if="store.uploadResult" class="code-box">saved: {{ store.uploadResult.saved.join(", ") }}
-skipped: {{ store.uploadResult.skipped.join(", ") }}</div>
+            <div v-if="store.uploadResult" class="upload-success">
+              <strong>{{ uploadSuccessMessage }}</strong>
+              <small v-if="store.uploadResult.skipped.length">跳过：{{ store.uploadResult.skipped.join(", ") }}</small>
+              <div class="button-row">
+                <button @click="view = 'dashboard'">回到总览</button>
+                <button class="primary" :disabled="store.langGraphRunning || selectedIsRunWorkspace" @click="runRecommendedFromUi">Run Recommended Graph</button>
+              </div>
+            </div>
           </Panel>
 
           <Panel title="服务健康" subtitle="local backend">
@@ -832,9 +1069,9 @@ skipped: {{ store.uploadResult.skipped.join(", ") }}</div>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { BarChart3, Copy, FileText, FolderOpen, Gauge, LayoutDashboard, RefreshCw, Settings, ShieldCheck, TerminalSquare, Workflow } from "lucide-vue-next";
+import { BarChart3, FileText, FolderOpen, Gauge, HelpCircle, LayoutDashboard, PlayCircle, RefreshCw, Settings, ShieldCheck, TerminalSquare, Workflow } from "lucide-vue-next";
 import { api } from "./api";
-import { useControlStore } from "./store";
+import { isRunWorkspacePath, useControlStore } from "./store";
 import Panel from "./components/Panel.vue";
 import IssueList from "./components/IssueList.vue";
 
@@ -843,6 +1080,7 @@ const view = ref("dashboard");
 const selectedPhase = ref(2);
 const harness = ref("Manual");
 const artifactQuery = ref("");
+const showBeginnerGuide = ref(localStorage.getItem("mathmodel_beginner_guide_dismissed") !== "true");
 const createForm = ref({
   name: "",
   contest: "待确认",
@@ -855,10 +1093,11 @@ const createForm = ref({
 });
 
 const navItems = [
+  { id: "help", label: "帮助", icon: HelpCircle },
   { id: "dashboard", label: "总览", icon: LayoutDashboard },
   { id: "phase", label: "阶段", icon: Gauge },
   { id: "artifacts", label: "文件", icon: FileText },
-  { id: "console", label: "执行", icon: TerminalSquare },
+  { id: "console", label: "Advanced", icon: TerminalSquare },
   { id: "langgraph", label: "LangGraph", icon: Workflow },
   { id: "runs", label: "Runs", icon: FolderOpen },
   { id: "benchmark", label: "对标", icon: BarChart3 },
@@ -876,8 +1115,91 @@ const LANGGRAPH_MODES = [
   "contest_graph_v3",
 ];
 
-const title = computed(() => navItems.find((item) => item.id === view.value)?.label ?? "MathModel Control");
+const PHASE_EXECUTE_SUPPORTED = new Set([1, 4]);
+
+function canPhaseExecute(phase: number) {
+  return PHASE_EXECUTE_SUPPORTED.has(phase);
+}
+
+function phaseRunHint(phase: number) {
+  if (canPhaseExecute(phase)) {
+    return "Run This Skill 会通过 LangGraph 安全执行，copy_workspace=true，provider=none。";
+  }
+  return "当前 Runtime 只支持 P1/P4 单阶段执行。P0/P2/P3/P5/P6 请使用 Dry Run 预检，或使用 Run Recommended Graph 运行完整 contest_graph_v3。";
+}
+
+function recommendedPhaseActionLabel(phase: number) {
+  if (canPhaseExecute(phase)) return "Run This Skill";
+  return "Run This Skill unavailable";
+}
+
+const NAV_ORDER = ["dashboard", "phase", "langgraph", "runs", "artifacts", "benchmark", "console", "help", "settings"];
+const NAV_LABELS: Record<string, string> = {
+  help: "帮助",
+  dashboard: "总览",
+  phase: "阶段运行",
+  langgraph: "运行图",
+  runs: "运行结果",
+  artifacts: "文件",
+  benchmark: "评测",
+  console: "高级",
+  settings: "设置",
+};
+
+const orderedNavItems = computed(() =>
+  NAV_ORDER.map((id) => navItems.find((item) => item.id === id)).filter((item): item is (typeof navItems)[number] => Boolean(item)),
+);
+
+function navLabel(id: string) {
+  return NAV_LABELS[id] ?? id;
+}
+
+const title = computed(() => navLabel(view.value) ?? "MathModel Control");
+const selectedIsRunWorkspace = computed(() => store.selectedIsRunWorkspace);
+const workspaceTypeLabel = computed(() => selectedIsRunWorkspace.value ? "Workspace Type: Run" : "Workspace Type: Source");
+const workspaceTypeClass = computed(() => selectedIsRunWorkspace.value ? "run-badge" : "source-badge");
+const workspaceKindTag = computed(() => selectedIsRunWorkspace.value ? "[RUN]" : "[SOURCE]");
+const workspaceDisplayPath = computed(() => shortWorkspacePath(store.selectedWorkspace?.path ?? ""));
+const artifactContextSubtitle = computed(() => selectedIsRunWorkspace.value ? "run workspace artifacts" : "source workspace artifacts");
+const runDisabledHelp = "Run workspace is read-only result context. Select a source workspace to run again.";
+const humanGateStatus = computed(() => {
+  if (!store.langGraphRun) {
+    return {
+      className: "info",
+      label: "Unknown",
+      note: "No LangGraph run yet.",
+    };
+  }
+  if (store.langGraphRun.human_gate_required || store.langGraphRun.needs_human) {
+    return {
+      className: "warn",
+      label: "Required",
+      note: "Current run is paused and needs reports/HUMAN_MODEL_REVIEW.md before dangerous phases.",
+    };
+  }
+  return {
+    className: "info",
+    label: "Not blocking latest run",
+    note: "Latest run is not blocked; manual confirmation is still required before dangerous phases.",
+  };
+});
 const currentPhase = computed(() => store.summary?.phases.find((phase) => phase.id === selectedPhase.value));
+const looksLikeFreshWorkspace = computed(() => {
+  const summary = store.summary;
+  if (!summary) return false;
+  return (
+    (summary.paper?.pdf_count ?? 0) === 0 ||
+    (summary.manifest?.figures ?? 0) === 0 ||
+    (summary.required_missing?.length ?? 0) > 0 ||
+    store.history.length === 0
+  );
+});
+const selectedPhaseCanExecute = computed(() => canPhaseExecute(selectedPhase.value));
+const selectedPhaseRunTitle = computed(() => {
+  if (selectedIsRunWorkspace.value) return runDisabledHelp;
+  return phaseRunHint(selectedPhase.value);
+});
+const groupedRecommendationItems = computed(() => groupedRecommendations(store.summary?.recommendations ?? []));
 const filteredArtifacts = computed(() => {
   const query = artifactQuery.value.trim().toLowerCase();
   let pool = store.artifacts;
@@ -896,6 +1218,16 @@ const artifactPreview = computed(() => {
   return `${artifact.type}\n${artifact.absolute_path ?? ""}`;
 });
 const markdownPreview = computed(() => renderMarkdown(store.selectedArtifact?.content ?? ""));
+const directoryChildArtifacts = computed(() => {
+  const selected = store.selectedArtifact;
+  if (!selected || selected.type !== "directory") return [];
+  const prefix = selected.path.endsWith("/") ? selected.path : `${selected.path}/`;
+  return store.artifacts.filter((artifact) => artifact.path.startsWith(prefix) && artifact.path !== selected.path).slice(0, 20);
+});
+const uploadSuccessMessage = computed(() => {
+  const saved = store.uploadResult?.saved.length ?? 0;
+  return `上传成功：${saved} 个文件已保存到 source/。下一步：回到总览，点击 Run Recommended Graph。`;
+});
 const reversedHistory = computed(() => [...store.history].reverse());
 const benchmarkRows = computed(() =>
   (store.benchmark?.results ?? []).map((item) => {
@@ -964,10 +1296,70 @@ const filteredBenchmarkReports = computed(() => {
 
 function statusClass(status: unknown) {
   const value = String(status ?? "").toLowerCase();
+  if (value.includes("ready") || value.includes("completed")) return "good";
   if (value.includes("pass") && !value.includes("fail")) return "good";
   if (value.includes("fail") || value.includes("blocker") || value.includes("missing")) return "bad";
   if (value.includes("high") || value.includes("warn") || value.includes("legacy") || value.includes("pending")) return "warn";
   return "info";
+}
+
+function humanStatus(status: unknown) {
+  const value = String(status ?? "UNKNOWN");
+  const readableLabels: Record<string, string> = {
+    PHASE2_PLAN_ONLY: "仅生成 Phase 2 计划，未执行实验",
+    REVISION_REQUIRED: "需要修订",
+    APPLY_READY_FOR_HUMAN_REVIEW: "等待人工审查",
+    HUMAN_GATE_REQUIRED: "需要人工确认",
+    COMPLETED: "已完成",
+    PASS: "通过",
+    FAIL: "失败",
+    READY: "就绪",
+  };
+  if (readableLabels[value]) return readableLabels[value];
+  const labels: Record<string, string> = {
+    PHASE2_PLAN_ONLY: "仅生成 Phase 2 计划，未执行实验",
+    REVISION_REQUIRED: "需要修订",
+    APPLY_READY_FOR_HUMAN_REVIEW: "等待人工审查",
+    HUMAN_GATE_REQUIRED: "需要人工确认",
+    COMPLETED: "已完成",
+    PASS: "通过",
+    FAIL: "失败",
+  };
+  return labels[value] ?? value;
+}
+
+function workspaceOptionLabel(workspace: { name: string; path: string }) {
+  return `${isRunWorkspacePath(workspace.path) ? "[RUN]" : "[SOURCE]"} ${workspace.name}`;
+}
+
+type RecommendationLike = Record<string, unknown>;
+
+function groupedRecommendations(items: RecommendationLike[]) {
+  const groups = new Map<string, { key: string; first: RecommendationLike; items: RecommendationLike[]; count: number }>();
+  for (const item of items) {
+    const key = ["code", "title", "detail", "severity", "artifact"]
+      .map((fieldName) => String(item[fieldName] ?? ""))
+      .join("::");
+    const existing = groups.get(key);
+    if (existing) {
+      existing.items.push(item);
+      existing.count += 1;
+    } else {
+      groups.set(key, { key, first: item, items: [item], count: 1 });
+    }
+  }
+  return Array.from(groups.values());
+}
+
+function shortWorkspacePath(path: string) {
+  if (!path) return "未选择工作区";
+  const normalized = path.replace(/\\/g, "/");
+  const runMatch = normalized.match(/\/runs\/([^/]+)(?:\/)?$/i) ?? normalized.match(/\/runs\/([^/]+)/i);
+  if (runMatch?.[1]) return `runs/${runMatch[1]}`;
+  const examplesIndex = normalized.toLowerCase().indexOf("/examples/");
+  if (examplesIndex >= 0) return normalized.slice(examplesIndex + 1);
+  const parts = normalized.split("/").filter(Boolean);
+  return parts.slice(-3).join("/") || normalized;
 }
 
 function rawUrl(path: string) {
@@ -983,6 +1375,50 @@ async function copyPrompt() {
   if (store.prompt?.prompt) {
     await navigator.clipboard.writeText(store.prompt.prompt);
   }
+}
+
+async function copyWorkspacePath() {
+  if (store.selectedWorkspace?.path) {
+    await navigator.clipboard.writeText(store.selectedWorkspace.path);
+  }
+}
+
+function dismissBeginnerGuide() {
+  showBeginnerGuide.value = false;
+  localStorage.setItem("mathmodel_beginner_guide_dismissed", "true");
+}
+
+function goUploadSource() {
+  view.value = "settings";
+}
+
+async function runRecommendedFromUi() {
+  const result = await store.runRecommendedGraph();
+  if (result) {
+    view.value = "langgraph";
+  }
+}
+
+async function runCurrentSkillFromUi() {
+  const result = await store.runCurrentSkill(selectedPhase.value);
+  if (result) {
+    view.value = "langgraph";
+  }
+}
+
+async function dryRunSkillFromUi() {
+  const result = await store.dryRunSkill(selectedPhase.value);
+  if (result) {
+    view.value = "langgraph";
+  }
+}
+
+async function openLatestRun() {
+  await store.loadRunWorkspaces();
+  if (store.runWorkspaces.length > 0) {
+    await store.selectRunWorkspace(store.runWorkspaces[0].id);
+  }
+  view.value = "runs";
 }
 
 async function createWorkspace() {

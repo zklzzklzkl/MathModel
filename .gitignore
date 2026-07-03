@@ -54,6 +54,8 @@ examples/*/paper/*.pdf
 examples/*/results/
 
 # Local config (do not commit)
+.env
+.venv/
 .obsidian/
 .claudian/
 *.zip
