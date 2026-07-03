@@ -240,6 +240,37 @@ export interface LangGraphRunResponse {
   revision_status_path: string | null;
 }
 
+// ---------------------------------------------------------------------------
+// Benchmark Report Browser types
+// ---------------------------------------------------------------------------
+
+export interface BenchmarkReportItem {
+  id: string;
+  title: string;
+  path: string;
+  type: "markdown" | "json";
+  category: string;
+  provider: string | null;
+  mode: string | null;
+  workspace: string | null;
+  updated_at: string | null;
+  size: number | null;
+}
+
+export interface BenchmarkReportReadResponse {
+  id: string;
+  title: string;
+  path: string;
+  type: "markdown" | "json";
+  category: string;
+  provider: string | null;
+  mode: string | null;
+  workspace: string | null;
+  content: string;
+  data: unknown | null;
+  summary: Record<string, unknown>;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     headers: {
@@ -314,4 +345,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+
+  // Benchmark Report Browser
+  benchmarkReports: () => request<BenchmarkReportItem[]>("/api/benchmark-reports"),
+
+  benchmarkReport: (id: string) =>
+    request<BenchmarkReportReadResponse>(`/api/benchmark-reports/${encodeURIComponent(id)}`),
 };

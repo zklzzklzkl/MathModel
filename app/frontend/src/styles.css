@@ -676,6 +676,28 @@ label {
   color: var(--bad) !important;
 }
 
+/* ---- Benchmark filters ---- */
+
+.filter-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.filter-row label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- Report meta ---- */
+
+.report-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
 table {
   width: 100%;
   min-width: 720px;

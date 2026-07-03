@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import platform
+import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +19,8 @@ from .model_adapters import ModelAdapterError
 from .models import (
     ArtifactReadResponse,
     AuditResponse,
+    BenchmarkReportItem,
+    BenchmarkReportReadResponse,
     BenchmarkResponse,
     CopyRunRequest,
     CopyRunResponse,
@@ -503,3 +508,195 @@ def debug_encode(path: str) -> dict[str, str]:
     settings = get_settings()
     resolved = ensure_allowed(Path(path), settings)
     return {"id": encode_workspace_id(resolved), "path": str(resolved)}
+
+
+# ---------------------------------------------------------------------------
+# Benchmark Report Browser — read-only, safe-path
+# ---------------------------------------------------------------------------
+
+_BENCHMARK_ROOT = Path(__file__).resolve().parents[3]
+_BENCHMARK_DIRS = [
+    _BENCHMARK_ROOT / "docs",
+    _BENCHMARK_ROOT / "docs" / "real_benchmarks",
+    _BENCHMARK_ROOT / "docs" / "benchmarks",
+]
+
+_BENCHMARK_REPORT_PATTERNS = [
+    "LANGGRAPH_BENCHMARK_REPORT.md",
+    "LANGGRAPH_BENCHMARK_REPORT.json",
+    "LANGGRAPH_REAL_BENCHMARK_*.md",
+    "LANGGRAPH_REAL_BENCHMARK_*.json",
+    "LANGGRAPH_DEEPSEEK_*.md",
+    "LANGGRAPH_DEEPSEEK_*.json",
+    "LANGGRAPH_*COMPARE*.md",
+    "LANGGRAPH_*COMPARE*.json",
+    "MULTI_MODEL_*.md",
+    "MULTI_MODEL_*.json",
+]
+
+
+def _benchmark_report_id(relative: str) -> str:
+    raw = relative.replace("\\", "/")
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+
+def _infer_category(filename: str) -> str:
+    name = filename.upper()
+    if "LANGGRAPH_BENCHMARK_REPORT" in name:
+        return "fixture"
+    if "LANGGRAPH_REAL_BENCHMARK_" in name:
+        return "real_workspace"
+    if "LANGGRAPH_DEEPSEEK_" in name:
+        return "provider"
+    if "COMPARE" in name or "MULTI_MODEL_" in name:
+        return "multi_model"
+    return "unknown"
+
+
+def _infer_provider(filename: str) -> str | None:
+    name = filename.upper()
+    if "DEEPSEEK" in name:
+        return "deepseek"
+    if "OPENAI" in name:
+        return "openai-compatible"
+    if "NONE" in name:
+        return "none"
+    return None
+
+
+def _infer_mode(filename: str, content: str | None) -> str | None:
+    for mode in ("contest_graph_v3", "contest_graph_v2", "contest_graph_v1",
+                 "contest_graph_v0", "llm_plan", "phase_execute", "controlled_apply", "dry_run"):
+        if mode in filename.lower() or (content and mode in content.lower()):
+            return mode
+    return None
+
+
+def _discover_benchmark_reports() -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for directory in _BENCHMARK_DIRS:
+        if not directory.is_dir():
+            continue
+        for pattern_str in _BENCHMARK_REPORT_PATTERNS:
+            for path in sorted(directory.glob(pattern_str)):
+                if not path.is_file():
+                    continue
+                try:
+                    relative = path.resolve().relative_to(_BENCHMARK_ROOT.resolve()).as_posix()
+                except ValueError:
+                    continue
+                if relative in seen:
+                    continue
+                seen.add(relative)
+
+                stat = path.stat()
+                filename = path.name
+                category = _infer_category(filename)
+                content_sample: str | None = None
+                if filename.endswith(".json"):
+                    try:
+                        content_sample = path.read_text(encoding="utf-8", errors="replace")
+                    except OSError:
+                        content_sample = None
+
+                items.append({
+                    "id": _benchmark_report_id(relative),
+                    "title": path.stem.replace("LANGGRAPH_", "").replace("_", " "),
+                    "path": relative,
+                    "type": "json" if path.suffix == ".json" else "markdown",
+                    "category": category,
+                    "provider": _infer_provider(filename),
+                    "mode": _infer_mode(filename, content_sample),
+                    "workspace": _extract_workspace_from_filename(filename),
+                    "updated_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+                    "size": stat.st_size,
+                })
+    items.sort(key=lambda item: (item["category"], item["updated_at"] or ""), reverse=False)
+    return items
+
+
+def _extract_workspace_from_filename(filename: str) -> str | None:
+    m = re.search(r"(?:BENCHMARK|DEEPSEEK|COMPARE)_([A-Za-z0-9._-]+)\.(?:md|json)$", filename)
+    return m.group(1) if m else None
+
+
+def _resolve_report_by_id(report_id: str) -> Path | None:
+    for item in _discover_benchmark_reports():
+        if item["id"] == report_id:
+            target = (_BENCHMARK_ROOT / item["path"]).resolve()
+            if target.is_file():
+                return target
+    return None
+
+
+def _extract_summary(content: str, report_type: str, filename: str) -> dict[str, Any]:
+    summary: dict[str, Any] = {}
+    if report_type == "json":
+        try:
+            data = json.loads(content)
+            if isinstance(data, dict):
+                for key in ("status", "contest_status", "completed_phases", "paused_at",
+                            "provider", "mode", "source_workspace", "run_workspace"):
+                    if key in data:
+                        summary[key] = data[key]
+                fa = data.get("final_audit", {})
+                if isinstance(fa, dict):
+                    summary["worst_severity"] = fa.get("worst_severity", "UNKNOWN")
+                elif "worst_severity" in data:
+                    summary["worst_severity"] = data["worst_severity"]
+        except json.JSONDecodeError:
+            pass
+    else:
+        m = re.search(r"worst[_\s]severity[:\s]*(\w+)", content, re.IGNORECASE)
+        if m:
+            summary["worst_severity"] = m.group(1).upper()
+        m = re.search(r"status[:\s]*(\w+)", content, re.IGNORECASE)
+        if m:
+            summary["status"] = m.group(1).upper()
+    return summary
+
+
+@app.get("/api/benchmark-reports", response_model=list[BenchmarkReportItem])
+def list_benchmark_reports() -> list[BenchmarkReportItem]:
+    return [BenchmarkReportItem(**item) for item in _discover_benchmark_reports()]
+
+
+@app.get("/api/benchmark-reports/{report_id}", response_model=BenchmarkReportReadResponse)
+def read_benchmark_report(report_id: str) -> BenchmarkReportReadResponse:
+    target = _resolve_report_by_id(report_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail="Benchmark report not found.")
+    for directory in _BENCHMARK_DIRS:
+        try:
+            target.resolve().relative_to(directory.resolve())
+            break
+        except ValueError:
+            continue
+    else:
+        raise HTTPException(status_code=403, detail="Report path is not in an allowed directory.")
+    try:
+        content = target.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=f"Cannot read report: {exc}") from exc
+    report_type = "json" if target.suffix == ".json" else "markdown"
+    data = None
+    if report_type == "json":
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError:
+            data = None
+    summary = _extract_summary(content, report_type, target.name)
+    for item in _discover_benchmark_reports():
+        if item["id"] == report_id:
+            return BenchmarkReportReadResponse(
+                id=report_id,
+                title=item["title"],
+                path=item["path"],
+                type=report_type,
+                category=item["category"],
+                content=content,
+                data=data,
+                summary=summary,
+            )
+    raise HTTPException(status_code=500, detail="Report found but ID lookup inconsistent.")

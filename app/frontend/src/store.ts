@@ -4,6 +4,8 @@ import {
   api,
   type ArtifactItem,
   type ArtifactReadResponse,
+  type BenchmarkReportItem,
+  type BenchmarkReportReadResponse,
   type BenchmarkResponse,
   type CreateWorkspacePayload,
   type HarnessInfo,
@@ -50,6 +52,14 @@ export const useControlStore = defineStore("control", () => {
   const langGraphRunName = ref("");
   const langGraphTemperature = ref(0.2);
   const langGraphMaxTokens = ref(4096);
+
+  // Benchmark Report Browser state
+  const benchmarkReports = ref<BenchmarkReportItem[]>([]);
+  const selectedBenchmarkReportId = ref("");
+  const selectedBenchmarkReport = ref<BenchmarkReportReadResponse | null>(null);
+  const benchmarkReportLoading = ref(false);
+  const benchmarkCategoryFilter = ref("all");
+  const benchmarkProviderFilter = ref("all");
 
   const selectedWorkspace = computed(() =>
     workspaces.value.find((item) => item.id === selectedWorkspaceId.value) ?? null,
@@ -200,6 +210,27 @@ export const useControlStore = defineStore("control", () => {
     if (path) openArtifact(path);
   }
 
+  // ---- Benchmark Report Browser actions ----
+
+  async function loadBenchmarkReports() {
+    benchmarkReportLoading.value = true;
+    try {
+      benchmarkReports.value = await api.benchmarkReports();
+      if (!selectedBenchmarkReportId.value && benchmarkReports.value.length > 0) {
+        await openBenchmarkReport(benchmarkReports.value[0].id);
+      }
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : String(err);
+    } finally {
+      benchmarkReportLoading.value = false;
+    }
+  }
+
+  async function openBenchmarkReport(id: string) {
+    selectedBenchmarkReportId.value = id;
+    selectedBenchmarkReport.value = await api.benchmarkReport(id);
+  }
+
   return {
     health,
     workspaces,
@@ -243,5 +274,14 @@ export const useControlStore = defineStore("control", () => {
     loadLangGraphStatus,
     runLangGraph,
     openLangGraphArtifact,
+    // Benchmark Report Browser
+    benchmarkReports,
+    selectedBenchmarkReportId,
+    selectedBenchmarkReport,
+    benchmarkReportLoading,
+    benchmarkCategoryFilter,
+    benchmarkProviderFilter,
+    loadBenchmarkReports,
+    openBenchmarkReport,
   };
 });

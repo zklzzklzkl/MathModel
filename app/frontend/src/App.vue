@@ -273,6 +273,131 @@
         </section>
 
         <section v-else-if="view === 'benchmark'" class="view benchmark-lab">
+          <!-- Overview -->
+          <Panel title="Benchmark Lab" subtitle="报告浏览器 · 只读">
+            <div class="status-strip">
+              <div class="metric">
+                <label>Total</label>
+                <strong>{{ store.benchmarkReports.length }}</strong>
+                <small>benchmark reports</small>
+              </div>
+              <div class="metric">
+                <label>Provider</label>
+                <strong>{{ store.benchmarkReports.filter(r => r.category === 'provider').length }}</strong>
+                <small>DeepSeek / OpenAI</small>
+              </div>
+              <div class="metric">
+                <label>Multi-Model</label>
+                <strong>{{ store.benchmarkReports.filter(r => r.category === 'multi_model').length }}</strong>
+                <small>comparison reports</small>
+              </div>
+              <div class="metric">
+                <label>Real WS</label>
+                <strong>{{ store.benchmarkReports.filter(r => r.category === 'real_workspace').length }}</strong>
+                <small>workspace benchmarks</small>
+              </div>
+            </div>
+            <div class="button-row">
+              <button class="primary" @click="store.loadBenchmarkReports">刷新报告</button>
+              <button @click="store.loadBenchmark">刷新 Legacy 2022C</button>
+            </div>
+          </Panel>
+
+          <!-- Report List -->
+          <Panel :title="`报告列表 (${filteredBenchmarkReports.length})`" subtitle="点击选中查看详情">
+            <div class="filter-row">
+              <label>Category
+                <select v-model="store.benchmarkCategoryFilter">
+                  <option value="all">all</option>
+                  <option value="legacy">legacy</option>
+                  <option value="fixture">fixture</option>
+                  <option value="real_workspace">real_workspace</option>
+                  <option value="provider">provider</option>
+                  <option value="multi_model">multi_model</option>
+                </select>
+              </label>
+              <label>Provider
+                <select v-model="store.benchmarkProviderFilter">
+                  <option value="all">all</option>
+                  <option value="deepseek">deepseek</option>
+                  <option value="openai-compatible">openai-compatible</option>
+                  <option value="none">none</option>
+                </select>
+              </label>
+            </div>
+            <div class="artifact-list" style="max-height:420px;overflow:auto">
+              <button
+                v-for="report in filteredBenchmarkReports"
+                :key="report.id"
+                :class="['artifact-item', { selected: store.selectedBenchmarkReportId === report.id }]"
+                @click="store.openBenchmarkReport(report.id)"
+              >
+                <span><strong>{{ report.title }}</strong><small>{{ report.category }} · {{ report.provider ?? '-' }} · {{ report.mode ?? '-' }}</small></span>
+                <span :class="['badge', report.type === 'json' ? 'info' : 'warn']">{{ report.type }}</span>
+              </button>
+              <div v-if="!filteredBenchmarkReports.length" class="empty">暂无报告。点击"刷新报告"加载。</div>
+            </div>
+          </Panel>
+
+          <!-- Report Preview -->
+          <Panel :title="store.selectedBenchmarkReport?.title ?? '报告预览'" :subtitle="store.selectedBenchmarkReport?.path ?? ''">
+            <div v-if="!store.selectedBenchmarkReport" class="empty">请从报告列表中选择一份报告。</div>
+            <div v-else class="report-meta">
+              <span :class="['badge', store.selectedBenchmarkReport.type === 'json' ? 'info' : 'warn']">{{ store.selectedBenchmarkReport.type }}</span>
+              <span class="badge info">{{ store.selectedBenchmarkReport.category }}</span>
+              <span v-if="store.selectedBenchmarkReport.provider" class="badge">{{ store.selectedBenchmarkReport.provider }}</span>
+              <span v-if="store.selectedBenchmarkReport.mode" class="badge">{{ store.selectedBenchmarkReport.mode }}</span>
+            </div>
+            <div v-if="store.selectedBenchmarkReport" style="margin-top:12px">
+              <div v-if="store.selectedBenchmarkReport.type === 'json' && store.selectedBenchmarkReport.summary" class="field-grid" style="margin-bottom:10px">
+                <div class="field" v-for="(val, key) in store.selectedBenchmarkReport.summary" :key="key">
+                  <label>{{ key }}</label>
+                  <strong>{{ typeof val === 'object' ? prettyJson(val) : String(val) }}</strong>
+                </div>
+              </div>
+              <div v-if="store.selectedBenchmarkReport.type === 'markdown'" class="markdown-preview" v-html="renderMarkdown(store.selectedBenchmarkReport.content)"></div>
+              <pre v-else class="code-box" style="max-height:55vh">{{ prettyJson(store.selectedBenchmarkReport.data ?? store.selectedBenchmarkReport.content) }}</pre>
+            </div>
+          </Panel>
+
+          <!-- Multi-Model Compare -->
+          <Panel title="多模型对比" subtitle="metadata-level comparison">
+            <div v-if="!store.benchmarkReports.length" class="empty">加载报告列表后自动生成。</div>
+            <div v-else class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Report</th>
+                    <th>Provider</th>
+                    <th>Mode</th>
+                    <th>Workspace</th>
+                    <th>Category</th>
+                    <th>Size</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="report in filteredBenchmarkReports" :key="report.id" @click="store.openBenchmarkReport(report.id)" style="cursor:pointer">
+                    <td :class="{ 'phase-row selected': store.selectedBenchmarkReportId === report.id }"><strong>{{ report.title }}</strong></td>
+                    <td>{{ report.provider ?? '-' }}</td>
+                    <td><span class="badge info">{{ report.mode ?? '-' }}</span></td>
+                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ report.workspace ?? '-' }}</td>
+                    <td><span :class="['badge', report.category === 'provider' ? 'good' : report.category === 'multi_model' ? 'warn' : 'info']">{{ report.category }}</span></td>
+                    <td>{{ report.size ? (report.size / 1024).toFixed(1) + 'k' : '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div v-if="store.selectedBenchmarkReport?.type === 'json' && Object.keys(store.selectedBenchmarkReport.summary).length" style="margin-top:12px">
+              <label>选中的报告对比摘要</label>
+              <div class="field-grid">
+                <div class="field" v-for="(val, key) in store.selectedBenchmarkReport.summary" :key="key">
+                  <label>{{ key }}</label>
+                  <strong>{{ typeof val === 'object' ? prettyJson(val) : String(val) }}</strong>
+                </div>
+              </div>
+            </div>
+          </Panel>
+
           <!-- Legacy 2022C -->
           <Panel title="Legacy 2022C Audit Benchmark" subtitle="examples/2022C · audit_benchmark.py">
             <div class="button-row"><button class="primary" @click="store.loadBenchmark">刷新 Benchmark</button></div>
@@ -712,6 +837,17 @@ const ARTIFACT_GROUPS: Record<string, string[]> = {
 };
 
 const ARTIFACT_GROUPS_ORDER = ["Core Gates", "LangGraph Reports", "Evidence", "Review"];
+
+const filteredBenchmarkReports = computed(() => {
+  let pool = store.benchmarkReports;
+  if (store.benchmarkCategoryFilter !== "all") {
+    pool = pool.filter(r => r.category === store.benchmarkCategoryFilter);
+  }
+  if (store.benchmarkProviderFilter !== "all") {
+    pool = pool.filter(r => r.provider === store.benchmarkProviderFilter);
+  }
+  return pool;
+});
 
 function statusClass(status: unknown) {
   const value = String(status ?? "").toLowerCase();
