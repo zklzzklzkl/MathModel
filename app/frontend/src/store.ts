@@ -27,6 +27,24 @@ import {
   type WorkspaceSummary,
 } from "./api";
 
+export function isRunWorkspacePath(path?: string | null) {
+  if (!path) return false;
+  return /[\\/]runs[\\/]/.test(path.replace(/\s+/g, ""));
+}
+
+const PHASE_EXECUTE_SUPPORTED = new Set([1, 4]);
+
+function canPhaseExecute(phase: number) {
+  return PHASE_EXECUTE_SUPPORTED.has(phase);
+}
+
+function friendlyError(message: string) {
+  if (message.includes("PHASE_NOT_SUPPORTED") && message.includes("phase_execute")) {
+    return "当前阶段暂不支持单阶段执行。phase_execute 目前只支持 P1 建模策略与 P4 竞赛评分审查；其它阶段请使用 Dry Run 或 Run Recommended Graph。";
+  }
+  return message;
+}
+
 export const useControlStore = defineStore("control", () => {
   const health = ref<HealthResponse | null>(null);
   const workspaces = ref<WorkspaceItem[]>([]);
@@ -77,6 +95,7 @@ export const useControlStore = defineStore("control", () => {
   const selectedWorkspace = computed(() =>
     workspaces.value.find((item) => item.id === selectedWorkspaceId.value) ?? null,
   );
+  const selectedIsRunWorkspace = computed(() => isRunWorkspacePath(selectedWorkspace.value?.path));
 
   async function run<T>(operation: () => Promise<T>): Promise<T | null> {
     loading.value = true;
@@ -84,7 +103,7 @@ export const useControlStore = defineStore("control", () => {
     try {
       return await operation();
     } catch (err) {
-      error.value = err instanceof Error ? err.message : String(err);
+      error.value = friendlyError(err instanceof Error ? err.message : String(err));
       return null;
     } finally {
       loading.value = false;
@@ -97,7 +116,11 @@ export const useControlStore = defineStore("control", () => {
       harnesses.value = await api.harnesses();
       workspaces.value = await api.workspaces();
       if (!selectedWorkspaceId.value && workspaces.value.length > 0) {
-        const preferred = workspaces.value.find((item) => item.name.includes("V2.6")) ?? workspaces.value[0];
+        const sourceWorkspaces = workspaces.value.filter((item) => !isRunWorkspacePath(item.path));
+        const preferred =
+          sourceWorkspaces.find((item) => item.name.includes("V2.7") || item.name.includes("V2.6")) ??
+          sourceWorkspaces[0] ??
+          workspaces.value[0];
         selectedWorkspaceId.value = preferred.id;
       }
       await refreshWorkspace();
@@ -198,6 +221,10 @@ export const useControlStore = defineStore("control", () => {
 
   async function runLangGraph() {
     if (!selectedWorkspaceId.value) return;
+    if (selectedIsRunWorkspace.value) {
+      error.value = "Run workspace is read-only result context. Select a source workspace to run again.";
+      return;
+    }
     langGraphRunning.value = true;
     try {
       const payload: LangGraphRunRequest = {
@@ -213,10 +240,98 @@ export const useControlStore = defineStore("control", () => {
       langGraphRun.value = await api.runLangGraph(selectedWorkspaceId.value, payload);
       await refreshWorkspace();
     } catch (err) {
-      error.value = err instanceof Error ? err.message : String(err);
+      error.value = friendlyError(err instanceof Error ? err.message : String(err));
     } finally {
       langGraphRunning.value = false;
     }
+  }
+
+  async function runLangGraphPayload(payload: LangGraphRunRequest) {
+    if (!selectedWorkspaceId.value) return null;
+    if (selectedIsRunWorkspace.value) {
+      error.value = "Run workspace is read-only result context. Select a source workspace to run again.";
+      return null;
+    }
+    langGraphRunning.value = true;
+    error.value = "";
+    try {
+      langGraphRun.value = await api.runLangGraph(selectedWorkspaceId.value, payload);
+      await refreshWorkspace();
+      await loadRunWorkspaces();
+      return langGraphRun.value;
+    } catch (err) {
+      error.value = friendlyError(err instanceof Error ? err.message : String(err));
+      return null;
+    } finally {
+      langGraphRunning.value = false;
+    }
+  }
+
+  async function runRecommendedGraph() {
+    selectedLangGraphMode.value = "contest_graph_v3";
+    selectedLangGraphPhase.value = 1;
+    selectedProvider.value = "none";
+    selectedModel.value = "";
+    langGraphCopyWorkspace.value = true;
+    langGraphRunName.value = "ui-recommended-contest-graph-v3";
+    langGraphTemperature.value = 0.2;
+    langGraphMaxTokens.value = 4096;
+    return runLangGraphPayload({
+      phase: 1,
+      mode: "contest_graph_v3",
+      provider: "none",
+      model: null,
+      copy_workspace: true,
+      run_name: "ui-recommended-contest-graph-v3",
+      temperature: 0.2,
+      max_tokens: 4096,
+    });
+  }
+
+  async function runCurrentSkill(phase: number) {
+    if (!canPhaseExecute(phase)) {
+      error.value = `当前 Runtime 暂不支持 P${phase} 单阶段执行；请使用 Dry Run 或 Run Recommended Graph。`;
+      return null;
+    }
+    selectedLangGraphMode.value = "phase_execute";
+    selectedLangGraphPhase.value = phase;
+    selectedProvider.value = "none";
+    selectedModel.value = "";
+    langGraphCopyWorkspace.value = true;
+    langGraphRunName.value = `ui-phase-${phase}`;
+    langGraphTemperature.value = 0.2;
+    langGraphMaxTokens.value = 4096;
+    return runLangGraphPayload({
+      phase,
+      mode: "phase_execute",
+      provider: "none",
+      model: null,
+      copy_workspace: true,
+      run_name: `ui-phase-${phase}`,
+      temperature: 0.2,
+      max_tokens: 4096,
+    });
+  }
+
+  async function dryRunSkill(phase: number) {
+    selectedLangGraphMode.value = "dry_run";
+    selectedLangGraphPhase.value = phase;
+    selectedProvider.value = "none";
+    selectedModel.value = "";
+    langGraphCopyWorkspace.value = true;
+    langGraphRunName.value = `ui-dry-run-phase-${phase}`;
+    langGraphTemperature.value = 0.2;
+    langGraphMaxTokens.value = 4096;
+    return runLangGraphPayload({
+      phase,
+      mode: "dry_run",
+      provider: "none",
+      model: null,
+      copy_workspace: true,
+      run_name: `ui-dry-run-phase-${phase}`,
+      temperature: 0.2,
+      max_tokens: 4096,
+    });
   }
 
   function openLangGraphArtifact(path: string | null | undefined) {
@@ -233,7 +348,7 @@ export const useControlStore = defineStore("control", () => {
         await openBenchmarkReport(benchmarkReports.value[0].id);
       }
     } catch (err) {
-      error.value = err instanceof Error ? err.message : String(err);
+      error.value = friendlyError(err instanceof Error ? err.message : String(err));
     } finally {
       benchmarkReportLoading.value = false;
     }
@@ -281,12 +396,16 @@ export const useControlStore = defineStore("control", () => {
     try {
       selectedRunArtifact.value = await api.runArtifact(selectedWorkspaceId.value, selectedRunWorkspaceId.value, path);
     } catch (err) {
-      error.value = err instanceof Error ? err.message : String(err);
+      error.value = friendlyError(err instanceof Error ? err.message : String(err));
     }
   }
 
   async function runSafeLangGraphBenchmark() {
     if (!selectedWorkspaceId.value) return;
+    if (selectedIsRunWorkspace.value) {
+      error.value = "Run workspace is read-only result context. Select a source workspace to run again.";
+      return;
+    }
     safeBenchmarkRunning.value = true;
     try {
       const payload: SafeLangGraphBenchmarkRequest = {
@@ -299,7 +418,7 @@ export const useControlStore = defineStore("control", () => {
       await refreshWorkspace();
       await loadRunWorkspaces();
     } catch (err) {
-      error.value = err instanceof Error ? err.message : String(err);
+      error.value = friendlyError(err instanceof Error ? err.message : String(err));
     } finally {
       safeBenchmarkRunning.value = false;
     }
@@ -310,6 +429,7 @@ export const useControlStore = defineStore("control", () => {
     workspaces,
     selectedWorkspaceId,
     selectedWorkspace,
+    selectedIsRunWorkspace,
     summary,
     artifacts,
     selectedArtifact,
@@ -347,6 +467,9 @@ export const useControlStore = defineStore("control", () => {
     langGraphMaxTokens,
     loadLangGraphStatus,
     runLangGraph,
+    runRecommendedGraph,
+    runCurrentSkill,
+    dryRunSkill,
     openLangGraphArtifact,
     // Benchmark Report Browser
     benchmarkReports,
