@@ -8,6 +8,10 @@ import {
   type CreateWorkspacePayload,
   type HarnessInfo,
   type HealthResponse,
+  type LangGraphMode,
+  type LangGraphRunRequest,
+  type LangGraphRunResponse,
+  type LangGraphStatusResponse,
   type PrepareHarnessResponse,
   type PromptResponse,
   type RevisionTask,
@@ -33,6 +37,19 @@ export const useControlStore = defineStore("control", () => {
   const uploadResult = ref<SourceUploadResponse | null>(null);
   const loading = ref(false);
   const error = ref<string>("");
+
+  // LangGraph Runtime state
+  const langGraphStatus = ref<LangGraphStatusResponse | null>(null);
+  const langGraphRun = ref<LangGraphRunResponse | null>(null);
+  const langGraphRunning = ref(false);
+  const selectedLangGraphMode = ref<LangGraphMode>("contest_graph_v3");
+  const selectedLangGraphPhase = ref(1);
+  const selectedProvider = ref("none");
+  const selectedModel = ref("");
+  const langGraphCopyWorkspace = ref(true);
+  const langGraphRunName = ref("");
+  const langGraphTemperature = ref(0.2);
+  const langGraphMaxTokens = ref(4096);
 
   const selectedWorkspace = computed(() =>
     workspaces.value.find((item) => item.id === selectedWorkspaceId.value) ?? null,
@@ -62,6 +79,8 @@ export const useControlStore = defineStore("control", () => {
       }
       await refreshWorkspace();
     });
+    // Load LangGraph status separately — don't break init if unavailable
+    loadLangGraphStatus();
   }
 
   async function refreshWorkspace() {
@@ -148,6 +167,39 @@ export const useControlStore = defineStore("control", () => {
     await refreshWorkspace();
   }
 
+  // ---- LangGraph Runtime actions ----
+
+  async function loadLangGraphStatus() {
+    langGraphStatus.value = await run(api.langGraphStatus);
+  }
+
+  async function runLangGraph() {
+    if (!selectedWorkspaceId.value) return;
+    langGraphRunning.value = true;
+    try {
+      const payload: LangGraphRunRequest = {
+        phase: selectedLangGraphPhase.value,
+        mode: selectedLangGraphMode.value,
+        provider: selectedProvider.value,
+        model: selectedModel.value.trim() || null,
+        copy_workspace: langGraphCopyWorkspace.value,
+        run_name: langGraphRunName.value.trim() || null,
+        temperature: langGraphTemperature.value,
+        max_tokens: langGraphMaxTokens.value,
+      };
+      langGraphRun.value = await api.runLangGraph(selectedWorkspaceId.value, payload);
+      await refreshWorkspace();
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : String(err);
+    } finally {
+      langGraphRunning.value = false;
+    }
+  }
+
+  function openLangGraphArtifact(path: string | null | undefined) {
+    if (path) openArtifact(path);
+  }
+
   return {
     health,
     workspaces,
@@ -176,5 +228,20 @@ export const useControlStore = defineStore("control", () => {
     loadBenchmark,
     generatePrompt,
     prepareHarness,
+    // LangGraph Runtime
+    langGraphStatus,
+    langGraphRun,
+    langGraphRunning,
+    selectedLangGraphMode,
+    selectedLangGraphPhase,
+    selectedProvider,
+    selectedModel,
+    langGraphCopyWorkspace,
+    langGraphRunName,
+    langGraphTemperature,
+    langGraphMaxTokens,
+    loadLangGraphStatus,
+    runLangGraph,
+    openLangGraphArtifact,
   };
 });

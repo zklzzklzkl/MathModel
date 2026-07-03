@@ -3,7 +3,7 @@
     <aside class="sidebar">
       <div class="brand">
         <strong>MathModel Control</strong>
-        <span>V2.6 workspace shell</span>
+        <span>V2.7-alpha · LangGraph Runtime</span>
       </div>
 
       <nav class="nav">
@@ -291,6 +291,237 @@
           </Panel>
         </section>
 
+        <section v-else-if="view === 'langgraph'" class="view langgraph-layout">
+          <!-- Runtime Status -->
+          <Panel title="Runtime 状态" subtitle="LangGraph optional dependency">
+            <div class="service-row">
+              <span><strong>Available</strong><small>{{ store.langGraphStatus?.note ?? "loading..." }}</small></span>
+              <span :class="['badge', store.langGraphStatus?.available ? 'good' : 'bad']">
+                {{ store.langGraphStatus?.available ? "ready" : "unavailable" }}
+              </span>
+            </div>
+            <div v-if="store.langGraphStatus?.version" class="service-row">
+              <span><strong>Version</strong></span>
+              <span class="badge info">{{ store.langGraphStatus.version }}</span>
+            </div>
+            <div v-if="store.langGraphStatus?.import_error" class="warning-box">
+              {{ store.langGraphStatus.import_error }}
+            </div>
+            <div class="button-row" style="margin-top:10px">
+              <button @click="store.loadLangGraphStatus">刷新 LangGraph 状态</button>
+            </div>
+          </Panel>
+
+          <!-- Run Config -->
+          <Panel title="Run Config" subtitle="contest_graph_v3 · provider=none 默认安全">
+            <div class="warning-box" style="margin-bottom:12px">
+              contest_graph_v3 不会自动写 VERIFY_REPORT.md；进入 Phase 2 前必须通过 HUMAN_MODEL_REVIEW.md；建议保持 copy_workspace=true。
+            </div>
+            <div class="field-grid">
+              <div class="field">
+                <label>Mode</label>
+                <select v-model="store.selectedLangGraphMode">
+                  <option v-for="m in LANGGRAPH_MODES" :key="m" :value="m">{{ m }}</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Phase (P0-P6)</label>
+                <select v-model.number="store.selectedLangGraphPhase">
+                  <option v-for="p in 7" :key="p - 1" :value="p - 1">P{{ p - 1 }}</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Provider</label>
+                <select v-model="store.selectedProvider">
+                  <option value="none">none</option>
+                  <option value="dry-run">dry-run</option>
+                  <option value="openai-compatible">openai-compatible</option>
+                  <option value="deepseek">deepseek</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Model (optional)</label>
+                <input v-model="store.selectedModel" placeholder="deepseek-chat" />
+              </div>
+              <div class="field">
+                <label>Run name (optional)</label>
+                <input v-model="store.langGraphRunName" placeholder="ui-contest-graph-v3" />
+              </div>
+              <div class="field">
+                <label>Temperature</label>
+                <input v-model.number="store.langGraphTemperature" type="number" step="0.1" min="0" max="2" />
+              </div>
+              <div class="field">
+                <label>Max Tokens</label>
+                <input v-model.number="store.langGraphMaxTokens" type="number" step="512" min="512" max="32768" />
+              </div>
+              <div class="field checkbox-line">
+                <label>Copy workspace</label>
+                <input v-model="store.langGraphCopyWorkspace" type="checkbox" />
+              </div>
+            </div>
+            <div class="button-row" style="margin-top:10px">
+              <button class="primary" :disabled="store.langGraphRunning" @click="store.runLangGraph">
+                {{ store.langGraphRunning ? "运行中..." : "Run LangGraph" }}
+              </button>
+            </div>
+            <div v-if="store.langGraphRun?.provider_error" class="warning-box" style="margin-top:10px">
+              {{ store.langGraphRun.provider_error }}
+            </div>
+          </Panel>
+
+          <!-- Run Summary -->
+          <Panel title="Run Summary" subtitle="最近一次运行结果">
+            <div v-if="!store.langGraphRun" class="empty">尚未运行。请配置 Run Config 后点击 Run LangGraph。</div>
+            <div v-else class="field-grid">
+              <div class="field"><label>Status</label><span :class="['badge', statusClass(store.langGraphRun.status)]">{{ store.langGraphRun.status }}</span></div>
+              <div class="field"><label>Contest Status</label><strong>{{ store.langGraphRun.contest_status ?? "-" }}</strong></div>
+              <div class="field"><label>Mode</label><strong>{{ store.langGraphRun.mode }}</strong></div>
+              <div class="field"><label>Provider</label><strong>{{ store.langGraphRun.provider }} / {{ store.langGraphRun.model ?? "none" }}</strong></div>
+              <div class="field wide"><label>Run Workspace</label><strong style="font-size:12px;word-break:break-all">{{ store.langGraphRun.run_workspace }}</strong></div>
+              <div class="field"><label>Completed Phases</label><strong>{{ store.langGraphRun.completed_phases.join(", ") || "-" }}</strong></div>
+              <div class="field"><label>Paused At</label><strong>{{ store.langGraphRun.paused_at ?? "-" }}</strong></div>
+            </div>
+            <div v-if="store.langGraphRun" class="field-grid" style="margin-top:8px">
+              <div class="field">
+                <label>Human Gate</label>
+                <span :class="['badge', store.langGraphRun.human_gate_required ? 'warn' : 'good']">
+                  {{ store.langGraphRun.human_gate_required ? "required" : "ok" }}
+                </span>
+                <small>{{ store.langGraphRun.human_gate_file ?? "HUMAN_MODEL_REVIEW.md" }}</small>
+              </div>
+              <div class="field">
+                <label>Needs Human</label>
+                <span :class="['badge', store.langGraphRun.needs_human ? 'warn' : 'good']">
+                  {{ store.langGraphRun.needs_human ? "yes" : "no" }}
+                </span>
+              </div>
+            </div>
+            <div v-if="store.langGraphRun && (store.langGraphRun.needs_human || store.langGraphRun.human_gate_required)" class="human-gate-alert">
+              需要人工确认 HUMAN_MODEL_REVIEW.md
+            </div>
+          </Panel>
+
+          <!-- Phase Results -->
+          <Panel :title="`Phase Results (${store.langGraphRun?.phase_results?.length ?? 0})`" subtitle="graph strategy per phase">
+            <div v-if="!store.langGraphRun?.phase_results?.length" class="empty">无 phase results。</div>
+            <div v-else class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Phase</th>
+                    <th>Strategy</th>
+                    <th>Status</th>
+                    <th>Sandbox</th>
+                    <th>Paper</th>
+                    <th>Revision</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(row, idx) in store.langGraphRun.phase_results" :key="idx">
+                    <td><span class="badge info">P{{ field(row, ["phase", "phase_id", "id"], "?") }}</span></td>
+                    <td>{{ field(row, ["strategy", "mode"], "-") }}</td>
+                    <td><span :class="['badge', statusClass(field(row, 'status', 'UNKNOWN'))]">{{ field(row, "status", "-") }}</span></td>
+                    <td>{{ field(row, "sandbox_status", "-") }}</td>
+                    <td>{{ field(row, "paper_sandbox_status", "-") }}</td>
+                    <td>{{ field(row, "revision_sandbox_status", "-") }}</td>
+                    <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ phaseResultNote(row) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </Panel>
+
+          <!-- Sandbox / Paper / Revision -->
+          <Panel title="Sandbox · Paper · Revision" subtitle="沙箱执行状态">
+            <div v-if="!store.langGraphRun" class="empty">尚未运行。</div>
+            <div v-else class="field-grid">
+              <div class="field"><label>Sandbox</label><strong>{{ store.langGraphRun.sandbox_status ?? "-" }}</strong><small>manifest_created_empty: {{ store.langGraphRun.manifest_created_empty }}</small></div>
+              <div class="field"><label>Paper Sandbox</label><strong>{{ store.langGraphRun.paper_sandbox_status ?? "-" }}</strong><small>files: {{ store.langGraphRun.paper_files_written.length }}</small></div>
+              <div class="field"><label>Revision Sandbox</label><strong>{{ store.langGraphRun.revision_sandbox_status ?? "-" }}</strong><small>files: {{ store.langGraphRun.revision_files_written.length }}</small></div>
+            </div>
+            <div v-if="store.langGraphRun" class="path-list" style="margin-top:8px">
+              <div v-if="store.langGraphRun.claim_trace_path" class="path-chip" :title="store.langGraphRun.claim_trace_path">Claim Trace: {{ pathChipLabel(store.langGraphRun.claim_trace_path) }}</div>
+              <div v-if="store.langGraphRun.method_matrix_path" class="path-chip" :title="store.langGraphRun.method_matrix_path">Method Matrix: {{ pathChipLabel(store.langGraphRun.method_matrix_path) }}</div>
+              <div v-if="store.langGraphRun.paper_build_report_path" class="path-chip" :title="store.langGraphRun.paper_build_report_path">Build Report: {{ pathChipLabel(store.langGraphRun.paper_build_report_path) }}</div>
+              <div v-if="store.langGraphRun.revision_status_path" class="path-chip" :title="store.langGraphRun.revision_status_path">Revision Status: {{ pathChipLabel(store.langGraphRun.revision_status_path) }}</div>
+            </div>
+          </Panel>
+
+          <!-- Files -->
+          <Panel title="Files" subtitle="planned · written · rejected">
+            <div v-if="!store.langGraphRun" class="empty">尚未运行。</div>
+            <div v-else class="field-grid">
+              <div class="field">
+                <label>Files Planned ({{ store.langGraphRun.files_planned.length }})</label>
+                <div class="path-list">
+                  <div v-for="p in store.langGraphRun.files_planned" :key="p" class="path-chip">{{ p }}</div>
+                  <div v-if="!store.langGraphRun.files_planned.length" class="empty" style="padding:6px">none</div>
+                </div>
+              </div>
+              <div class="field">
+                <label>Files Written ({{ store.langGraphRun.files_written.length }})</label>
+                <div class="path-list">
+                  <div v-for="p in store.langGraphRun.files_written" :key="p" class="path-chip">{{ p }}</div>
+                  <div v-if="!store.langGraphRun.files_written.length" class="empty" style="padding:6px">none</div>
+                </div>
+              </div>
+              <div class="field wide">
+                <label>Files Rejected</label>
+                <pre v-if="store.langGraphRun.files_rejected.length" class="code-box" style="max-height:120px">{{ prettyJson(store.langGraphRun.files_rejected) }}</pre>
+                <div v-else class="empty" style="padding:6px">none</div>
+              </div>
+              <div class="field wide">
+                <label>Report Paths</label>
+                <div class="path-list">
+                  <div v-if="store.langGraphRun.report_path" class="path-chip" :title="store.langGraphRun.report_path">Report: {{ pathChipLabel(store.langGraphRun.report_path) }}</div>
+                  <div v-if="store.langGraphRun.graph_report_path" class="path-chip" :title="store.langGraphRun.graph_report_path">Graph: {{ pathChipLabel(store.langGraphRun.graph_report_path) }}</div>
+                  <div v-if="store.langGraphRun.plan_path" class="path-chip" :title="store.langGraphRun.plan_path">Plan JSON: {{ pathChipLabel(store.langGraphRun.plan_path) }}</div>
+                  <div v-if="store.langGraphRun.plan_markdown_path" class="path-chip" :title="store.langGraphRun.plan_markdown_path">Plan MD: {{ pathChipLabel(store.langGraphRun.plan_markdown_path) }}</div>
+                  <div v-if="store.langGraphRun.apply_diff_path" class="path-chip" :title="store.langGraphRun.apply_diff_path">Apply Diff: {{ pathChipLabel(store.langGraphRun.apply_diff_path) }}</div>
+                  <div v-if="store.langGraphRun.raw_output_path" class="path-chip" :title="store.langGraphRun.raw_output_path">Raw Output: {{ pathChipLabel(store.langGraphRun.raw_output_path) }}</div>
+                </div>
+              </div>
+              <div v-if="store.langGraphRun.paper_files_written.length" class="field">
+                <label>Paper Files Written</label>
+                <div class="path-list">
+                  <div v-for="p in store.langGraphRun.paper_files_written" :key="p" class="path-chip">{{ p }}</div>
+                </div>
+              </div>
+              <div v-if="store.langGraphRun.revision_files_written.length" class="field">
+                <label>Revision Files Written</label>
+                <div class="path-list">
+                  <div v-for="p in store.langGraphRun.revision_files_written" :key="p" class="path-chip">{{ p }}</div>
+                </div>
+              </div>
+            </div>
+          </Panel>
+
+          <!-- Audit -->
+          <Panel title="Audit" subtitle="pre / post / final">
+            <div v-if="!store.langGraphRun" class="empty">尚未运行。</div>
+            <div v-else class="field-grid">
+              <div class="field">
+                <label>Pre Audit</label>
+                <pre class="code-box" style="max-height:140px">{{ prettyJson(store.langGraphRun.pre_audit) }}</pre>
+              </div>
+              <div class="field">
+                <label>Post Audit</label>
+                <pre class="code-box" style="max-height:140px">{{ prettyJson(store.langGraphRun.post_audit) }}</pre>
+              </div>
+              <div class="field wide">
+                <label>Final Audit</label>
+                <pre class="code-box" style="max-height:140px">{{ prettyJson(store.langGraphRun.final_audit) }}</pre>
+              </div>
+            </div>
+            <div v-if="store.langGraphRun?.issues.length" style="margin-top:10px">
+              <label>Issues ({{ store.langGraphRun.issues.length }})</label>
+              <IssueList :issues="store.langGraphRun.issues" />
+            </div>
+          </Panel>
+        </section>
+
         <section v-else class="view settings-grid">
           <Panel title="新建工作区" subtitle="scripts/new_v2_workspace.py">
             <form class="form-grid" @submit.prevent="createWorkspace">
@@ -343,7 +574,7 @@ skipped: {{ store.uploadResult.skipped.join(", ") }}</div>
 
 <script setup lang="ts">
 import { computed, defineComponent, h, onMounted, ref } from "vue";
-import { BarChart3, Copy, FileText, Gauge, LayoutDashboard, RefreshCw, Settings, ShieldCheck, TerminalSquare } from "lucide-vue-next";
+import { BarChart3, Copy, FileText, Gauge, LayoutDashboard, RefreshCw, Settings, ShieldCheck, TerminalSquare, Workflow } from "lucide-vue-next";
 import { api } from "./api";
 import { useControlStore } from "./store";
 
@@ -368,8 +599,20 @@ const navItems = [
   { id: "phase", label: "阶段", icon: Gauge },
   { id: "artifacts", label: "文件", icon: FileText },
   { id: "console", label: "执行", icon: TerminalSquare },
+  { id: "langgraph", label: "LangGraph", icon: Workflow },
   { id: "benchmark", label: "对标", icon: BarChart3 },
   { id: "settings", label: "设置", icon: Settings },
+];
+
+const LANGGRAPH_MODES = [
+  "dry_run",
+  "llm_plan",
+  "controlled_apply",
+  "phase_execute",
+  "contest_graph_v0",
+  "contest_graph_v1",
+  "contest_graph_v2",
+  "contest_graph_v3",
 ];
 
 const title = computed(() => navItems.find((item) => item.id === view.value)?.label ?? "MathModel Control");
@@ -456,6 +699,36 @@ function missingSuggestion(path: string) {
 
 function escapeHtml(text: string) {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function prettyJson(value: unknown) {
+  return JSON.stringify(value ?? {}, null, 2);
+}
+
+function field(obj: Record<string, unknown> | null | undefined, keys: string | string[], fallback = "-"): string {
+  if (!obj) return fallback;
+  const keyList = Array.isArray(keys) ? keys : [keys];
+  for (const key of keyList) {
+    const value = obj[key];
+    if (value !== undefined && value !== null) {
+      return typeof value === "string" ? value : String(value);
+    }
+  }
+  return fallback;
+}
+
+function phaseResultNote(row: Record<string, unknown>): string {
+  const note = field(row, ["note", "notes", "stop_reason", "status"], "");
+  const sandbox = field(row, "sandbox_status", "");
+  const paper = field(row, "paper_sandbox_status", "");
+  const revision = field(row, "revision_sandbox_status", "");
+  const parts = [note, sandbox ? `SB:${sandbox}` : "", paper ? `PP:${paper}` : "", revision ? `RV:${revision}` : ""].filter(Boolean);
+  return parts.join(" · ") || "-";
+}
+
+function pathChipLabel(p: string): string {
+  const parts = p.split(/[\\/]/);
+  return parts.slice(-2).join("/") || p;
 }
 
 function renderMarkdown(text: string) {
