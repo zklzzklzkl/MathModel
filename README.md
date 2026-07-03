@@ -334,6 +334,7 @@ python -m pytest tests/test_safe_langgraph_benchmark_api.py -q  # 5 tests
 
 ### Docs
 
+- `docs/RELEASE_v2.7-alpha.md` — V2.7-alpha release notes
 - `docs/frontend-control-center-v2.md` — full feature map and safety docs
 - `docs/frontend-api-contract.md` — API endpoint reference
 - `docs/langgraph-runner.md` — LangGraph runtime architecture
