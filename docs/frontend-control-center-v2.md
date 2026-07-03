@@ -37,6 +37,8 @@ The LangGraph page provides a full interface to the LangGraph Phase Runner:
 
 Default configuration: `contest_graph_v3`, `provider=none`, `copy_workspace=true`.
 
+Single phase execution currently supports P1 and P4 only. Other phases should use Dry Run or the recommended `contest_graph_v3` flow.
+
 ## Run Workspace Browser
 
 The Runs page allows users to browse LangGraph outputs that land in copied run workspaces under `source/runs/`:

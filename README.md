@@ -278,6 +278,30 @@ RAG is advisory. It provides evidence, candidate routes and review hints. Final 
 
 `app/` provides a local full-stack control center for V2 workspaces: **Vue 3 + Pinia + TypeScript** frontend, **FastAPI** backend, and **LangGraph Runtime v1.0-alpha** optional orchestration layer.
 
+Beginner guide: `docs/frontend-beginner-guide.md`
+Deployment guide: `docs/local-deployment-guide.md`
+
+### Quick Start: Control Center v2
+
+Windows:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/setup_control_center.ps1
+powershell -ExecutionPolicy Bypass -File scripts/start_control_center.ps1
+```
+
+Open:
+
+```text
+http://127.0.0.1:5173
+```
+
+Notes:
+
+- `provider=none` does not need an API key.
+- To use real DeepSeek / OpenAI-compatible models, copy `.env.example` to `.env` and fill API keys in the backend environment.
+- Do not paste API keys into the frontend browser page.
+
 ```text
 Backend: FastAPI, default http://127.0.0.1:8000
 Frontend: Vue 3 + Vite, default http://127.0.0.1:5173
@@ -322,6 +346,8 @@ pnpm run dev
 
 Then open `http://127.0.0.1:5173`.
 
+> Beginner? Read **[docs/getting-started.md](docs/getting-started.md)** — step-by-step tutorial in Chinese.
+
 ### Validation
 
 ```bash
@@ -334,6 +360,7 @@ python -m pytest tests/test_safe_langgraph_benchmark_api.py -q  # 5 tests
 
 ### Docs
 
+- `docs/getting-started.md` — 小白使用教程（推荐首次使用者阅读）
 - `docs/RELEASE_v2.7-alpha.md` — V2.7-alpha release notes
 - `docs/frontend-control-center-v2.md` — full feature map and safety docs
 - `docs/frontend-api-contract.md` — API endpoint reference
