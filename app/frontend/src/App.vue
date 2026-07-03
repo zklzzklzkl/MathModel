@@ -193,6 +193,17 @@
         <section v-else-if="view === 'artifacts'" class="view artifact-layout">
           <Panel title="Artifact Index" subtitle="workspace truth">
             <input v-model="artifactQuery" class="search" placeholder="搜索 artifact..." />
+            <div class="quick-filter-row">
+              <button
+                v-for="group in ARTIFACT_GROUPS_ORDER"
+                :key="group"
+                :class="{ active: artifactFilterGroup === group }"
+                @click="artifactFilterGroup = artifactFilterGroup === group ? '' : group"
+              >
+                {{ group }}
+              </button>
+              <button v-if="artifactFilterGroup" class="clear-filter" @click="artifactFilterGroup = ''">清除</button>
+            </div>
             <div class="artifact-list">
               <button v-for="artifact in filteredArtifacts" :key="artifact.path" class="artifact-item" @click="openArtifact(artifact.path)">
                 <span><strong>{{ artifact.path }}</strong><small>{{ artifact.type }} · {{ artifact.exists ? "exists" : "missing" }}</small></span>
@@ -261,10 +272,11 @@
           </Panel>
         </section>
 
-        <section v-else-if="view === 'benchmark'" class="view">
-          <Panel title="2022C Benchmark" subtitle="examples/2022C">
+        <section v-else-if="view === 'benchmark'" class="view benchmark-lab">
+          <!-- Legacy 2022C -->
+          <Panel title="Legacy 2022C Audit Benchmark" subtitle="examples/2022C · audit_benchmark.py">
             <div class="button-row"><button class="primary" @click="store.loadBenchmark">刷新 Benchmark</button></div>
-            <div class="table-wrap">
+            <div class="table-wrap" style="margin-top:10px">
               <table>
                 <thead>
                   <tr>
@@ -287,6 +299,37 @@
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </Panel>
+
+          <!-- LangGraph Benchmark Arena -->
+          <Panel title="LangGraph Benchmark Arena" subtitle="contest_graph_v3 provider=none fixture runs">
+            <div class="report-card">
+              <strong>Fixture Benchmark Report</strong>
+              <small>docs/LANGGRAPH_BENCHMARK_REPORT.md · docs/LANGGRAPH_BENCHMARK_REPORT.json</small>
+              <p>Pre-computed contest_graph_v3 runs against example workspaces with provider=none. Contains per-workspace contest status, completed phases, Human Gate state, phase-level status table, and final audit severity.</p>
+              <div class="button-row">
+                <button @click="openArtifact('docs/LANGGRAPH_BENCHMARK_REPORT.md')">查看报告</button>
+              </div>
+            </div>
+          </Panel>
+
+          <!-- Real Provider Benchmark -->
+          <Panel title="Real Provider Benchmark" subtitle="DeepSeek Phase 1 llm_plan smoke">
+            <div class="report-card" v-for="(label, path) in realBenchmarkReports" :key="path">
+              <strong>{{ label }}</strong>
+              <small>{{ path }}</small>
+              <p>Real API call, validated PhasePlan JSON output. Single-provider Phase 1 planning smoke — no controlled_apply, no experiment, no paper drafting, no final PASS.</p>
+            </div>
+            <div v-if="!Object.keys(realBenchmarkReports).length" class="empty">docs/real_benchmarks/ 下暂无可展示报告。</div>
+          </Panel>
+
+          <!-- Multi-model comparison -->
+          <Panel title="Multi-Model Comparison" subtitle="scripts/multi_model_benchmark.py">
+            <div class="report-card">
+              <strong>Provider comparison reports</strong>
+              <small>docs/real_benchmarks/LANGGRAPH_PROVIDER_COMPARISON_*.md</small>
+              <p>Run <code>python scripts/multi_model_benchmark.py</code> or <code>python scripts/real_provider_compare.py</code> to generate deterministic multi-provider Phase 1 planning comparisons.</p>
             </div>
           </Panel>
         </section>
@@ -573,10 +616,12 @@ skipped: {{ store.uploadResult.skipped.join(", ") }}</div>
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { BarChart3, Copy, FileText, Gauge, LayoutDashboard, RefreshCw, Settings, ShieldCheck, TerminalSquare, Workflow } from "lucide-vue-next";
 import { api } from "./api";
 import { useControlStore } from "./store";
+import Panel from "./components/Panel.vue";
+import IssueList from "./components/IssueList.vue";
 
 const store = useControlStore();
 const view = ref("dashboard");
@@ -619,7 +664,13 @@ const title = computed(() => navItems.find((item) => item.id === view.value)?.la
 const currentPhase = computed(() => store.summary?.phases.find((phase) => phase.id === selectedPhase.value));
 const filteredArtifacts = computed(() => {
   const query = artifactQuery.value.trim().toLowerCase();
-  return store.artifacts.filter((artifact) => artifact.path.toLowerCase().includes(query));
+  let pool = store.artifacts;
+  if (artifactFilterGroup.value && ARTIFACT_GROUPS[artifactFilterGroup.value]) {
+    const tokens = ARTIFACT_GROUPS[artifactFilterGroup.value];
+    pool = pool.filter((artifact) => tokens.some((t) => artifact.path.includes(t)));
+  }
+  if (!query) return pool;
+  return pool.filter((artifact) => artifact.path.toLowerCase().includes(query));
 });
 const artifactPreview = computed(() => {
   const artifact = store.selectedArtifact;
@@ -643,6 +694,24 @@ const benchmarkRows = computed(() =>
     };
   }),
 );
+
+const realBenchmarkReports = {
+  "docs/real_benchmarks/LANGGRAPH_REAL_BENCHMARK_DeepSeekV4Pro_V2.3.md": "DeepSeek llm_plan Phase 1 · DeepSeekV4Pro_V2.3",
+  "docs/real_benchmarks/LANGGRAPH_DEEPSEEK_LLM_PLAN_PHASE1_DeepSeekV4Pro_V2.3.md": "DeepSeek LLM Plan Phase 1 Report",
+  "docs/real_benchmarks/LANGGRAPH_REAL_BENCHMARK_DeepSeekV4Pro_V2.3.json": "DeepSeek llm_plan Phase 1 JSON",
+  "docs/real_benchmarks/LANGGRAPH_DEEPSEEK_LLM_PLAN_PHASE1_DeepSeekV4Pro_V2.3.json": "DeepSeek LLM Plan Phase 1 JSON",
+};
+
+const artifactFilterGroup = ref("");
+
+const ARTIFACT_GROUPS: Record<string, string[]> = {
+  "Core Gates": ["HUMAN_MODEL_REVIEW.md", "MODELING_DECISION.md", "VERIFY_REPORT.md"],
+  "LangGraph Reports": ["LANGGRAPH_RUN_REPORT.md", "LANGGRAPH_PHASE_PLAN.json", "LANGGRAPH_CONTEST_GRAPH_REPORT.md", "LANGGRAPH_BENCHMARK_REPORT.md", "CONTROL_LANGGRAPH_PHASE_", "AGENT_RUNS.md", "LANGGRAPH_APPLY_DIFF.md", "LANGGRAPH_RAW_MODEL_OUTPUT.md"],
+  Evidence: ["RESULTS_MANIFEST.json", "CLAIM_TRACE.md", "METHOD_IMPLEMENTATION_MATRIX.md", "FIGURE_AUDIT.md"],
+  Review: ["PAPER_SCORECARD.md", "REVISION_ACTIONS.md", "REVISION_STATUS.md", "REVISION_ACTIONS_CONTROL.md"],
+};
+
+const ARTIFACT_GROUPS_ORDER = ["Core Gates", "LangGraph Reports", "Evidence", "Review"];
 
 function statusClass(status: unknown) {
   const value = String(status ?? "").toLowerCase();
@@ -742,41 +811,6 @@ function renderMarkdown(text: string) {
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\n/g, "<br />");
 }
-
-const Panel = defineComponent({
-  props: {
-    title: { type: String, required: true },
-    subtitle: { type: String, default: "" },
-  },
-  setup(props, { slots }) {
-    return () =>
-      h("section", { class: "panel" }, [
-        h("div", { class: "panel-header" }, [h("h2", props.title), h("span", props.subtitle)]),
-        h("div", { class: "panel-body" }, slots.default?.()),
-      ]);
-  },
-});
-
-const IssueList = defineComponent({
-  props: {
-    issues: { type: Array<Record<string, unknown>>, required: true },
-  },
-  setup(props) {
-    return () =>
-      h(
-        "div",
-        { class: "risk-list" },
-        props.issues.length
-          ? props.issues.slice(0, 8).map((issue) =>
-              h("div", { class: ["risk-item", String(issue.severity ?? "").toLowerCase()] }, [
-                h("strong", `${issue.severity ?? "INFO"} - ${issue.code ?? "issue"}`),
-                h("p", String(issue.message ?? issue.evidence ?? "")),
-              ]),
-            )
-          : [h("div", { class: "empty" }, "暂无审计问题。")],
-      );
-  },
-});
 
 onMounted(() => {
   store.initialize();

@@ -621,6 +621,61 @@ label {
   font-size: 14px;
 }
 
+/* ---- Benchmark Lab ---- */
+
+.benchmark-lab {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.report-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+  margin-bottom: 10px;
+}
+
+.report-card strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+
+.report-card small {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.report-card p {
+  margin: 0 0 8px;
+  color: var(--muted);
+  line-height: 1.45;
+  font-size: 13px;
+}
+
+/* ---- Artifact quick filters ---- */
+
+.quick-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.quick-filter-row button {
+  font-size: 12px;
+  min-height: 28px;
+  padding: 0 10px;
+}
+
+.clear-filter {
+  border-color: var(--bad) !important;
+  color: var(--bad) !important;
+}
+
 table {
   width: 100%;
   min-width: 720px;
@@ -655,7 +710,7 @@ th {
   .nav { grid-auto-flow: column; overflow-x: auto; flex: 1; }
   .nav button { white-space: nowrap; }
   .workspace-mini { display: none; }
-  .grid-dashboard, .phase-layout, .artifact-layout, .console-layout, .settings-grid, .check-grid, .langgraph-layout { grid-template-columns: 1fr; }
+  .grid-dashboard, .phase-layout, .artifact-layout, .console-layout, .settings-grid, .check-grid, .langgraph-layout, .benchmark-lab { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
