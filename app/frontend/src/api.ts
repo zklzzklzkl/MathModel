@@ -162,6 +162,84 @@ export interface PrepareHarnessResponse {
   history: RunHistoryEntry;
 }
 
+// ---------------------------------------------------------------------------
+// LangGraph Runtime types
+// ---------------------------------------------------------------------------
+
+export type LangGraphMode =
+  | "dry_run"
+  | "llm_plan"
+  | "controlled_apply"
+  | "phase_execute"
+  | "contest_graph_v0"
+  | "contest_graph_v1"
+  | "contest_graph_v2"
+  | "contest_graph_v3";
+
+export interface LangGraphStatusResponse {
+  available: boolean;
+  version: string | null;
+  import_error: string | null;
+  note: string;
+}
+
+export interface LangGraphRunRequest {
+  phase: number;
+  mode: LangGraphMode;
+  provider: string;
+  model?: string | null;
+  copy_workspace: boolean;
+  run_name?: string | null;
+  temperature: number;
+  max_tokens: number;
+}
+
+export interface LangGraphRunResponse {
+  available: boolean;
+  source_workspace: string;
+  run_workspace: string;
+  phase: number;
+  mode: string;
+  provider: string;
+  model: string | null;
+  status: string;
+  prompt_path: string | null;
+  report_path: string | null;
+  pre_audit: Record<string, unknown>;
+  post_audit: Record<string, unknown>;
+  issues: Array<Record<string, unknown>>;
+  history: Record<string, unknown> | null;
+  phase_plan: Record<string, unknown> | null;
+  provider_error: string | null;
+  plan_path: string | null;
+  plan_markdown_path: string | null;
+  raw_output_path: string | null;
+  apply_diff_path: string | null;
+  files_planned: string[];
+  files_written: string[];
+  files_rejected: unknown[];
+  needs_human: boolean;
+  contest_status: string | null;
+  completed_phases: number[];
+  paused_at: string | null;
+  human_gate_required: boolean;
+  human_gate_file: string | null;
+  graph_report_path: string | null;
+  phase_results: Array<Record<string, unknown>>;
+  final_audit: Record<string, unknown>;
+  sandbox_commands: Array<Record<string, unknown>>;
+  sandbox_status: string | null;
+  manifest_created_empty: boolean;
+  paper_sandbox_status: string | null;
+  paper_files_written: string[];
+  claim_trace_path: string | null;
+  method_matrix_path: string | null;
+  paper_build_report_path: string | null;
+  revision_sandbox_status: string | null;
+  revision_files_written: string[];
+  revision_status_path: string | null;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     headers: {
@@ -227,4 +305,13 @@ export const api = {
     }
     return response.json() as Promise<SourceUploadResponse>;
   },
+
+  // LangGraph Runtime
+  langGraphStatus: () => request<LangGraphStatusResponse>("/api/langgraph/status"),
+
+  runLangGraph: (id: string, payload: LangGraphRunRequest) =>
+    request<LangGraphRunResponse>(`/api/workspaces/${id}/langgraph/run`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 };
