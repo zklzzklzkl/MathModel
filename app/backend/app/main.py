@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
 import platform
+import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +20,8 @@ from .model_adapters import ModelAdapterError
 from .models import (
     ArtifactReadResponse,
     AuditResponse,
+    BenchmarkReportItem,
+    BenchmarkReportReadResponse,
     BenchmarkResponse,
     CopyRunRequest,
     CopyRunResponse,
@@ -33,6 +39,14 @@ from .models import (
     Recommendation,
     RevisionTask,
     RevisionTasksResponse,
+    RunArtifactItem,
+    RunArtifactReadResponse,
+    RunHistoryEntry,
+    RunWorkspaceItem,
+    SafeLangGraphBenchmarkRequest,
+    SourceUploadResponse,
+    ScriptStatus,
+    WorkspaceSummary,
     RunHistoryEntry,
     SourceUploadResponse,
     ScriptStatus,
@@ -41,6 +55,7 @@ from .models import (
 from .prompts import build_prompt
 from .runner import run_audit, run_benchmark, run_scaffold
 from .workspace import (
+    _is_relative_to,
     artifact_type,
     append_history,
     build_phase_summaries,
@@ -503,3 +518,400 @@ def debug_encode(path: str) -> dict[str, str]:
     settings = get_settings()
     resolved = ensure_allowed(Path(path), settings)
     return {"id": encode_workspace_id(resolved), "path": str(resolved)}
+
+
+# ---------------------------------------------------------------------------
+# Benchmark Report Browser — read-only, safe-path
+# ---------------------------------------------------------------------------
+
+_BENCHMARK_ROOT = Path(__file__).resolve().parents[3]
+_BENCHMARK_DIRS = [
+    _BENCHMARK_ROOT / "docs",
+    _BENCHMARK_ROOT / "docs" / "real_benchmarks",
+    _BENCHMARK_ROOT / "docs" / "benchmarks",
+]
+
+_BENCHMARK_REPORT_PATTERNS = [
+    "LANGGRAPH_BENCHMARK_REPORT.md",
+    "LANGGRAPH_BENCHMARK_REPORT.json",
+    "LANGGRAPH_REAL_BENCHMARK_*.md",
+    "LANGGRAPH_REAL_BENCHMARK_*.json",
+    "LANGGRAPH_DEEPSEEK_*.md",
+    "LANGGRAPH_DEEPSEEK_*.json",
+    "LANGGRAPH_*COMPARE*.md",
+    "LANGGRAPH_*COMPARE*.json",
+    "MULTI_MODEL_*.md",
+    "MULTI_MODEL_*.json",
+]
+
+
+def _benchmark_report_id(relative: str) -> str:
+    raw = relative.replace("\\", "/")
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+
+def _infer_category(filename: str) -> str:
+    name = filename.upper()
+    if "LANGGRAPH_BENCHMARK_REPORT" in name:
+        return "fixture"
+    if "LANGGRAPH_REAL_BENCHMARK_" in name:
+        return "real_workspace"
+    if "LANGGRAPH_DEEPSEEK_" in name:
+        return "provider"
+    if "COMPARE" in name or "MULTI_MODEL_" in name:
+        return "multi_model"
+    return "unknown"
+
+
+def _infer_provider(filename: str) -> str | None:
+    name = filename.upper()
+    if "DEEPSEEK" in name:
+        return "deepseek"
+    if "OPENAI" in name:
+        return "openai-compatible"
+    if "NONE" in name:
+        return "none"
+    return None
+
+
+def _infer_mode(filename: str, content: str | None) -> str | None:
+    for mode in ("contest_graph_v3", "contest_graph_v2", "contest_graph_v1",
+                 "contest_graph_v0", "llm_plan", "phase_execute", "controlled_apply", "dry_run"):
+        if mode in filename.lower() or (content and mode in content.lower()):
+            return mode
+    return None
+
+
+def _discover_benchmark_reports() -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for directory in _BENCHMARK_DIRS:
+        if not directory.is_dir():
+            continue
+        for pattern_str in _BENCHMARK_REPORT_PATTERNS:
+            for path in sorted(directory.glob(pattern_str)):
+                if not path.is_file():
+                    continue
+                try:
+                    relative = path.resolve().relative_to(_BENCHMARK_ROOT.resolve()).as_posix()
+                except ValueError:
+                    continue
+                if relative in seen:
+                    continue
+                seen.add(relative)
+
+                stat = path.stat()
+                filename = path.name
+                category = _infer_category(filename)
+                content_sample: str | None = None
+                if filename.endswith(".json"):
+                    try:
+                        content_sample = path.read_text(encoding="utf-8", errors="replace")
+                    except OSError:
+                        content_sample = None
+
+                items.append({
+                    "id": _benchmark_report_id(relative),
+                    "title": path.stem.replace("LANGGRAPH_", "").replace("_", " "),
+                    "path": relative,
+                    "type": "json" if path.suffix == ".json" else "markdown",
+                    "category": category,
+                    "provider": _infer_provider(filename),
+                    "mode": _infer_mode(filename, content_sample),
+                    "workspace": _extract_workspace_from_filename(filename),
+                    "updated_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+                    "size": stat.st_size,
+                })
+    items.sort(key=lambda item: (item["category"], item["updated_at"] or ""), reverse=False)
+    return items
+
+
+def _extract_workspace_from_filename(filename: str) -> str | None:
+    m = re.search(r"(?:BENCHMARK|DEEPSEEK|COMPARE)_([A-Za-z0-9._-]+)\.(?:md|json)$", filename)
+    return m.group(1) if m else None
+
+
+def _resolve_report_by_id(report_id: str) -> Path | None:
+    for item in _discover_benchmark_reports():
+        if item["id"] == report_id:
+            target = (_BENCHMARK_ROOT / item["path"]).resolve()
+            if target.is_file():
+                return target
+    return None
+
+
+def _extract_summary(content: str, report_type: str, filename: str) -> dict[str, Any]:
+    summary: dict[str, Any] = {}
+    if report_type == "json":
+        try:
+            data = json.loads(content)
+            if isinstance(data, dict):
+                for key in ("status", "contest_status", "completed_phases", "paused_at",
+                            "provider", "mode", "source_workspace", "run_workspace"):
+                    if key in data:
+                        summary[key] = data[key]
+                fa = data.get("final_audit", {})
+                if isinstance(fa, dict):
+                    summary["worst_severity"] = fa.get("worst_severity", "UNKNOWN")
+                elif "worst_severity" in data:
+                    summary["worst_severity"] = data["worst_severity"]
+        except json.JSONDecodeError:
+            pass
+    else:
+        m = re.search(r"worst[_\s]severity[:\s]*(\w+)", content, re.IGNORECASE)
+        if m:
+            summary["worst_severity"] = m.group(1).upper()
+        m = re.search(r"status[:\s]*(\w+)", content, re.IGNORECASE)
+        if m:
+            summary["status"] = m.group(1).upper()
+    return summary
+
+
+@app.get("/api/benchmark-reports", response_model=list[BenchmarkReportItem])
+def list_benchmark_reports() -> list[BenchmarkReportItem]:
+    return [BenchmarkReportItem(**item) for item in _discover_benchmark_reports()]
+
+
+@app.get("/api/benchmark-reports/{report_id}", response_model=BenchmarkReportReadResponse)
+def read_benchmark_report(report_id: str) -> BenchmarkReportReadResponse:
+    target = _resolve_report_by_id(report_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail="Benchmark report not found.")
+    for directory in _BENCHMARK_DIRS:
+        try:
+            target.resolve().relative_to(directory.resolve())
+            break
+        except ValueError:
+            continue
+    else:
+        raise HTTPException(status_code=403, detail="Report path is not in an allowed directory.")
+    try:
+        content = target.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=f"Cannot read report: {exc}") from exc
+    report_type = "json" if target.suffix == ".json" else "markdown"
+    data = None
+    if report_type == "json":
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError:
+            data = None
+    summary = _extract_summary(content, report_type, target.name)
+    for item in _discover_benchmark_reports():
+        if item["id"] == report_id:
+            return BenchmarkReportReadResponse(
+                id=report_id,
+                title=item["title"],
+                path=item["path"],
+                type=report_type,
+                category=item["category"],
+                content=content,
+                data=data,
+                summary=summary,
+            )
+    raise HTTPException(status_code=500, detail="Report found but ID lookup inconsistent.")
+
+
+# ---------------------------------------------------------------------------
+# Run workspace artifact browser — read-only, safe-path
+# ---------------------------------------------------------------------------
+
+_RUN_ARTIFACT_EXTENSIONS = {".md", ".json", ".txt", ".tex", ".typ", ".py", ".png", ".jpg", ".pdf", ".svg", ".csv"}
+
+
+def _run_workspace_from_id(source_id: str, run_id: str, settings: Settings) -> Path:
+    source = workspace_from_id(source_id, settings)
+    runs_root = source / "runs"
+    if not runs_root.is_dir():
+        raise HTTPException(status_code=404, detail="No runs directory found.")
+    name = _run_workspace_name(run_id, runs_root)
+    run_path = (runs_root / name).resolve()
+    return run_path
+
+
+def _run_workspace_id(name: str) -> str:
+    return hashlib.sha256(name.encode()).hexdigest()[:16]
+
+
+def _run_workspace_name(run_id: str, runs_root: Path) -> str:
+    for entry in runs_root.iterdir():
+        if entry.is_dir() and _run_workspace_id(entry.name) == run_id:
+            return entry.name
+    raise HTTPException(status_code=404, detail="Run workspace not found.")
+
+
+def _scan_run_workspace(run_path: Path) -> list[dict[str, Any]]:
+    artifacts: list[dict[str, Any]] = []
+    for file_path in sorted(run_path.rglob("*")):
+        if not file_path.is_file():
+            continue
+        if file_path.suffix.lower() not in _RUN_ARTIFACT_EXTENSIONS:
+            continue
+        try:
+            relative = file_path.resolve().relative_to(run_path.resolve()).as_posix()
+        except ValueError:
+            continue
+        stat = file_path.stat()
+        artifacts.append({
+            "path": relative,
+            "exists": True,
+            "type": artifact_type(file_path),
+            "size": stat.st_size,
+            "updated_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+            "required": False,
+        })
+    return artifacts
+
+
+def _resolve_run_artifact(run_path: Path, relative_path: str) -> Path:
+    if not relative_path or not isinstance(relative_path, str):
+        raise HTTPException(status_code=400, detail="Path must be a non-empty relative path.")
+    raw = Path(relative_path)
+    if raw.is_absolute():
+        raise HTTPException(status_code=400, detail="Path must be relative.")
+    if any(part == ".." for part in raw.parts):
+        raise HTTPException(status_code=400, detail="Path must not contain '..'.")
+    target = (run_path / raw).resolve()
+    if not _is_relative_to(target, run_path):
+        raise HTTPException(status_code=403, detail="Path escapes run workspace.")
+    if not target.is_file():
+        raise HTTPException(status_code=404, detail="File not found.")
+    return target
+
+
+@app.get("/api/workspaces/{workspace_id}/runs", response_model=list[RunWorkspaceItem])
+def list_run_workspaces(workspace_id: str) -> list[RunWorkspaceItem]:
+    settings = get_settings()
+    source = workspace_from_id(workspace_id, settings)
+    runs_root = source / "runs"
+    if not runs_root.is_dir():
+        return []
+    items: list[RunWorkspaceItem] = []
+    for entry in sorted(runs_root.iterdir(), key=lambda p: p.name, reverse=True):
+        if not entry.is_dir():
+            continue
+        stat = entry.stat()
+        items.append(RunWorkspaceItem(
+            id=_run_workspace_id(entry.name),
+            name=entry.name,
+            path=str(entry),
+            updated_at=datetime.fromtimestamp(stat.st_mtime).isoformat(),
+            has_langgraph_report=(entry / "reports" / "LANGGRAPH_CONTEST_GRAPH_REPORT.md").is_file(),
+            has_agent_runs=(entry / "reports" / "AGENT_RUNS.md").is_file(),
+            has_phase_plan=(entry / "reports" / "LANGGRAPH_PHASE_PLAN.json").is_file(),
+        ))
+    return items
+
+
+@app.get("/api/workspaces/{workspace_id}/runs/{run_id}/artifacts", response_model=list[RunArtifactItem])
+def list_run_artifacts(workspace_id: str, run_id: str) -> list[RunArtifactItem]:
+    settings = get_settings()
+    run_path = _run_workspace_from_id(workspace_id, run_id, settings)
+    return [RunArtifactItem(**item) for item in _scan_run_workspace(run_path)]
+
+
+@app.get("/api/workspaces/{workspace_id}/runs/{run_id}/artifact", response_model=RunArtifactReadResponse)
+def read_run_artifact(workspace_id: str, run_id: str, path: str = Query(...)) -> RunArtifactReadResponse:
+    settings = get_settings()
+    run_path = _run_workspace_from_id(workspace_id, run_id, settings)
+    target = _resolve_run_artifact(run_path, path)
+    kind = artifact_type(target)
+    if kind == "json":
+        data = read_json(target)
+        return RunArtifactReadResponse(
+            path=path, exists=True, type=kind,
+            content=json.dumps(data, ensure_ascii=False, indent=2),
+            data=data, absolute_path=str(target),
+        )
+    content = read_text(target) if kind in ("markdown", "text") else None
+    return RunArtifactReadResponse(
+        path=path, exists=True, type=kind, content=content,
+        data=None, absolute_path=str(target),
+    )
+
+
+@app.get("/api/workspaces/{workspace_id}/runs/{run_id}/raw")
+def raw_run_artifact(workspace_id: str, run_id: str, path: str = Query(...)) -> FileResponse:
+    settings = get_settings()
+    run_path = _run_workspace_from_id(workspace_id, run_id, settings)
+    target = _resolve_run_artifact(run_path, path)
+    return FileResponse(str(target))
+
+
+# ---------------------------------------------------------------------------
+# Safe LangGraph Benchmark Launcher — provider=none only
+# ---------------------------------------------------------------------------
+
+@app.post("/api/workspaces/{workspace_id}/benchmarks/langgraph-safe", response_model=LangGraphRunResponse)
+def run_safe_langgraph_benchmark(workspace_id: str, payload: SafeLangGraphBenchmarkRequest) -> LangGraphRunResponse:
+    if payload.mode != "contest_graph_v3":
+        raise HTTPException(status_code=400, detail="Safe benchmark only supports mode=contest_graph_v3.")
+    if payload.provider != "none":
+        raise HTTPException(status_code=400, detail="Safe benchmark only supports provider=none.")
+    if payload.copy_workspace is not True:
+        raise HTTPException(status_code=400, detail="Safe benchmark requires copy_workspace=true.")
+    settings = get_settings()
+    workspace = workspace_from_id(workspace_id, settings)
+    try:
+        result = run_langgraph_phase(
+            settings=settings,
+            source_workspace=workspace,
+            phase=0,
+            mode="contest_graph_v3",
+            provider="none",
+            copy_workspace=True,
+            run_name=payload.run_name,
+            temperature=0.2,
+            max_tokens=4096,
+        )
+    except LangGraphUnavailableError as exc:
+        raise HTTPException(status_code=501, detail=str(exc)) from exc
+    except ModelAdapterError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return LangGraphRunResponse(
+        available=True,
+        source_workspace=str(result["source_workspace"]),
+        run_workspace=str(result["run_workspace"]),
+        phase=int(result["phase"]),
+        mode=str(result["mode"]),
+        provider=str(result["provider"]),
+        model=result.get("model"),
+        status=str(result.get("status", "unknown")),
+        prompt_path=result.get("prompt_path"),
+        report_path=result.get("report_path"),
+        pre_audit=result.get("pre_audit", {}),
+        post_audit=result.get("post_audit", {}),
+        issues=list(result.get("issues", [])),
+        history=result.get("history"),
+        phase_plan=result.get("phase_plan"),
+        provider_error=result.get("provider_error"),
+        plan_path=result.get("plan_path"),
+        plan_markdown_path=result.get("plan_markdown_path"),
+        raw_output_path=result.get("raw_output_path"),
+        apply_diff_path=result.get("apply_diff_path"),
+        files_planned=list(result.get("files_planned", [])),
+        files_written=list(result.get("files_written", [])),
+        files_rejected=list(result.get("files_rejected", [])),
+        needs_human=bool(result.get("needs_human", False)),
+        contest_status=result.get("contest_status"),
+        completed_phases=list(result.get("completed_phases", [])),
+        paused_at=result.get("paused_at"),
+        human_gate_required=bool(result.get("human_gate_required", False)),
+        human_gate_file=result.get("human_gate_file"),
+        graph_report_path=result.get("graph_report_path"),
+        phase_results=list(result.get("phase_results", [])),
+        final_audit=result.get("final_audit", {}),
+        sandbox_commands=list(result.get("sandbox_commands", [])),
+        sandbox_status=result.get("sandbox_status"),
+        manifest_created_empty=bool(result.get("manifest_created_empty", False)),
+        paper_sandbox_status=result.get("paper_sandbox_status"),
+        paper_files_written=list(result.get("paper_files_written", [])),
+        claim_trace_path=result.get("claim_trace_path"),
+        method_matrix_path=result.get("method_matrix_path"),
+        paper_build_report_path=result.get("paper_build_report_path"),
+        revision_sandbox_status=result.get("revision_sandbox_status"),
+        revision_files_written=list(result.get("revision_files_written", [])),
+        revision_status_path=result.get("revision_status_path"),
+    )

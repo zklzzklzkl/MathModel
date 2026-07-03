@@ -268,3 +268,70 @@ class LangGraphRunResponse(BaseModel):
     revision_sandbox_status: str | None = None
     revision_files_written: list[str] = Field(default_factory=list)
     revision_status_path: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Benchmark Report Browser models
+# ---------------------------------------------------------------------------
+
+class BenchmarkReportItem(BaseModel):
+    id: str
+    title: str
+    path: str
+    type: Literal["markdown", "json"]
+    category: str
+    provider: str | None = None
+    mode: str | None = None
+    workspace: str | None = None
+    updated_at: str | None = None
+    size: int | None = None
+
+
+class BenchmarkReportReadResponse(BaseModel):
+    id: str
+    title: str
+    path: str
+    type: Literal["markdown", "json"]
+    category: str
+    content: str
+    data: Any | None = None
+    summary: dict[str, Any] = Field(default_factory=dict)
+
+
+# ---------------------------------------------------------------------------
+# Run workspace browser models
+# ---------------------------------------------------------------------------
+
+class RunWorkspaceItem(BaseModel):
+    id: str
+    name: str
+    path: str
+    updated_at: str | None = None
+    has_langgraph_report: bool = False
+    has_agent_runs: bool = False
+    has_phase_plan: bool = False
+
+
+class RunArtifactItem(BaseModel):
+    path: str
+    exists: bool
+    type: str
+    size: int | None = None
+    updated_at: str | None = None
+    required: bool = False
+
+
+class RunArtifactReadResponse(BaseModel):
+    path: str
+    exists: bool
+    type: str
+    content: str | None = None
+    data: Any | None = None
+    absolute_path: str | None = None
+
+
+class SafeLangGraphBenchmarkRequest(BaseModel):
+    mode: Literal["contest_graph_v3"] = "contest_graph_v3"
+    provider: Literal["none"] = "none"
+    copy_workspace: bool = True
+    run_name: str | None = None

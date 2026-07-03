@@ -193,6 +193,17 @@
         <section v-else-if="view === 'artifacts'" class="view artifact-layout">
           <Panel title="Artifact Index" subtitle="workspace truth">
             <input v-model="artifactQuery" class="search" placeholder="搜索 artifact..." />
+            <div class="quick-filter-row">
+              <button
+                v-for="group in ARTIFACT_GROUPS_ORDER"
+                :key="group"
+                :class="{ active: artifactFilterGroup === group }"
+                @click="artifactFilterGroup = artifactFilterGroup === group ? '' : group"
+              >
+                {{ group }}
+              </button>
+              <button v-if="artifactFilterGroup" class="clear-filter" @click="artifactFilterGroup = ''">清除</button>
+            </div>
             <div class="artifact-list">
               <button v-for="artifact in filteredArtifacts" :key="artifact.path" class="artifact-item" @click="openArtifact(artifact.path)">
                 <span><strong>{{ artifact.path }}</strong><small>{{ artifact.type }} · {{ artifact.exists ? "exists" : "missing" }}</small></span>
@@ -261,10 +272,226 @@
           </Panel>
         </section>
 
-        <section v-else-if="view === 'benchmark'" class="view">
-          <Panel title="2022C Benchmark" subtitle="examples/2022C">
+        <!-- Runs page -->
+        <section v-else-if="view === 'runs'" class="view runs-layout">
+          <Panel title="Run Workspaces" :subtitle="`${store.runWorkspaces.length} runs`">
+            <div class="button-row" style="margin-bottom:10px">
+              <button class="primary" @click="store.loadRunWorkspaces">刷新 Runs</button>
+            </div>
+            <div v-if="!store.runWorkspaces.length" class="empty">暂无 run workspace。运行 LangGraph 后将在此显示。</div>
+            <div v-else class="run-workspace-list">
+              <button
+                v-for="run in store.runWorkspaces"
+                :key="run.id"
+                :class="['artifact-item', { selected: store.selectedRunWorkspaceId === run.id }]"
+                @click="store.selectRunWorkspace(run.id)"
+              >
+                <span>
+                  <strong>{{ run.name }}</strong>
+                  <small>{{ run.updated_at ?? '-' }}</small>
+                </span>
+                <span class="badge-group">
+                  <span v-if="run.has_langgraph_report" class="badge good">LG</span>
+                  <span v-if="run.has_agent_runs" class="badge info">AR</span>
+                  <span v-if="run.has_phase_plan" class="badge warn">PP</span>
+                </span>
+              </button>
+            </div>
+          </Panel>
+
+          <Panel :title="`Run Artifacts (${filteredRunArtifacts.length})`" subtitle="只读 · run workspace">
+            <div v-if="!store.selectedRunWorkspaceId" class="empty">请先选择一个 run workspace。</div>
+            <div v-else>
+              <input v-model="artifactQuery" class="search" placeholder="搜索..." />
+              <div class="quick-filter-row">
+                <button
+                  v-for="group in RUN_ARTIFACT_GROUPS_ORDER"
+                  :key="group"
+                  :class="{ active: runArtifactFilterGroup === group }"
+                  @click="runArtifactFilterGroup = runArtifactFilterGroup === group ? '' : group"
+                >{{ group }}</button>
+                <button v-if="runArtifactFilterGroup" class="clear-filter" @click="runArtifactFilterGroup = ''">清除</button>
+              </div>
+              <div class="artifact-list" style="max-height:400px;overflow:auto">
+                <button
+                  v-for="artifact in filteredRunArtifacts"
+                  :key="artifact.path"
+                  class="artifact-item"
+                  @click="store.openRunArtifact(artifact.path)"
+                >
+                  <span><strong>{{ artifact.path }}</strong><small>{{ artifact.type }} · {{ artifact.size }} bytes</small></span>
+                  <span :class="['badge', artifact.exists ? 'info' : 'bad']">{{ artifact.exists ? "file" : "missing" }}</span>
+                </button>
+              </div>
+            </div>
+          </Panel>
+
+          <Panel :title="store.selectedRunArtifact?.path ?? 'Preview'" :subtitle="store.selectedRunArtifact?.absolute_path ?? ''">
+            <div v-if="!store.selectedRunArtifact" class="empty">未选择文件。</div>
+            <div v-else-if="!store.selectedRunArtifact.exists" class="missing-box">
+              <strong>文件不存在</strong>
+            </div>
+            <div v-else-if="store.selectedRunArtifact.type === 'markdown'" class="markdown-preview" v-html="renderMarkdown(store.selectedRunArtifact.content ?? '')"></div>
+            <pre v-else-if="store.selectedRunArtifact.type === 'json' || store.selectedRunArtifact.type === 'text'" class="code-box">{{ store.selectedRunArtifact.content }}</pre>
+            <img v-else-if="store.selectedRunArtifact.type === 'image' && store.selectedWorkspaceId && store.selectedRunWorkspaceId" class="image-preview" :src="api.runRawUrl(store.selectedWorkspaceId, store.selectedRunWorkspaceId, store.selectedRunArtifact.path)" />
+            <div v-else-if="store.selectedRunArtifact.type === 'pdf' && store.selectedWorkspaceId && store.selectedRunWorkspaceId" class="pdf-box">
+              <iframe :src="api.runRawUrl(store.selectedWorkspaceId, store.selectedRunWorkspaceId, store.selectedRunArtifact.path)" title="PDF preview"></iframe>
+            </div>
+            <div v-else class="code-box">{{ store.selectedRunArtifact.content ?? 'binary file' }}</div>
+          </Panel>
+        </section>
+
+        <section v-else-if="view === 'benchmark'" class="view benchmark-lab">
+          <!-- Overview -->
+          <Panel title="Benchmark Lab" subtitle="报告浏览器 · 只读">
+            <!-- Safe Benchmark Launcher -->
+            <div class="safe-benchmark-card">
+              <strong>Safe LangGraph Benchmark (provider=none)</strong>
+              <p style="margin:4px 0 8px;color:var(--muted);font-size:12px">此按钮只运行 provider=none 安全基线，不调用真实 API，不代表真实 LLM 自动效果。mode 固定为 contest_graph_v3，provider 固定为 none，copy_workspace 固定为 true。</p>
+              <div class="button-row">
+                <button class="primary" :disabled="store.safeBenchmarkRunning" @click="store.runSafeLangGraphBenchmark">
+                  {{ store.safeBenchmarkRunning ? "运行中..." : "Run provider=none safety benchmark" }}
+                </button>
+              </div>
+              <div v-if="store.safeBenchmarkResult" style="margin-top:10px" class="field-grid">
+                <div class="field"><label>Status</label><span :class="['badge', statusClass(store.safeBenchmarkResult.status)]">{{ store.safeBenchmarkResult.status }}</span></div>
+                <div class="field"><label>Contest Status</label><strong>{{ store.safeBenchmarkResult.contest_status ?? '-' }}</strong></div>
+                <div class="field"><label>Run Workspace</label><strong style="font-size:11px;word-break:break-all">{{ store.safeBenchmarkResult.run_workspace }}</strong></div>
+                <div class="field"><label>Completed Phases</label><strong>{{ store.safeBenchmarkResult.completed_phases.join(", ") || '-' }}</strong></div>
+                <div class="field"><label>Sandbox</label><strong>{{ store.safeBenchmarkResult.sandbox_status ?? '-' }}</strong></div>
+                <div class="field"><label>Paper Sandbox</label><strong>{{ store.safeBenchmarkResult.paper_sandbox_status ?? '-' }}</strong></div>
+                <div class="field"><label>Revision Sandbox</label><strong>{{ store.safeBenchmarkResult.revision_sandbox_status ?? '-' }}</strong></div>
+                <div class="field"><label>Final Audit</label><span :class="['badge', statusClass(store.safeBenchmarkResult.final_audit?.worst_severity)]">{{ store.safeBenchmarkResult.final_audit?.worst_severity ?? 'NONE' }}</span></div>
+              </div>
+            </div>
+            <!-- /Safe Benchmark Launcher -->
+            <div class="status-strip">
+              <div class="metric">
+                <label>Total</label>
+                <strong>{{ store.benchmarkReports.length }}</strong>
+                <small>benchmark reports</small>
+              </div>
+              <div class="metric">
+                <label>Provider</label>
+                <strong>{{ store.benchmarkReports.filter(r => r.category === 'provider').length }}</strong>
+                <small>DeepSeek / OpenAI</small>
+              </div>
+              <div class="metric">
+                <label>Multi-Model</label>
+                <strong>{{ store.benchmarkReports.filter(r => r.category === 'multi_model').length }}</strong>
+                <small>comparison reports</small>
+              </div>
+              <div class="metric">
+                <label>Real WS</label>
+                <strong>{{ store.benchmarkReports.filter(r => r.category === 'real_workspace').length }}</strong>
+                <small>workspace benchmarks</small>
+              </div>
+            </div>
+            <div class="button-row">
+              <button class="primary" @click="store.loadBenchmarkReports">刷新报告</button>
+              <button @click="store.loadBenchmark">刷新 Legacy 2022C</button>
+            </div>
+          </Panel>
+
+          <!-- Report List -->
+          <Panel :title="`报告列表 (${filteredBenchmarkReports.length})`" subtitle="点击选中查看详情">
+            <div class="filter-row">
+              <label>Category
+                <select v-model="store.benchmarkCategoryFilter">
+                  <option value="all">all</option>
+                  <option value="legacy">legacy</option>
+                  <option value="fixture">fixture</option>
+                  <option value="real_workspace">real_workspace</option>
+                  <option value="provider">provider</option>
+                  <option value="multi_model">multi_model</option>
+                </select>
+              </label>
+              <label>Provider
+                <select v-model="store.benchmarkProviderFilter">
+                  <option value="all">all</option>
+                  <option value="deepseek">deepseek</option>
+                  <option value="openai-compatible">openai-compatible</option>
+                  <option value="none">none</option>
+                </select>
+              </label>
+            </div>
+            <div class="artifact-list" style="max-height:420px;overflow:auto">
+              <button
+                v-for="report in filteredBenchmarkReports"
+                :key="report.id"
+                :class="['artifact-item', { selected: store.selectedBenchmarkReportId === report.id }]"
+                @click="store.openBenchmarkReport(report.id)"
+              >
+                <span><strong>{{ report.title }}</strong><small>{{ report.category }} · {{ report.provider ?? '-' }} · {{ report.mode ?? '-' }}</small></span>
+                <span :class="['badge', report.type === 'json' ? 'info' : 'warn']">{{ report.type }}</span>
+              </button>
+              <div v-if="!filteredBenchmarkReports.length" class="empty">暂无报告。点击"刷新报告"加载。</div>
+            </div>
+          </Panel>
+
+          <!-- Report Preview -->
+          <Panel :title="store.selectedBenchmarkReport?.title ?? '报告预览'" :subtitle="store.selectedBenchmarkReport?.path ?? ''">
+            <div v-if="!store.selectedBenchmarkReport" class="empty">请从报告列表中选择一份报告。</div>
+            <div v-else class="report-meta">
+              <span :class="['badge', store.selectedBenchmarkReport.type === 'json' ? 'info' : 'warn']">{{ store.selectedBenchmarkReport.type }}</span>
+              <span class="badge info">{{ store.selectedBenchmarkReport.category }}</span>
+              <span v-if="store.selectedBenchmarkReport.provider" class="badge">{{ store.selectedBenchmarkReport.provider }}</span>
+              <span v-if="store.selectedBenchmarkReport.mode" class="badge">{{ store.selectedBenchmarkReport.mode }}</span>
+            </div>
+            <div v-if="store.selectedBenchmarkReport" style="margin-top:12px">
+              <div v-if="store.selectedBenchmarkReport.type === 'json' && store.selectedBenchmarkReport.summary" class="field-grid" style="margin-bottom:10px">
+                <div class="field" v-for="(val, key) in store.selectedBenchmarkReport.summary" :key="key">
+                  <label>{{ key }}</label>
+                  <strong>{{ typeof val === 'object' ? prettyJson(val) : String(val) }}</strong>
+                </div>
+              </div>
+              <div v-if="store.selectedBenchmarkReport.type === 'markdown'" class="markdown-preview" v-html="renderMarkdown(store.selectedBenchmarkReport.content)"></div>
+              <pre v-else class="code-box" style="max-height:55vh">{{ prettyJson(store.selectedBenchmarkReport.data ?? store.selectedBenchmarkReport.content) }}</pre>
+            </div>
+          </Panel>
+
+          <!-- Multi-Model Compare -->
+          <Panel title="多模型对比" subtitle="metadata-level comparison">
+            <div v-if="!store.benchmarkReports.length" class="empty">加载报告列表后自动生成。</div>
+            <div v-else class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Report</th>
+                    <th>Provider</th>
+                    <th>Mode</th>
+                    <th>Workspace</th>
+                    <th>Category</th>
+                    <th>Size</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="report in filteredBenchmarkReports" :key="report.id" @click="store.openBenchmarkReport(report.id)" style="cursor:pointer">
+                    <td :class="{ 'phase-row selected': store.selectedBenchmarkReportId === report.id }"><strong>{{ report.title }}</strong></td>
+                    <td>{{ report.provider ?? '-' }}</td>
+                    <td><span class="badge info">{{ report.mode ?? '-' }}</span></td>
+                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ report.workspace ?? '-' }}</td>
+                    <td><span :class="['badge', report.category === 'provider' ? 'good' : report.category === 'multi_model' ? 'warn' : 'info']">{{ report.category }}</span></td>
+                    <td>{{ report.size ? (report.size / 1024).toFixed(1) + 'k' : '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div v-if="store.selectedBenchmarkReport?.type === 'json' && Object.keys(store.selectedBenchmarkReport.summary).length" style="margin-top:12px">
+              <label>选中的报告对比摘要</label>
+              <div class="field-grid">
+                <div class="field" v-for="(val, key) in store.selectedBenchmarkReport.summary" :key="key">
+                  <label>{{ key }}</label>
+                  <strong>{{ typeof val === 'object' ? prettyJson(val) : String(val) }}</strong>
+                </div>
+              </div>
+            </div>
+          </Panel>
+
+          <!-- Legacy 2022C -->
+          <Panel title="Legacy 2022C Audit Benchmark" subtitle="examples/2022C · audit_benchmark.py">
             <div class="button-row"><button class="primary" @click="store.loadBenchmark">刷新 Benchmark</button></div>
-            <div class="table-wrap">
+            <div class="table-wrap" style="margin-top:10px">
               <table>
                 <thead>
                   <tr>
@@ -287,6 +514,37 @@
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </Panel>
+
+          <!-- LangGraph Benchmark Arena -->
+          <Panel title="LangGraph Benchmark Arena" subtitle="contest_graph_v3 provider=none fixture runs">
+            <div class="report-card">
+              <strong>Fixture Benchmark Report</strong>
+              <small>docs/LANGGRAPH_BENCHMARK_REPORT.md · docs/LANGGRAPH_BENCHMARK_REPORT.json</small>
+              <p>Pre-computed contest_graph_v3 runs against example workspaces with provider=none. Contains per-workspace contest status, completed phases, Human Gate state, phase-level status table, and final audit severity.</p>
+              <div class="button-row">
+                <button @click="openArtifact('docs/LANGGRAPH_BENCHMARK_REPORT.md')">查看报告</button>
+              </div>
+            </div>
+          </Panel>
+
+          <!-- Real Provider Benchmark -->
+          <Panel title="Real Provider Benchmark" subtitle="DeepSeek Phase 1 llm_plan smoke">
+            <div class="report-card" v-for="(label, path) in realBenchmarkReports" :key="path">
+              <strong>{{ label }}</strong>
+              <small>{{ path }}</small>
+              <p>Real API call, validated PhasePlan JSON output. Single-provider Phase 1 planning smoke — no controlled_apply, no experiment, no paper drafting, no final PASS.</p>
+            </div>
+            <div v-if="!Object.keys(realBenchmarkReports).length" class="empty">docs/real_benchmarks/ 下暂无可展示报告。</div>
+          </Panel>
+
+          <!-- Multi-model comparison -->
+          <Panel title="Multi-Model Comparison" subtitle="scripts/multi_model_benchmark.py">
+            <div class="report-card">
+              <strong>Provider comparison reports</strong>
+              <small>docs/real_benchmarks/LANGGRAPH_PROVIDER_COMPARISON_*.md</small>
+              <p>Run <code>python scripts/multi_model_benchmark.py</code> or <code>python scripts/real_provider_compare.py</code> to generate deterministic multi-provider Phase 1 planning comparisons.</p>
             </div>
           </Panel>
         </section>
@@ -419,14 +677,14 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(row, idx) in store.langGraphRun.phase_results" :key="idx">
+                  <tr v-for="(row, idx) in (store.langGraphRun?.phase_results ?? [])" :key="idx">
                     <td><span class="badge info">P{{ field(row, ["phase", "phase_id", "id"], "?") }}</span></td>
                     <td>{{ field(row, ["strategy", "mode"], "-") }}</td>
                     <td><span :class="['badge', statusClass(field(row, 'status', 'UNKNOWN'))]">{{ field(row, "status", "-") }}</span></td>
                     <td>{{ field(row, "sandbox_status", "-") }}</td>
                     <td>{{ field(row, "paper_sandbox_status", "-") }}</td>
                     <td>{{ field(row, "revision_sandbox_status", "-") }}</td>
-                    <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ phaseResultNote(row) }}</td>
+                    <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" :title="phaseResultNote(row)">{{ phaseResultNote(row) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -438,8 +696,8 @@
             <div v-if="!store.langGraphRun" class="empty">尚未运行。</div>
             <div v-else class="field-grid">
               <div class="field"><label>Sandbox</label><strong>{{ store.langGraphRun.sandbox_status ?? "-" }}</strong><small>manifest_created_empty: {{ store.langGraphRun.manifest_created_empty }}</small></div>
-              <div class="field"><label>Paper Sandbox</label><strong>{{ store.langGraphRun.paper_sandbox_status ?? "-" }}</strong><small>files: {{ store.langGraphRun.paper_files_written.length }}</small></div>
-              <div class="field"><label>Revision Sandbox</label><strong>{{ store.langGraphRun.revision_sandbox_status ?? "-" }}</strong><small>files: {{ store.langGraphRun.revision_files_written.length }}</small></div>
+              <div class="field"><label>Paper Sandbox</label><strong>{{ store.langGraphRun.paper_sandbox_status ?? "-" }}</strong><small>files: {{ store.langGraphRun.paper_files_written?.length ?? 0 }}</small></div>
+              <div class="field"><label>Revision Sandbox</label><strong>{{ store.langGraphRun.revision_sandbox_status ?? "-" }}</strong><small>files: {{ store.langGraphRun.revision_files_written?.length ?? 0 }}</small></div>
             </div>
             <div v-if="store.langGraphRun" class="path-list" style="margin-top:8px">
               <div v-if="store.langGraphRun.claim_trace_path" class="path-chip" :title="store.langGraphRun.claim_trace_path">Claim Trace: {{ pathChipLabel(store.langGraphRun.claim_trace_path) }}</div>
@@ -483,16 +741,16 @@
                   <div v-if="store.langGraphRun.raw_output_path" class="path-chip" :title="store.langGraphRun.raw_output_path">Raw Output: {{ pathChipLabel(store.langGraphRun.raw_output_path) }}</div>
                 </div>
               </div>
-              <div v-if="store.langGraphRun.paper_files_written.length" class="field">
+              <div v-if="(store.langGraphRun.paper_files_written?.length ?? 0)" class="field">
                 <label>Paper Files Written</label>
                 <div class="path-list">
-                  <div v-for="p in store.langGraphRun.paper_files_written" :key="p" class="path-chip">{{ p }}</div>
+                  <div v-for="p in (store.langGraphRun.paper_files_written ?? [])" :key="p" class="path-chip">{{ p }}</div>
                 </div>
               </div>
-              <div v-if="store.langGraphRun.revision_files_written.length" class="field">
+              <div v-if="(store.langGraphRun.revision_files_written?.length ?? 0)" class="field">
                 <label>Revision Files Written</label>
                 <div class="path-list">
-                  <div v-for="p in store.langGraphRun.revision_files_written" :key="p" class="path-chip">{{ p }}</div>
+                  <div v-for="p in (store.langGraphRun.revision_files_written ?? [])" :key="p" class="path-chip">{{ p }}</div>
                 </div>
               </div>
             </div>
@@ -573,10 +831,12 @@ skipped: {{ store.uploadResult.skipped.join(", ") }}</div>
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, onMounted, ref } from "vue";
-import { BarChart3, Copy, FileText, Gauge, LayoutDashboard, RefreshCw, Settings, ShieldCheck, TerminalSquare, Workflow } from "lucide-vue-next";
+import { computed, onMounted, ref } from "vue";
+import { BarChart3, Copy, FileText, FolderOpen, Gauge, LayoutDashboard, RefreshCw, Settings, ShieldCheck, TerminalSquare, Workflow } from "lucide-vue-next";
 import { api } from "./api";
 import { useControlStore } from "./store";
+import Panel from "./components/Panel.vue";
+import IssueList from "./components/IssueList.vue";
 
 const store = useControlStore();
 const view = ref("dashboard");
@@ -600,6 +860,7 @@ const navItems = [
   { id: "artifacts", label: "文件", icon: FileText },
   { id: "console", label: "执行", icon: TerminalSquare },
   { id: "langgraph", label: "LangGraph", icon: Workflow },
+  { id: "runs", label: "Runs", icon: FolderOpen },
   { id: "benchmark", label: "对标", icon: BarChart3 },
   { id: "settings", label: "设置", icon: Settings },
 ];
@@ -619,7 +880,13 @@ const title = computed(() => navItems.find((item) => item.id === view.value)?.la
 const currentPhase = computed(() => store.summary?.phases.find((phase) => phase.id === selectedPhase.value));
 const filteredArtifacts = computed(() => {
   const query = artifactQuery.value.trim().toLowerCase();
-  return store.artifacts.filter((artifact) => artifact.path.toLowerCase().includes(query));
+  let pool = store.artifacts;
+  if (artifactFilterGroup.value && ARTIFACT_GROUPS[artifactFilterGroup.value]) {
+    const tokens = ARTIFACT_GROUPS[artifactFilterGroup.value];
+    pool = pool.filter((artifact) => tokens.some((t) => artifact.path.includes(t)));
+  }
+  if (!query) return pool;
+  return pool.filter((artifact) => artifact.path.toLowerCase().includes(query));
 });
 const artifactPreview = computed(() => {
   const artifact = store.selectedArtifact;
@@ -643,6 +910,57 @@ const benchmarkRows = computed(() =>
     };
   }),
 );
+
+const realBenchmarkReports = {
+  "docs/real_benchmarks/LANGGRAPH_REAL_BENCHMARK_DeepSeekV4Pro_V2.3.md": "DeepSeek llm_plan Phase 1 · DeepSeekV4Pro_V2.3",
+  "docs/real_benchmarks/LANGGRAPH_DEEPSEEK_LLM_PLAN_PHASE1_DeepSeekV4Pro_V2.3.md": "DeepSeek LLM Plan Phase 1 Report",
+  "docs/real_benchmarks/LANGGRAPH_REAL_BENCHMARK_DeepSeekV4Pro_V2.3.json": "DeepSeek llm_plan Phase 1 JSON",
+  "docs/real_benchmarks/LANGGRAPH_DEEPSEEK_LLM_PLAN_PHASE1_DeepSeekV4Pro_V2.3.json": "DeepSeek LLM Plan Phase 1 JSON",
+};
+
+const artifactFilterGroup = ref("");
+
+const ARTIFACT_GROUPS: Record<string, string[]> = {
+  "Core Gates": ["HUMAN_MODEL_REVIEW.md", "MODELING_DECISION.md", "VERIFY_REPORT.md"],
+  "LangGraph Reports": ["LANGGRAPH_RUN_REPORT.md", "LANGGRAPH_PHASE_PLAN.json", "LANGGRAPH_CONTEST_GRAPH_REPORT.md", "LANGGRAPH_BENCHMARK_REPORT.md", "CONTROL_LANGGRAPH_PHASE_", "AGENT_RUNS.md", "LANGGRAPH_APPLY_DIFF.md", "LANGGRAPH_RAW_MODEL_OUTPUT.md"],
+  Evidence: ["RESULTS_MANIFEST.json", "CLAIM_TRACE.md", "METHOD_IMPLEMENTATION_MATRIX.md", "FIGURE_AUDIT.md"],
+  Review: ["PAPER_SCORECARD.md", "REVISION_ACTIONS.md", "REVISION_STATUS.md", "REVISION_ACTIONS_CONTROL.md"],
+};
+
+const ARTIFACT_GROUPS_ORDER = ["Core Gates", "LangGraph Reports", "Evidence", "Review"];
+
+const runArtifactFilterGroup = ref("");
+
+const filteredRunArtifacts = computed(() => {
+  const query = artifactQuery.value.trim().toLowerCase();
+  let pool = store.runArtifacts;
+  if (runArtifactFilterGroup.value && RUN_ARTIFACT_GROUPS[runArtifactFilterGroup.value]) {
+    const tokens = RUN_ARTIFACT_GROUPS[runArtifactFilterGroup.value];
+    pool = pool.filter((a) => tokens.some((t) => a.path.includes(t)));
+  }
+  if (!query) return pool;
+  return pool.filter((a) => a.path.toLowerCase().includes(query));
+});
+
+const RUN_ARTIFACT_GROUPS: Record<string, string[]> = {
+  "LangGraph": ["LANGGRAPH_", "CONTROL_LANGGRAPH_", "AGENT_RUNS.md"],
+  "Evidence": ["RESULTS_MANIFEST", "CLAIM_TRACE", "METHOD_IMPLEMENTATION", "FIGURE_AUDIT", "RESULTS_REPORT"],
+  "Review": ["PAPER_SCORECARD", "REVISION_ACTIONS", "REVISION_STATUS"],
+  "Paper": ["paper/", "main.tex", "main.typ"],
+};
+
+const RUN_ARTIFACT_GROUPS_ORDER = ["LangGraph", "Evidence", "Review", "Paper"];
+
+const filteredBenchmarkReports = computed(() => {
+  let pool = store.benchmarkReports;
+  if (store.benchmarkCategoryFilter !== "all") {
+    pool = pool.filter(r => r.category === store.benchmarkCategoryFilter);
+  }
+  if (store.benchmarkProviderFilter !== "all") {
+    pool = pool.filter(r => r.provider === store.benchmarkProviderFilter);
+  }
+  return pool;
+});
 
 function statusClass(status: unknown) {
   const value = String(status ?? "").toLowerCase();
@@ -742,41 +1060,6 @@ function renderMarkdown(text: string) {
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\n/g, "<br />");
 }
-
-const Panel = defineComponent({
-  props: {
-    title: { type: String, required: true },
-    subtitle: { type: String, default: "" },
-  },
-  setup(props, { slots }) {
-    return () =>
-      h("section", { class: "panel" }, [
-        h("div", { class: "panel-header" }, [h("h2", props.title), h("span", props.subtitle)]),
-        h("div", { class: "panel-body" }, slots.default?.()),
-      ]);
-  },
-});
-
-const IssueList = defineComponent({
-  props: {
-    issues: { type: Array<Record<string, unknown>>, required: true },
-  },
-  setup(props) {
-    return () =>
-      h(
-        "div",
-        { class: "risk-list" },
-        props.issues.length
-          ? props.issues.slice(0, 8).map((issue) =>
-              h("div", { class: ["risk-item", String(issue.severity ?? "").toLowerCase()] }, [
-                h("strong", `${issue.severity ?? "INFO"} - ${issue.code ?? "issue"}`),
-                h("p", String(issue.message ?? issue.evidence ?? "")),
-              ]),
-            )
-          : [h("div", { class: "empty" }, "暂无审计问题。")],
-      );
-  },
-});
 
 onMounted(() => {
   store.initialize();

@@ -4,6 +4,8 @@ import {
   api,
   type ArtifactItem,
   type ArtifactReadResponse,
+  type BenchmarkReportItem,
+  type BenchmarkReportReadResponse,
   type BenchmarkResponse,
   type CreateWorkspacePayload,
   type HarnessInfo,
@@ -15,7 +17,11 @@ import {
   type PrepareHarnessResponse,
   type PromptResponse,
   type RevisionTask,
+  type RunArtifactItem,
+  type RunArtifactReadResponse,
   type RunHistoryEntry,
+  type RunWorkspaceItem,
+  type SafeLangGraphBenchmarkRequest,
   type SourceUploadResponse,
   type WorkspaceItem,
   type WorkspaceSummary,
@@ -50,6 +56,23 @@ export const useControlStore = defineStore("control", () => {
   const langGraphRunName = ref("");
   const langGraphTemperature = ref(0.2);
   const langGraphMaxTokens = ref(4096);
+
+  // Benchmark Report Browser state
+  const benchmarkReports = ref<BenchmarkReportItem[]>([]);
+  const selectedBenchmarkReportId = ref("");
+  const selectedBenchmarkReport = ref<BenchmarkReportReadResponse | null>(null);
+  const benchmarkReportLoading = ref(false);
+  const benchmarkCategoryFilter = ref("all");
+  const benchmarkProviderFilter = ref("all");
+
+  // Run workspace browser state
+  const runWorkspaces = ref<RunWorkspaceItem[]>([]);
+  const selectedRunWorkspaceId = ref("");
+  const runArtifacts = ref<RunArtifactItem[]>([]);
+  const selectedRunArtifact = ref<RunArtifactReadResponse | null>(null);
+  const runArtifactQuery = ref("");
+  const safeBenchmarkRunning = ref(false);
+  const safeBenchmarkResult = ref<LangGraphRunResponse | null>(null);
 
   const selectedWorkspace = computed(() =>
     workspaces.value.find((item) => item.id === selectedWorkspaceId.value) ?? null,
@@ -200,6 +223,88 @@ export const useControlStore = defineStore("control", () => {
     if (path) openArtifact(path);
   }
 
+  // ---- Benchmark Report Browser actions ----
+
+  async function loadBenchmarkReports() {
+    benchmarkReportLoading.value = true;
+    try {
+      benchmarkReports.value = await api.benchmarkReports();
+      if (!selectedBenchmarkReportId.value && benchmarkReports.value.length > 0) {
+        await openBenchmarkReport(benchmarkReports.value[0].id);
+      }
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : String(err);
+    } finally {
+      benchmarkReportLoading.value = false;
+    }
+  }
+
+  async function openBenchmarkReport(id: string) {
+    selectedBenchmarkReportId.value = id;
+    selectedBenchmarkReport.value = await api.benchmarkReport(id);
+  }
+
+  // ---- Run workspace browser actions ----
+
+  async function loadRunWorkspaces() {
+    if (!selectedWorkspaceId.value) return;
+    try {
+      runWorkspaces.value = await api.runs(selectedWorkspaceId.value);
+    } catch {
+      runWorkspaces.value = [];
+    }
+  }
+
+  async function selectRunWorkspace(id: string) {
+    selectedRunWorkspaceId.value = id;
+    selectedRunArtifact.value = null;
+    if (selectedWorkspaceId.value) {
+      try {
+        runArtifacts.value = await api.runArtifacts(selectedWorkspaceId.value, id);
+      } catch {
+        runArtifacts.value = [];
+      }
+    }
+  }
+
+  async function loadRunArtifacts() {
+    if (!selectedWorkspaceId.value || !selectedRunWorkspaceId.value) return;
+    try {
+      runArtifacts.value = await api.runArtifacts(selectedWorkspaceId.value, selectedRunWorkspaceId.value);
+    } catch {
+      runArtifacts.value = [];
+    }
+  }
+
+  async function openRunArtifact(path: string) {
+    if (!selectedWorkspaceId.value || !selectedRunWorkspaceId.value) return;
+    try {
+      selectedRunArtifact.value = await api.runArtifact(selectedWorkspaceId.value, selectedRunWorkspaceId.value, path);
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  async function runSafeLangGraphBenchmark() {
+    if (!selectedWorkspaceId.value) return;
+    safeBenchmarkRunning.value = true;
+    try {
+      const payload: SafeLangGraphBenchmarkRequest = {
+        mode: "contest_graph_v3",
+        provider: "none",
+        copy_workspace: true,
+        run_name: "safe-ui-benchmark-contest-graph-v3",
+      };
+      safeBenchmarkResult.value = await api.safeLangGraphBenchmark(selectedWorkspaceId.value, payload);
+      await refreshWorkspace();
+      await loadRunWorkspaces();
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : String(err);
+    } finally {
+      safeBenchmarkRunning.value = false;
+    }
+  }
+
   return {
     health,
     workspaces,
@@ -243,5 +348,27 @@ export const useControlStore = defineStore("control", () => {
     loadLangGraphStatus,
     runLangGraph,
     openLangGraphArtifact,
+    // Benchmark Report Browser
+    benchmarkReports,
+    selectedBenchmarkReportId,
+    selectedBenchmarkReport,
+    benchmarkReportLoading,
+    benchmarkCategoryFilter,
+    benchmarkProviderFilter,
+    loadBenchmarkReports,
+    openBenchmarkReport,
+    // Run workspace browser
+    runWorkspaces,
+    selectedRunWorkspaceId,
+    runArtifacts,
+    selectedRunArtifact,
+    runArtifactQuery,
+    safeBenchmarkRunning,
+    safeBenchmarkResult,
+    loadRunWorkspaces,
+    selectRunWorkspace,
+    loadRunArtifacts,
+    openRunArtifact,
+    runSafeLangGraphBenchmark,
   };
 });

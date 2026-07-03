@@ -621,6 +621,118 @@ label {
   font-size: 14px;
 }
 
+/* ---- Benchmark Lab ---- */
+
+.benchmark-lab {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.report-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+  margin-bottom: 10px;
+}
+
+.report-card strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+
+.report-card small {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.report-card p {
+  margin: 0 0 8px;
+  color: var(--muted);
+  line-height: 1.45;
+  font-size: 13px;
+}
+
+/* ---- Artifact quick filters ---- */
+
+.quick-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.quick-filter-row button {
+  font-size: 12px;
+  min-height: 28px;
+  padding: 0 10px;
+}
+
+.clear-filter {
+  border-color: var(--bad) !important;
+  color: var(--bad) !important;
+}
+
+/* ---- Benchmark filters ---- */
+
+.filter-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.filter-row label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- Report meta ---- */
+
+.report-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* ---- Runs page ---- */
+
+.runs-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 400px) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.run-workspace-list {
+  display: grid;
+  gap: 6px;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.badge-group {
+  display: flex;
+  gap: 4px;
+}
+
+/* ---- Safe benchmark card ---- */
+
+.safe-benchmark-card {
+  border: 2px solid var(--good);
+  background: #eaf7ee;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.safe-benchmark-card strong {
+  color: var(--good);
+}
+
 table {
   width: 100%;
   min-width: 720px;
@@ -655,7 +767,7 @@ th {
   .nav { grid-auto-flow: column; overflow-x: auto; flex: 1; }
   .nav button { white-space: nowrap; }
   .workspace-mini { display: none; }
-  .grid-dashboard, .phase-layout, .artifact-layout, .console-layout, .settings-grid, .check-grid, .langgraph-layout { grid-template-columns: 1fr; }
+  .grid-dashboard, .phase-layout, .artifact-layout, .console-layout, .settings-grid, .check-grid, .langgraph-layout, .benchmark-lab, .runs-layout { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
