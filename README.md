@@ -274,38 +274,70 @@ RAG is advisory. It provides evidence, candidate routes and review hints. Final 
 
 ---
 
-## Control Center
+## Control Center v2
 
-`app/` provides a local full-stack control center for V2 workspaces.
+`app/` provides a local full-stack control center for V2 workspaces: **Vue 3 + Pinia + TypeScript** frontend, **FastAPI** backend, and **LangGraph Runtime v1.0-alpha** optional orchestration layer.
 
 ```text
 Backend: FastAPI, default http://127.0.0.1:8000
 Frontend: Vue 3 + Vite, default http://127.0.0.1:5173
-Harness mode: Manual-first
-Supported targets: Manual, Codex, Claude Code, OpenCode prompt preparation
-Safety policy: prepare copied run workspaces by default
+LangGraph Runtime: v1.0-alpha, contest_graph_v3 + Benchmark Arena
+Safety: Human Gate preserved, provider=none safe launcher, run workspace isolation
 ```
 
-Start on Windows:
+### Feature Pages
+
+| Page | Purpose |
+|---|---|
+| Overview | Dashboard with audit strip, phase timeline, recommendations, issues |
+| Phase | Per-phase inputs/outputs, prompt generation, harness preparation |
+| Artifacts | Workspace file index with quick filters (Core Gates, LangGraph, Evidence, Review) |
+| Console | Prompt generation + run history |
+| LangGraph | Runtime status, run config, run summary, phase results table, sandbox/paper/revision cards, files, audit |
+| Runs | Run workspace browser — list, browse, and preview artifacts inside copied run workspaces |
+| Benchmark Lab | Legacy 2022C audit, LangGraph benchmark reports, real provider reports, multi-model compare, safe provider=none launcher |
+| Settings | New workspace creation, source upload, health check, harness adapters |
+
+### Safety Boundaries
+
+- Frontend does **not** bypass Human Gate (never writes `HUMAN_MODEL_REVIEW.md` or `MODELING_DECISION.md`)
+- Frontend does **not** auto-write `VERIFY_REPORT.md`
+- Safe Benchmark Launcher enforces `provider=none`, `copy_workspace=true`, `contest_graph_v3`
+- Run artifact API is scoped to `source/runs/{run_name}/` only
+- Benchmark report API is scoped to `docs/`, `docs/real_benchmarks/`, `docs/benchmarks/` only
+- No real API key management in the UI
+
+### How to Run Locally
 
 ```powershell
-cd app
-.\start.bat
+# Backend
+cd app/backend
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+
+# Frontend
+cd app/frontend
+pnpm install
+pnpm run dev
 ```
 
-Then open:
+Then open `http://127.0.0.1:5173`.
 
-```text
-http://127.0.0.1:5173
+### Validation
+
+```bash
+cd app/frontend && pnpm run build                        # vue-tsc + vite
+python -m pytest tests/test_langgraph_api.py -q          # 12 tests
+python -m pytest tests/test_benchmark_reports_api.py -q  # 8 tests
+python -m pytest tests/test_run_workspace_artifacts_api.py -q  # 8 tests
+python -m pytest tests/test_safe_langgraph_benchmark_api.py -q  # 5 tests
 ```
 
-Beginner guide:
+### Docs
 
-```text
-docs/control-center-beginner-guide.md
-```
-
-The Control Center can create or inspect workspaces, read artifacts, generate phase prompts, check phase readiness, prepare safe copied runs and generate revision tasks.
+- `docs/frontend-control-center-v2.md` — full feature map and safety docs
+- `docs/frontend-api-contract.md` — API endpoint reference
+- `docs/langgraph-runner.md` — LangGraph runtime architecture
+- `docs/testing/frontend-langgraph-e2e-smoke.md` — E2E smoke test report
 
 ---
 

@@ -677,14 +677,14 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(row, idx) in store.langGraphRun.phase_results" :key="idx">
+                  <tr v-for="(row, idx) in (store.langGraphRun?.phase_results ?? [])" :key="idx">
                     <td><span class="badge info">P{{ field(row, ["phase", "phase_id", "id"], "?") }}</span></td>
                     <td>{{ field(row, ["strategy", "mode"], "-") }}</td>
                     <td><span :class="['badge', statusClass(field(row, 'status', 'UNKNOWN'))]">{{ field(row, "status", "-") }}</span></td>
                     <td>{{ field(row, "sandbox_status", "-") }}</td>
                     <td>{{ field(row, "paper_sandbox_status", "-") }}</td>
                     <td>{{ field(row, "revision_sandbox_status", "-") }}</td>
-                    <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ phaseResultNote(row) }}</td>
+                    <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" :title="phaseResultNote(row)">{{ phaseResultNote(row) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -696,8 +696,8 @@
             <div v-if="!store.langGraphRun" class="empty">尚未运行。</div>
             <div v-else class="field-grid">
               <div class="field"><label>Sandbox</label><strong>{{ store.langGraphRun.sandbox_status ?? "-" }}</strong><small>manifest_created_empty: {{ store.langGraphRun.manifest_created_empty }}</small></div>
-              <div class="field"><label>Paper Sandbox</label><strong>{{ store.langGraphRun.paper_sandbox_status ?? "-" }}</strong><small>files: {{ store.langGraphRun.paper_files_written.length }}</small></div>
-              <div class="field"><label>Revision Sandbox</label><strong>{{ store.langGraphRun.revision_sandbox_status ?? "-" }}</strong><small>files: {{ store.langGraphRun.revision_files_written.length }}</small></div>
+              <div class="field"><label>Paper Sandbox</label><strong>{{ store.langGraphRun.paper_sandbox_status ?? "-" }}</strong><small>files: {{ store.langGraphRun.paper_files_written?.length ?? 0 }}</small></div>
+              <div class="field"><label>Revision Sandbox</label><strong>{{ store.langGraphRun.revision_sandbox_status ?? "-" }}</strong><small>files: {{ store.langGraphRun.revision_files_written?.length ?? 0 }}</small></div>
             </div>
             <div v-if="store.langGraphRun" class="path-list" style="margin-top:8px">
               <div v-if="store.langGraphRun.claim_trace_path" class="path-chip" :title="store.langGraphRun.claim_trace_path">Claim Trace: {{ pathChipLabel(store.langGraphRun.claim_trace_path) }}</div>
@@ -741,16 +741,16 @@
                   <div v-if="store.langGraphRun.raw_output_path" class="path-chip" :title="store.langGraphRun.raw_output_path">Raw Output: {{ pathChipLabel(store.langGraphRun.raw_output_path) }}</div>
                 </div>
               </div>
-              <div v-if="store.langGraphRun.paper_files_written.length" class="field">
+              <div v-if="(store.langGraphRun.paper_files_written?.length ?? 0)" class="field">
                 <label>Paper Files Written</label>
                 <div class="path-list">
-                  <div v-for="p in store.langGraphRun.paper_files_written" :key="p" class="path-chip">{{ p }}</div>
+                  <div v-for="p in (store.langGraphRun.paper_files_written ?? [])" :key="p" class="path-chip">{{ p }}</div>
                 </div>
               </div>
-              <div v-if="store.langGraphRun.revision_files_written.length" class="field">
+              <div v-if="(store.langGraphRun.revision_files_written?.length ?? 0)" class="field">
                 <label>Revision Files Written</label>
                 <div class="path-list">
-                  <div v-for="p in store.langGraphRun.revision_files_written" :key="p" class="path-chip">{{ p }}</div>
+                  <div v-for="p in (store.langGraphRun.revision_files_written ?? [])" :key="p" class="path-chip">{{ p }}</div>
                 </div>
               </div>
             </div>

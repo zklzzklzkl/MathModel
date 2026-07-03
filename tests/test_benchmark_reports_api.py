@@ -42,6 +42,25 @@ def test_list_reports_are_under_docs():
         assert "knowledge/raw/" not in path
 
 
+def test_no_path_traversal_via_report_id():
+    """report_id is a SHA256 hash, not a filesystem path. ../ cannot resolve."""
+    resp = client.get("/api/benchmark-reports/%2e%2e%2f.env")
+    assert resp.status_code in (404, 403)
+
+    resp = client.get("/api/benchmark-reports/..%2F.env")
+    assert resp.status_code in (404, 403)
+
+
+def test_no_workspace_data_leaked():
+    """Benchmark reports must not include workspace files."""
+    resp = client.get("/api/benchmark-reports")
+    data = resp.json()
+    for item in data:
+        path = item["path"]
+        assert "workspaces" not in path.lower()
+        assert "knowledge" not in path.lower()
+
+
 def test_read_markdown_report():
     resp = client.get("/api/benchmark-reports")
     data = resp.json()
@@ -101,3 +120,12 @@ def test_legacy_benchmark_still_works():
     assert resp.status_code == 200
     data = resp.json()
     assert "results" in data
+
+
+def test_no_env_file_in_reports():
+    """Ensure no .env or private files appear in report list."""
+    resp = client.get("/api/benchmark-reports")
+    data = resp.json()
+    for item in data:
+        assert ".env" not in item["path"]
+        assert "hackingtosh" not in item["path"].lower()

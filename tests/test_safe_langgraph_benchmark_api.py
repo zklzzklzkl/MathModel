@@ -17,7 +17,6 @@ from app.main import app  # noqa: E402
 client = TestClient(app)
 
 WSID = "RDpcV29ya1NwYWNlX01hdGhNb2RlbFxleGFtcGxlc1wyMDIyQ1xEZWVwU2Vla1Y0UHJvX1YyLjM"
-FOO_ID = "RDpcV29ya1NwYWNlX01hdGhNb2RlbFx3b3Jrc3BhY2VzXGRlbW8"
 
 
 def _safe_post(payload: dict):
@@ -68,8 +67,19 @@ def test_copy_workspace_false_rejected():
     assert resp.status_code == 400
 
 
+def test_mode_not_contest_graph_v3_rejected():
+    """Only contest_graph_v3 is allowed in safe launcher."""
+    for bad_mode in ("dry_run", "llm_plan", "phase_execute", "contest_graph_v4"):
+        resp = _safe_post({
+            "mode": bad_mode,
+            "provider": "none",
+            "copy_workspace": True,
+        })
+        assert resp.status_code in (400, 422), f"Mode '{bad_mode}' should be rejected"
+
+
 def test_source_workspace_safety():
-    """Source workspace gate files must not be modified."""
+    """Source workspace gate files must not be modified by safe benchmark."""
     ws = Path("D:/WorkSpace_MathModel/examples/2022C/DeepSeekV4Pro_V2.3")
     before_human = (ws / "reports" / "HUMAN_MODEL_REVIEW.md").read_bytes() if (ws / "reports" / "HUMAN_MODEL_REVIEW.md").is_file() else b""
     before_model = (ws / "reports" / "MODELING_DECISION.md").read_bytes() if (ws / "reports" / "MODELING_DECISION.md").is_file() else b""
@@ -89,3 +99,19 @@ def test_source_workspace_safety():
     assert before_human == after_human, "HUMAN_MODEL_REVIEW.md was modified"
     assert before_model == after_model, "MODELING_DECISION.md was modified"
     assert before_verify == after_verify, "VERIFY_REPORT.md was modified"
+
+
+def test_no_contest_graph_v4_in_result():
+    """Response must not reference contest_graph_v4."""
+    resp = _safe_post({
+        "mode": "contest_graph_v3",
+        "provider": "none",
+        "copy_workspace": True,
+        "run_name": "test-no-v4-check",
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    mode = str(data.get("mode", ""))
+    assert "v4" not in mode.lower()
+    status = str(data.get("status", ""))
+    assert "v4" not in status.lower()
