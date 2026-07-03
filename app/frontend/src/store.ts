@@ -40,9 +40,28 @@ function canPhaseExecute(phase: number) {
 
 function friendlyError(message: string) {
   if (message.includes("PHASE_NOT_SUPPORTED") && message.includes("phase_execute")) {
-    return "当前阶段暂不支持单阶段执行。phase_execute 目前只支持 P1 建模策略与 P4 竞赛评分审查；其它阶段请使用 Dry Run 或 Run Recommended Graph。";
+    return "当前阶段暂不支持单阶段执行。phase_execute 目前只支持 P1 建模策略与 P4 竞赛评分审查；其它阶段请使用 Dry Run 或开始运行。";
   }
   return message;
+}
+
+function defaultModelForProvider(provider: string) {
+  if (provider === "deepseek") return "deepseek-chat";
+  return "";
+}
+
+function humanGateTemplate() {
+  return `# 人工模型审查
+
+## 审查结论
+方案A可行，批准进入实验阶段。
+
+## 批准
+approved / 批准
+
+## 人工说明
+我已阅读 MODEL_CANDIDATES.md 与 MODEL_REVIEW_AI.md，确认当前建模路线可以进入 Phase 2 实验阶段。
+`;
 }
 
 export const useControlStore = defineStore("control", () => {
@@ -62,20 +81,24 @@ export const useControlStore = defineStore("control", () => {
   const loading = ref(false);
   const error = ref<string>("");
 
-  // LangGraph Runtime state
+  const onboardingStep = ref<"welcome" | "api_config" | "ready" | "done">(
+    (localStorage.getItem("mathmodel_onboarding_step") as "welcome" | "api_config" | "ready" | "done" | null) ?? "welcome",
+  );
+  const showHumanGateDialog = ref(false);
+  const humanGateContent = ref(humanGateTemplate());
+
   const langGraphStatus = ref<LangGraphStatusResponse | null>(null);
   const langGraphRun = ref<LangGraphRunResponse | null>(null);
   const langGraphRunning = ref(false);
   const selectedLangGraphMode = ref<LangGraphMode>("contest_graph_v3");
   const selectedLangGraphPhase = ref(1);
-  const selectedProvider = ref("none");
-  const selectedModel = ref("");
+  const selectedProvider = ref(localStorage.getItem("mathmodel_provider") || "none");
+  const selectedModel = ref(localStorage.getItem("mathmodel_model") || defaultModelForProvider(selectedProvider.value));
   const langGraphCopyWorkspace = ref(true);
   const langGraphRunName = ref("");
   const langGraphTemperature = ref(0.2);
   const langGraphMaxTokens = ref(4096);
 
-  // Benchmark Report Browser state
   const benchmarkReports = ref<BenchmarkReportItem[]>([]);
   const selectedBenchmarkReportId = ref("");
   const selectedBenchmarkReport = ref<BenchmarkReportReadResponse | null>(null);
@@ -83,7 +106,6 @@ export const useControlStore = defineStore("control", () => {
   const benchmarkCategoryFilter = ref("all");
   const benchmarkProviderFilter = ref("all");
 
-  // Run workspace browser state
   const runWorkspaces = ref<RunWorkspaceItem[]>([]);
   const selectedRunWorkspaceId = ref("");
   const runArtifacts = ref<RunArtifactItem[]>([]);
@@ -96,6 +118,16 @@ export const useControlStore = defineStore("control", () => {
     workspaces.value.find((item) => item.id === selectedWorkspaceId.value) ?? null,
   );
   const selectedIsRunWorkspace = computed(() => isRunWorkspacePath(selectedWorkspace.value?.path));
+  const providerNeedsConfig = computed(() => selectedProvider.value !== "none" && selectedProvider.value !== "dry-run");
+  const providerHelp = computed(() => {
+    if (selectedProvider.value === "none" || selectedProvider.value === "dry-run") {
+      return "provider=none 是安全演示，不调用真实模型，也不会产生真实建模质量。";
+    }
+    if (selectedProvider.value === "deepseek") {
+      return "deepseek 需要在 app/backend/.env 或根目录 .env 配置 MATHMODEL_LLM_API_KEY，兼容 DEEPSEEK_API_KEY。";
+    }
+    return "openai-compatible 需要配置 MATHMODEL_LLM_API_KEY 与 MATHMODEL_LLM_BASE_URL，兼容 OPENAI_API_KEY 与 OPENAI_BASE_URL。";
+  });
 
   async function run<T>(operation: () => Promise<T>): Promise<T | null> {
     loading.value = true;
@@ -125,7 +157,6 @@ export const useControlStore = defineStore("control", () => {
       }
       await refreshWorkspace();
     });
-    // Load LangGraph status separately — don't break init if unavailable
     loadLangGraphStatus();
   }
 
@@ -213,10 +244,20 @@ export const useControlStore = defineStore("control", () => {
     await refreshWorkspace();
   }
 
-  // ---- LangGraph Runtime actions ----
-
   async function loadLangGraphStatus() {
     langGraphStatus.value = await run(api.langGraphStatus);
+  }
+
+  function rememberProvider() {
+    localStorage.setItem("mathmodel_provider", selectedProvider.value);
+    localStorage.setItem("mathmodel_model", selectedModel.value);
+  }
+
+  function normalizeModelForProvider() {
+    if (!selectedModel.value.trim()) {
+      selectedModel.value = defaultModelForProvider(selectedProvider.value);
+    }
+    rememberProvider();
   }
 
   async function runLangGraph() {
@@ -225,6 +266,7 @@ export const useControlStore = defineStore("control", () => {
       error.value = "Run workspace is read-only result context. Select a source workspace to run again.";
       return;
     }
+    normalizeModelForProvider();
     langGraphRunning.value = true;
     try {
       const payload: LangGraphRunRequest = {
@@ -238,6 +280,9 @@ export const useControlStore = defineStore("control", () => {
         max_tokens: langGraphMaxTokens.value,
       };
       langGraphRun.value = await api.runLangGraph(selectedWorkspaceId.value, payload);
+      if (langGraphRun.value.human_gate_required || langGraphRun.value.needs_human) {
+        showHumanGateDialog.value = true;
+      }
       await refreshWorkspace();
     } catch (err) {
       error.value = friendlyError(err instanceof Error ? err.message : String(err));
@@ -252,10 +297,14 @@ export const useControlStore = defineStore("control", () => {
       error.value = "Run workspace is read-only result context. Select a source workspace to run again.";
       return null;
     }
+    rememberProvider();
     langGraphRunning.value = true;
     error.value = "";
     try {
       langGraphRun.value = await api.runLangGraph(selectedWorkspaceId.value, payload);
+      if (langGraphRun.value.human_gate_required || langGraphRun.value.needs_human) {
+        showHumanGateDialog.value = true;
+      }
       await refreshWorkspace();
       await loadRunWorkspaces();
       return langGraphRun.value;
@@ -268,21 +317,20 @@ export const useControlStore = defineStore("control", () => {
   }
 
   async function runRecommendedGraph() {
+    normalizeModelForProvider();
     selectedLangGraphMode.value = "contest_graph_v3";
     selectedLangGraphPhase.value = 1;
-    selectedProvider.value = "none";
-    selectedModel.value = "";
     langGraphCopyWorkspace.value = true;
-    langGraphRunName.value = "ui-recommended-contest-graph-v3";
+    langGraphRunName.value = `ui-${selectedProvider.value}-contest-graph-v3`;
     langGraphTemperature.value = 0.2;
     langGraphMaxTokens.value = 4096;
     return runLangGraphPayload({
       phase: 1,
       mode: "contest_graph_v3",
-      provider: "none",
-      model: null,
+      provider: selectedProvider.value,
+      model: selectedModel.value.trim() || null,
       copy_workspace: true,
-      run_name: "ui-recommended-contest-graph-v3",
+      run_name: `ui-${selectedProvider.value}-contest-graph-v3`,
       temperature: 0.2,
       max_tokens: 4096,
     });
@@ -290,24 +338,23 @@ export const useControlStore = defineStore("control", () => {
 
   async function runCurrentSkill(phase: number) {
     if (!canPhaseExecute(phase)) {
-      error.value = `当前 Runtime 暂不支持 P${phase} 单阶段执行；请使用 Dry Run 或 Run Recommended Graph。`;
+      error.value = `当前 Runtime 暂不支持 P${phase} 单阶段执行；请使用 Dry Run 或开始运行。`;
       return null;
     }
+    normalizeModelForProvider();
     selectedLangGraphMode.value = "phase_execute";
     selectedLangGraphPhase.value = phase;
-    selectedProvider.value = "none";
-    selectedModel.value = "";
     langGraphCopyWorkspace.value = true;
-    langGraphRunName.value = `ui-phase-${phase}`;
+    langGraphRunName.value = `ui-${selectedProvider.value}-phase-${phase}`;
     langGraphTemperature.value = 0.2;
     langGraphMaxTokens.value = 4096;
     return runLangGraphPayload({
       phase,
       mode: "phase_execute",
-      provider: "none",
-      model: null,
+      provider: selectedProvider.value,
+      model: selectedModel.value.trim() || null,
       copy_workspace: true,
-      run_name: `ui-phase-${phase}`,
+      run_name: `ui-${selectedProvider.value}-phase-${phase}`,
       temperature: 0.2,
       max_tokens: 4096,
     });
@@ -334,11 +381,40 @@ export const useControlStore = defineStore("control", () => {
     });
   }
 
+  async function saveHumanGateFile() {
+    if (!selectedWorkspaceId.value) return false;
+    try {
+      const response = await fetch(`${api.base}/api/workspaces/${selectedWorkspaceId.value}/human-gate/model-review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: humanGateContent.value }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(String(body.detail ?? response.statusText));
+      }
+      showHumanGateDialog.value = false;
+      await refreshWorkspace();
+      return true;
+    } catch (err) {
+      error.value = friendlyError(err instanceof Error ? err.message : String(err));
+      return false;
+    }
+  }
+
+  function dismissOnboarding() {
+    onboardingStep.value = "done";
+    localStorage.setItem("mathmodel_onboarding_step", "done");
+  }
+
+  function setOnboardingStep(step: "welcome" | "api_config" | "ready" | "done") {
+    onboardingStep.value = step;
+    localStorage.setItem("mathmodel_onboarding_step", step);
+  }
+
   function openLangGraphArtifact(path: string | null | undefined) {
     if (path) openArtifact(path);
   }
-
-  // ---- Benchmark Report Browser actions ----
 
   async function loadBenchmarkReports() {
     benchmarkReportLoading.value = true;
@@ -358,8 +434,6 @@ export const useControlStore = defineStore("control", () => {
     selectedBenchmarkReportId.value = id;
     selectedBenchmarkReport.value = await api.benchmarkReport(id);
   }
-
-  // ---- Run workspace browser actions ----
 
   async function loadRunWorkspaces() {
     if (!selectedWorkspaceId.value) return;
@@ -442,6 +516,11 @@ export const useControlStore = defineStore("control", () => {
     uploadResult,
     loading,
     error,
+    onboardingStep,
+    showHumanGateDialog,
+    humanGateContent,
+    providerNeedsConfig,
+    providerHelp,
     initialize,
     refreshWorkspace,
     selectWorkspace,
@@ -453,7 +532,6 @@ export const useControlStore = defineStore("control", () => {
     loadBenchmark,
     generatePrompt,
     prepareHarness,
-    // LangGraph Runtime
     langGraphStatus,
     langGraphRun,
     langGraphRunning,
@@ -470,8 +548,10 @@ export const useControlStore = defineStore("control", () => {
     runRecommendedGraph,
     runCurrentSkill,
     dryRunSkill,
+    saveHumanGateFile,
+    dismissOnboarding,
+    setOnboardingStep,
     openLangGraphArtifact,
-    // Benchmark Report Browser
     benchmarkReports,
     selectedBenchmarkReportId,
     selectedBenchmarkReport,
@@ -480,7 +560,6 @@ export const useControlStore = defineStore("control", () => {
     benchmarkProviderFilter,
     loadBenchmarkReports,
     openBenchmarkReport,
-    // Run workspace browser
     runWorkspaces,
     selectedRunWorkspaceId,
     runArtifacts,
