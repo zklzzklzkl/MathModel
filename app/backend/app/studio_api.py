@@ -438,6 +438,25 @@ class RuntimeDriver:
 
 _executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="studio-driver")
 
+DOMAIN_PHASES: dict[str, list[int]] = {
+    "math_modeling": [0, 1, 2, 3, 4, 5, 6],
+    "statistics": [0, 1, 2, 3, 4, 5, 6],
+    "data_analysis": [0, 2, 4, 6],
+    "paper_writing": [0, 1, 3, 4, 5, 6],
+    "homework": [0, 1, 2, 3, 6],
+    "research": [0, 1, 2, 3, 4, 5, 6],
+}
+
+PHASE_LABELS: dict[int, tuple[str, str]] = {
+    0: ("problem_intake", "题面建档"),
+    1: ("model_strategy", "建模策略"),
+    2: ("code_generation", "代码实验"),
+    3: ("paper_writing", "论文构建"),
+    4: ("contest_review", "竞赛评审"),
+    5: ("revision", "修订"),
+    6: ("final_verify", "最终验收"),
+}
+
 
 def _langgraph_worker(
     run_id: str,
@@ -446,21 +465,25 @@ def _langgraph_worker(
     model: str,
     temperature: float,
     max_tokens: int,
+    domain: str = "math_modeling",
 ) -> None:
-    """Execute run_contest_graph_v3 in a background thread and emit RunEvents."""
+    """Execute run_contest_graph_v3 in a background thread and emit granular RunEvents."""
+    allowed_phases = DOMAIN_PHASES.get(domain, [0, 1, 2, 3, 4, 5, 6])
+
     try:
         from .langgraph_runner import run_contest_graph_v3
 
         s = settings()
         conn = connect()
         try:
+            label = PHASE_LABELS.get(0, ("phase_0", "Phase 0"))
             insert_event(
                 conn,
                 run_id,
-                stage="intake",
-                event_type="run_started",
+                stage=label[0],
+                event_type="step_start",
                 severity="info",
-                message="LangGraph contest_graph_v3 已启动，按 Phase 0-6 执行。",
+                message=f"[{domain}] {label[1]} 开始 — 允许阶段: {allowed_phases}",
                 artifacts=[],
             )
             conn.commit()
@@ -479,36 +502,36 @@ def _langgraph_worker(
             max_tokens=max_tokens,
         )
 
-        # Emit per-phase events from the result
+        # Emit per-phase events with detail
         conn = connect()
         try:
             phase_results = result.get("phase_results") or []
-            completed = result.get("completed_phases") or []
             contest_status = result.get("contest_status", "UNKNOWN")
-
-            phase_labels = {
-                0: ("problem_intake", "题面建档"),
-                1: ("model_strategy", "建模策略"),
-                2: ("code_generation", "代码实验"),
-                3: ("paper_writing", "论文构建"),
-                4: ("contest_review", "竞赛评审"),
-                5: ("revision", "修订"),
-                6: ("final_verify", "最终验收"),
-            }
+            completed_phases = result.get("completed_phases") or []
 
             for entry in phase_results:
                 ph = entry.get("phase", -1)
-                label = phase_labels.get(ph, (f"phase_{ph}", f"Phase {ph}"))
+                if ph not in allowed_phases and ph >= 0:
+                    continue
+                label = PHASE_LABELS.get(ph, (f"phase_{ph}", f"Phase {ph}"))
+                strategy = entry.get("strategy", "")
+                created_files: list[str] = []
+                if isinstance(entry.get("created_files"), list):
+                    created_files = entry["created_files"]
+                elif isinstance(entry.get("files_written"), list):
+                    created_files = entry["files_written"]
+
                 insert_event(
                     conn,
                     run_id,
                     stage=label[0],
-                    event_type="phase_completed",
+                    event_type="step_complete",
                     severity="info",
-                    message=f"{label[1]} 已完成",
-                    artifacts=[],
+                    message=f"{label[1]} 完成 ({strategy})" if strategy else f"{label[1]} 完成",
+                    artifacts=created_files,
                 )
 
+            # Pause on Human Gate
             if "WAITING_FOR_HUMAN" in str(contest_status):
                 status = "paused"
                 insert_event(
@@ -526,7 +549,7 @@ def _langgraph_worker(
                     conn,
                     run_id,
                     stage="runtime",
-                    event_type="run_failed",
+                    event_type="step_error",
                     severity="error",
                     message=f"LangGraph 运行失败: {result.get('stop_reason', contest_status)}",
                     artifacts=[],
@@ -537,9 +560,9 @@ def _langgraph_worker(
                     conn,
                     run_id,
                     stage="final_verify",
-                    event_type="run_completed",
+                    event_type="step_complete",
                     severity="info",
-                    message="LangGraph contest_graph_v3 全部阶段完成。",
+                    message=f"全部阶段完成 (完成 {len(completed_phases)} 个阶段，领域: {domain})",
                     artifacts=[],
                 )
 
@@ -556,7 +579,7 @@ def _langgraph_worker(
                 conn,
                 run_id,
                 stage="runtime",
-                event_type="run_failed",
+                event_type="step_error",
                 severity="error",
                 message="LangGraph 未安装，无法执行。请安装 langgraph 包。",
                 artifacts=[],
@@ -573,7 +596,7 @@ def _langgraph_worker(
                 conn,
                 run_id,
                 stage="runtime",
-                event_type="run_failed",
+                event_type="step_error",
                 severity="error",
                 message=f"LangGraph 执行异常: {exc}",
                 artifacts=[],
@@ -658,6 +681,7 @@ class LangGraphDriver(LocalWorkflowDriver):
             model,
             temperature,
             max_tokens,
+            project.get("domain", "math_modeling"),
         )
 
 
