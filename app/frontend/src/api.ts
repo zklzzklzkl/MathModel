@@ -21,6 +21,7 @@ export interface WorkspaceItem {
   source: "workspace_root" | "examples" | "other";
   updated_at: string | null;
   has_v2_shape: boolean;
+  archived: boolean;
 }
 
 export interface PhaseSummary {
@@ -142,6 +143,75 @@ export interface SourceUploadResponse {
   skipped: string[];
 }
 
+export interface ActivityMessage {
+  id: string;
+  kind: string;
+  title: string;
+  body: string;
+  severity: string;
+  phase: number | null;
+  status: string | null;
+  artifacts: string[];
+  actions: Array<Record<string, unknown>>;
+  timestamp: string | null;
+}
+
+export interface WorkspaceActivityResponse {
+  workspace: WorkspaceItem;
+  summary_status: string;
+  worst_severity: string;
+  primary_blocker: Record<string, unknown> | null;
+  recommended_action: Record<string, unknown>;
+  messages: ActivityMessage[];
+}
+
+export interface HumanGateSummaryResponse {
+  workspace: WorkspaceItem;
+  gate_file: string;
+  exists: boolean;
+  approved: boolean;
+  approval_signal: string | null;
+  summary: string;
+  model_candidates_excerpt: string;
+  model_review_excerpt: string;
+  figure_plan_excerpt: string;
+  risks: string[];
+  suggested_questions: string[];
+}
+
+export interface HumanGateChatResponse {
+  answer: string;
+  suggested_review_note: string;
+  follow_up_questions: string[];
+}
+
+export interface HumanGateReviewResponse {
+  ok: boolean;
+  decision: string;
+  written_path: string;
+  approved: boolean;
+  history: Record<string, unknown>;
+}
+
+export interface WorkspaceActionResponse {
+  ok: boolean;
+  action: string;
+  source: string;
+  destination: string | null;
+  workspace: WorkspaceItem | null;
+  message: string;
+}
+
+export interface RunDeleteResponse {
+  ok: boolean;
+  action: string;
+  run_id: string;
+  run_name: string;
+  source: string;
+  destination: string | null;
+  message: string;
+}
+
 export interface HarnessInfo {
   id: "Manual" | "Codex" | "Claude Code" | "OpenCode";
   label: string;
@@ -214,6 +284,7 @@ export interface LangGraphRunResponse {
   plan_path: string | null;
   plan_markdown_path: string | null;
   raw_output_path: string | null;
+  json_preprocess_report_path: string | null;
   apply_diff_path: string | null;
   files_planned: string[];
   files_written: string[];
@@ -337,6 +408,11 @@ export const api = {
   rawUrl: (id: string, path: string) => `${API_BASE}/api/workspaces/${id}/raw?path=${encodeURIComponent(path)}`,
   harnesses: () => request<HarnessInfo[]>("/api/harnesses"),
   workspaces: () => request<WorkspaceItem[]>("/api/workspaces"),
+  activity: (id: string) => request<WorkspaceActivityResponse>(`/api/workspaces/${id}/activity`),
+  archiveWorkspace: (id: string) =>
+    request<WorkspaceActionResponse>(`/api/workspaces/${id}/archive`, { method: "POST" }),
+  restoreWorkspace: (id: string) =>
+    request<WorkspaceActionResponse>(`/api/workspaces/${id}/restore`, { method: "POST" }),
   createWorkspace: (payload: CreateWorkspacePayload) =>
     request<CreateWorkspaceResponse>("/api/workspaces", { method: "POST", body: JSON.stringify(payload) }),
   summary: (id: string) => request<WorkspaceSummary>(`/api/workspaces/${id}/summary`),
@@ -356,6 +432,18 @@ export const api = {
       body: JSON.stringify({ name }),
     }),
   history: (id: string) => request<RunHistoryEntry[]>(`/api/workspaces/${id}/runs/history`),
+  humanGateSummary: (id: string) =>
+    request<HumanGateSummaryResponse>(`/api/workspaces/${id}/human-gate/summary`),
+  humanGateChat: (id: string, question: string, context?: string | null) =>
+    request<HumanGateChatResponse>(`/api/workspaces/${id}/human-gate/chat`, {
+      method: "POST",
+      body: JSON.stringify({ question, context }),
+    }),
+  writeHumanGateReview: (id: string, decision: "approved" | "needs_revision" | "rejected", humanNotes: string, aiNotes?: string | null) =>
+    request<HumanGateReviewResponse>(`/api/workspaces/${id}/human-gate/review`, {
+      method: "PUT",
+      body: JSON.stringify({ decision, human_notes: humanNotes, ai_notes: aiNotes ?? null }),
+    }),
   revisionTasks: (id: string) =>
     request<RevisionTasksResponse>(`/api/workspaces/${id}/revision-tasks`, { method: "POST" }),
   prepareHarness: (id: string, phase: number, harness: string, copyWorkspace = true, runName?: string) =>
@@ -394,6 +482,13 @@ export const api = {
   // Run Workspace Browser
   runs: (id: string) =>
     request<RunWorkspaceItem[]>(`/api/workspaces/${id}/runs`),
+  deleteRun: (id: string, runId: string, permanent = false, confirmName?: string | null) => {
+    const params = new URLSearchParams({ permanent: permanent ? "true" : "false" });
+    if (confirmName) params.set("confirm_name", confirmName);
+    return request<RunDeleteResponse>(`/api/workspaces/${id}/runs/${encodeURIComponent(runId)}?${params.toString()}`, {
+      method: "DELETE",
+    });
+  },
 
   runArtifacts: (id: string, runId: string) =>
     request<RunArtifactItem[]>(`/api/workspaces/${id}/runs/${encodeURIComponent(runId)}/artifacts`),

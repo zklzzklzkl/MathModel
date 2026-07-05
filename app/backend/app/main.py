@@ -5,6 +5,7 @@ import hashlib
 import json
 import platform
 import re
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,7 @@ from .langgraph_runner import LangGraphUnavailableError, langgraph_status, run_l
 from .model_adapters import ModelAdapterError
 from .models import (
     ArtifactReadResponse,
+    ActivityMessage,
     AuditResponse,
     BenchmarkReportItem,
     BenchmarkReportReadResponse,
@@ -31,6 +33,11 @@ from .models import (
     PrepareHarnessRequest,
     PrepareHarnessResponse,
     HealthResponse,
+    HumanGateChatRequest,
+    HumanGateChatResponse,
+    HumanGateReviewRequest,
+    HumanGateReviewResponse,
+    HumanGateSummaryResponse,
     LangGraphRunRequest,
     LangGraphRunResponse,
     LangGraphStatusResponse,
@@ -41,15 +48,14 @@ from .models import (
     RevisionTasksResponse,
     RunArtifactItem,
     RunArtifactReadResponse,
+    RunDeleteResponse,
     RunHistoryEntry,
     RunWorkspaceItem,
     SafeLangGraphBenchmarkRequest,
     SourceUploadResponse,
     ScriptStatus,
-    WorkspaceSummary,
-    RunHistoryEntry,
-    SourceUploadResponse,
-    ScriptStatus,
+    WorkspaceActionResponse,
+    WorkspaceActivityResponse,
     WorkspaceSummary,
 )
 from .prompts import build_prompt
@@ -85,6 +91,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from . import studio_api  # noqa: E402
+
+studio_api.set_settings_provider(lambda: get_settings())
+app.include_router(studio_api.router)
 
 
 ISSUE_PHASE_MAP = {
@@ -196,6 +207,148 @@ def revision_tasks_markdown(tasks: list[RevisionTask]) -> str:
     return "\n".join(lines) + "\n"
 
 
+APPROVAL_SIGNALS = ("approval", "approved", "adopt", "accepted", "confirm", "confirmed", "通过", "确认", "同意", "采用", "批准")
+
+
+def _unique_destination(path: Path) -> Path:
+    if not path.exists():
+        return path
+    for index in range(1, 1000):
+        candidate = path.with_name(f"{path.name}-{index}")
+        if not candidate.exists():
+            return candidate
+    raise HTTPException(status_code=409, detail="Cannot find an available archive destination.")
+
+
+def _assert_workspace_mutable(workspace: Path, settings: Any) -> None:
+    resolved = workspace.resolve()
+    if _is_relative_to(resolved, settings.examples_root):
+        raise HTTPException(status_code=403, detail="Example workspaces are read-only. Copy them before modifying.")
+    if not _is_relative_to(resolved, settings.workspace_root):
+        raise HTTPException(status_code=403, detail="Only workspaces under WORKSPACE_ROOT can be managed.")
+
+
+def _workspace_archive_root(settings: Any) -> Path:
+    return (settings.workspace_root / ".archive").resolve()
+
+
+def _excerpt(workspace: Path, relative: str, limit: int = 1800) -> str:
+    text = read_text(workspace / relative).strip()
+    if len(text) <= limit:
+        return text
+    return text[:limit].rstrip() + "\n\n..."
+
+
+def _detect_gate_approval(text: str) -> tuple[bool, str | None]:
+    lower = text.lower()
+    for signal in APPROVAL_SIGNALS:
+        if signal in lower or signal in text:
+            return True, signal
+    return False, None
+
+
+def _human_gate_summary_payload(workspace: Path, settings: Any) -> HumanGateSummaryResponse:
+    gate_file = "reports/HUMAN_MODEL_REVIEW.md"
+    gate_text = read_text(workspace / gate_file)
+    approved, signal = _detect_gate_approval(gate_text)
+    candidates = _excerpt(workspace, "reports/MODEL_CANDIDATES.md")
+    review = _excerpt(workspace, "reports/MODEL_REVIEW_AI.md")
+    figures = _excerpt(workspace, "reports/FIGURE_PLAN.md", limit=1000)
+    risks: list[str] = []
+    for label, text in (("候选模型", candidates), ("AI 审查", review), ("图表计划", figures)):
+        if not text:
+            risks.append(f"{label}文件缺失或为空，需要先补齐。")
+    if "HIGH" in review.upper() or "BLOCKER" in review.upper():
+        risks.append("AI 审查中出现 HIGH/BLOCKER 风险，建议先讨论再批准。")
+    if not risks:
+        risks.append("未发现明显阻塞，但仍需要人工确认模型路线是否回答原题。")
+    summary = "\n".join(
+        [
+            "请重点确认：模型路线是否直接回答题目、数据是否支撑模型复杂度、验证方法是否可信、图表是否能支撑核心结论。",
+            f"当前审核文件：{'已存在' if gate_text else '尚未写入'}；批准状态：{'已批准' if approved else '未批准'}。",
+        ]
+    )
+    return HumanGateSummaryResponse(
+        workspace=workspace_item(workspace, settings),
+        gate_file=gate_file,
+        exists=(workspace / gate_file).is_file(),
+        approved=approved,
+        approval_signal=signal,
+        summary=summary,
+        model_candidates_excerpt=candidates,
+        model_review_excerpt=review,
+        figure_plan_excerpt=figures,
+        risks=risks,
+        suggested_questions=[
+            "首选模型为什么比更简单的 baseline 更合适？",
+            "哪些结论目前还缺少数据或图表证据？",
+            "如果评委只看摘要和关键图，最容易扣分在哪里？",
+        ],
+    )
+
+
+def _activity_from_workspace(workspace: Path, settings: Any) -> WorkspaceActivityResponse:
+    audit = run_audit(settings, workspace, nature="auto")
+    result = audit["result"]
+    missing = [item.path for item in list_artifacts(workspace) if item.required and not item.exists]
+    recommendations = build_recommendations(result, missing)
+    primary = recommendations[0].model_dump() if recommendations else None
+    history = read_history(workspace, limit=8)
+    messages: list[ActivityMessage] = [
+        ActivityMessage(
+            id="workspace-status",
+            kind="status",
+            title="当前工作区状态",
+            body=f"审计状态 {result.get('status', 'UNKNOWN')}，最高风险 {result.get('worst_severity', 'NONE')}。",
+            severity=str(result.get("worst_severity", "INFO")),
+            status=str(result.get("status", "UNKNOWN")),
+            artifacts=["reports/VERIFY_REPORT.md", "results/RESULTS_MANIFEST.json"],
+        )
+    ]
+    if primary:
+        messages.append(
+            ActivityMessage(
+                id="primary-blocker",
+                kind="recommendation",
+                title=str(primary.get("title", "下一步")),
+                body=str(primary.get("detail", "查看当前阻塞项并处理。")),
+                severity=str(primary.get("severity", "INFO")),
+                phase=primary.get("phase") if isinstance(primary.get("phase"), int) else None,
+                artifacts=[str(primary["artifact"])] if primary.get("artifact") else [],
+                actions=[{"id": "open_artifact", "label": "查看相关文件", "artifact": primary.get("artifact")}],
+            )
+        )
+    for index, item in enumerate(reversed(history), start=1):
+        event = str(item.get("event", "history"))
+        messages.append(
+            ActivityMessage(
+                id=f"history-{index}",
+                kind="history",
+                title=event.replace("_", " "),
+                body=str(item.get("note") or item.get("status_after") or "运行记录已更新。"),
+                severity="INFO",
+                phase=item.get("phase") if isinstance(item.get("phase"), int) else None,
+                status=item.get("status_after"),
+                artifacts=[str(item["prompt_path"])] if item.get("prompt_path") else [],
+                timestamp=item.get("timestamp"),
+            )
+        )
+    return WorkspaceActivityResponse(
+        workspace=workspace_item(workspace, settings),
+        summary_status=str(result.get("status", "UNKNOWN")),
+        worst_severity=str(result.get("worst_severity", "NONE")),
+        primary_blocker=primary,
+        recommended_action={
+            "id": "run_recommended_graph",
+            "label": "运行推荐流程",
+            "mode": "contest_graph_v3",
+            "provider": "none",
+            "description": "默认安全基线，不调用真实 API。",
+        },
+        messages=messages,
+    )
+
+
 @app.get("/api/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     settings = get_settings()
@@ -222,6 +375,56 @@ def get_langgraph_status() -> LangGraphStatusResponse:
 @app.get("/api/workspaces")
 def get_workspaces() -> list[Any]:
     return discover_workspaces(get_settings())
+
+
+@app.get("/api/workspaces/{workspace_id}/activity", response_model=WorkspaceActivityResponse)
+def workspace_activity(workspace_id: str) -> WorkspaceActivityResponse:
+    settings = get_settings()
+    workspace = workspace_from_id(workspace_id, settings)
+    return _activity_from_workspace(workspace, settings)
+
+
+@app.post("/api/workspaces/{workspace_id}/archive", response_model=WorkspaceActionResponse)
+def archive_workspace(workspace_id: str) -> WorkspaceActionResponse:
+    settings = get_settings()
+    workspace = workspace_from_id(workspace_id, settings)
+    _assert_workspace_mutable(workspace, settings)
+    archive_root = _workspace_archive_root(settings)
+    if _is_relative_to(workspace, archive_root):
+        raise HTTPException(status_code=400, detail="Workspace is already archived.")
+    archive_root.mkdir(parents=True, exist_ok=True)
+    destination = _unique_destination(archive_root / workspace.name)
+    shutil.move(str(workspace), str(destination))
+    restored_item = workspace_item(destination, settings)
+    return WorkspaceActionResponse(
+        ok=True,
+        action="archive",
+        source=str(workspace),
+        destination=str(destination),
+        workspace=restored_item,
+        message="Workspace archived. It can be restored from the workspace manager.",
+    )
+
+
+@app.post("/api/workspaces/{workspace_id}/restore", response_model=WorkspaceActionResponse)
+def restore_workspace(workspace_id: str) -> WorkspaceActionResponse:
+    settings = get_settings()
+    workspace = workspace_from_id(workspace_id, settings)
+    archive_root = _workspace_archive_root(settings)
+    if not _is_relative_to(workspace, archive_root):
+        raise HTTPException(status_code=400, detail="Workspace is not archived.")
+    destination = (settings.workspace_root / workspace.name).resolve()
+    if destination.exists():
+        raise HTTPException(status_code=409, detail="A workspace with the same name already exists.")
+    shutil.move(str(workspace), str(destination))
+    return WorkspaceActionResponse(
+        ok=True,
+        action="restore",
+        source=str(workspace),
+        destination=str(destination),
+        workspace=workspace_item(destination, settings),
+        message="Workspace restored.",
+    )
 
 
 @app.post("/api/workspaces", response_model=CreateWorkspaceResponse)
@@ -306,6 +509,89 @@ def get_workspace_raw(workspace_id: str, path: str = Query(...)) -> FileResponse
     if not target.is_file():
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(str(target))
+
+
+@app.get("/api/workspaces/{workspace_id}/human-gate/summary", response_model=HumanGateSummaryResponse)
+def human_gate_summary(workspace_id: str) -> HumanGateSummaryResponse:
+    settings = get_settings()
+    workspace = workspace_from_id(workspace_id, settings)
+    return _human_gate_summary_payload(workspace, settings)
+
+
+@app.post("/api/workspaces/{workspace_id}/human-gate/chat", response_model=HumanGateChatResponse)
+def human_gate_chat(workspace_id: str, payload: HumanGateChatRequest) -> HumanGateChatResponse:
+    settings = get_settings()
+    workspace = workspace_from_id(workspace_id, settings)
+    summary = _human_gate_summary_payload(workspace, settings)
+    question = payload.question.strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Question is required.")
+    risks = "\n".join(f"- {item}" for item in summary.risks)
+    answer = (
+        "我会按评委视角帮你拆解，但不会替你自动批准。\n\n"
+        f"你的问题：{question}\n\n"
+        f"当前风险：\n{risks}\n\n"
+        "建议先确认首选模型是否直接回答题目、baseline 是否足够、数据量是否支撑复杂模型、验证指标是否能落到结果表和图表。"
+    )
+    suggested = (
+        "人工建议草稿：已阅读候选模型和 AI 审查。"
+        "请根据讨论补充最终选择、拒绝路线、风险和后续实验要求。"
+    )
+    return HumanGateChatResponse(
+        answer=answer,
+        suggested_review_note=suggested,
+        follow_up_questions=summary.suggested_questions,
+    )
+
+
+@app.put("/api/workspaces/{workspace_id}/human-gate/review", response_model=HumanGateReviewResponse)
+def write_human_gate_review(workspace_id: str, payload: HumanGateReviewRequest) -> HumanGateReviewResponse:
+    settings = get_settings()
+    workspace = workspace_from_id(workspace_id, settings)
+    _assert_workspace_mutable(workspace, settings)
+    if not payload.human_notes.strip():
+        raise HTTPException(status_code=400, detail="Human notes are required.")
+    target = safe_artifact_path(workspace, "reports/HUMAN_MODEL_REVIEW.md")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    approved = payload.decision == "approved"
+    status_line = "approved" if approved else payload.decision
+    content = "\n".join(
+        [
+            "# Human Model Review",
+            "",
+            "## Decision",
+            status_line,
+            "",
+            "## Human Notes",
+            payload.human_notes.strip(),
+            "",
+            "## AI Assisted Notes",
+            (payload.ai_notes or "").strip() or "N/A",
+            "",
+            "## Safety Boundary",
+            "- This file records an explicit human decision.",
+            "- The UI did not auto-approve the model route.",
+            "- Continue to Phase 2 only if the decision is approved.",
+            "",
+        ]
+    )
+    target.write_text(content, encoding="utf-8")
+    history = append_history(
+        workspace,
+        {
+            "event": "human_gate_review_written",
+            "phase": 1,
+            "status_after": status_line,
+            "note": f"Human gate decision: {payload.decision}.",
+        },
+    )
+    return HumanGateReviewResponse(
+        ok=True,
+        decision=payload.decision,
+        written_path=str(target),
+        approved=approved,
+        history=history,
+    )
 
 
 @app.post("/api/workspaces/{workspace_id}/audit", response_model=AuditResponse)
@@ -486,6 +772,7 @@ def run_langgraph(workspace_id: str, payload: LangGraphRunRequest) -> LangGraphR
         plan_path=result.get("plan_path"),
         plan_markdown_path=result.get("plan_markdown_path"),
         raw_output_path=result.get("raw_output_path"),
+        json_preprocess_report_path=result.get("json_preprocess_report_path"),
         apply_diff_path=result.get("apply_diff_path"),
         files_planned=list(result.get("files_planned", [])),
         files_written=list(result.get("files_written", [])),
@@ -735,6 +1022,8 @@ def _run_workspace_id(name: str) -> str:
 
 def _run_workspace_name(run_id: str, runs_root: Path) -> str:
     for entry in runs_root.iterdir():
+        if entry.name == ".archive":
+            continue
         if entry.is_dir() and _run_workspace_id(entry.name) == run_id:
             return entry.name
     raise HTTPException(status_code=404, detail="Run workspace not found.")
@@ -788,7 +1077,7 @@ def list_run_workspaces(workspace_id: str) -> list[RunWorkspaceItem]:
         return []
     items: list[RunWorkspaceItem] = []
     for entry in sorted(runs_root.iterdir(), key=lambda p: p.name, reverse=True):
-        if not entry.is_dir():
+        if not entry.is_dir() or entry.name == ".archive":
             continue
         stat = entry.stat()
         items.append(RunWorkspaceItem(
@@ -801,6 +1090,55 @@ def list_run_workspaces(workspace_id: str) -> list[RunWorkspaceItem]:
             has_phase_plan=(entry / "reports" / "LANGGRAPH_PHASE_PLAN.json").is_file(),
         ))
     return items
+
+
+@app.delete("/api/workspaces/{workspace_id}/runs/{run_id}", response_model=RunDeleteResponse)
+def delete_run_workspace(
+    workspace_id: str,
+    run_id: str,
+    permanent: bool = Query(False),
+    confirm_name: str | None = Query(None),
+) -> RunDeleteResponse:
+    settings = get_settings()
+    source = workspace_from_id(workspace_id, settings)
+    _assert_workspace_mutable(source, settings)
+    runs_root = source / "runs"
+    run_path = _run_workspace_from_id(workspace_id, run_id, settings)
+    run_name = run_path.name
+    if permanent:
+        if confirm_name != run_name:
+            raise HTTPException(status_code=400, detail="Permanent delete requires confirm_name to match the run name.")
+        shutil.rmtree(run_path)
+        append_history(
+            source,
+            {"event": "run_workspace_deleted", "run_workspace": str(run_path), "note": f"Permanently deleted run {run_name}."},
+        )
+        return RunDeleteResponse(
+            ok=True,
+            action="delete",
+            run_id=run_id,
+            run_name=run_name,
+            source=str(run_path),
+            destination=None,
+            message="Run workspace permanently deleted.",
+        )
+    archive_root = (runs_root / ".archive").resolve()
+    archive_root.mkdir(parents=True, exist_ok=True)
+    destination = _unique_destination(archive_root / run_name)
+    shutil.move(str(run_path), str(destination))
+    append_history(
+        source,
+        {"event": "run_workspace_archived", "run_workspace": str(destination), "note": f"Archived run {run_name}."},
+    )
+    return RunDeleteResponse(
+        ok=True,
+        action="archive",
+        run_id=run_id,
+        run_name=run_name,
+        source=str(run_path),
+        destination=str(destination),
+        message="Run workspace archived.",
+    )
 
 
 @app.get("/api/workspaces/{workspace_id}/runs/{run_id}/artifacts", response_model=list[RunArtifactItem])
@@ -890,6 +1228,7 @@ def run_safe_langgraph_benchmark(workspace_id: str, payload: SafeLangGraphBenchm
         plan_path=result.get("plan_path"),
         plan_markdown_path=result.get("plan_markdown_path"),
         raw_output_path=result.get("raw_output_path"),
+        json_preprocess_report_path=result.get("json_preprocess_report_path"),
         apply_diff_path=result.get("apply_diff_path"),
         files_planned=list(result.get("files_planned", [])),
         files_written=list(result.get("files_written", [])),
@@ -915,3 +1254,5 @@ def run_safe_langgraph_benchmark(workspace_id: str, payload: SafeLangGraphBenchm
         revision_files_written=list(result.get("revision_files_written", [])),
         revision_status_path=result.get("revision_status_path"),
     )
+    RunDeleteRequest,
+    RunDeleteResponse,

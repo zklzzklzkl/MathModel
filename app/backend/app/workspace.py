@@ -178,8 +178,10 @@ def _mtime(path: Path) -> str | None:
 
 def workspace_item(path: Path, settings: Settings, source: str | None = None) -> WorkspaceItem:
     resolved = path.resolve()
+    archive_root = (settings.workspace_root / ".archive").resolve()
+    archived = _is_relative_to(resolved, archive_root)
     if source is None:
-        if _is_relative_to(resolved, settings.workspace_root):
+        if archived or _is_relative_to(resolved, settings.workspace_root):
             source = "workspace_root"
         elif _is_relative_to(resolved, settings.examples_root):
             source = "examples"
@@ -192,6 +194,7 @@ def workspace_item(path: Path, settings: Settings, source: str | None = None) ->
         source=source,  # type: ignore[arg-type]
         updated_at=_mtime(resolved),
         has_v2_shape=is_v2_workspace(resolved),
+        archived=archived,
     )
 
 
@@ -203,7 +206,7 @@ def discover_workspaces(settings: Settings) -> list[WorkspaceItem]:
         for item in sorted(root.rglob("*")):
             if is_v2_workspace(item):
                 candidates[str(item.resolve())] = workspace_item(item, settings, source)
-    return sorted(candidates.values(), key=lambda item: (item.source, item.name.lower()))
+    return sorted(candidates.values(), key=lambda item: (item.archived, item.source, item.name.lower()))
 
 
 def artifact_type(path: Path) -> str:

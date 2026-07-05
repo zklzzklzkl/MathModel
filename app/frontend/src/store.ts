@@ -1,7 +1,8 @@
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import {
   api,
+  type ActivityMessage,
   type ArtifactItem,
   type ArtifactReadResponse,
   type BenchmarkReportItem,
@@ -10,6 +11,9 @@ import {
   type CreateWorkspacePayload,
   type HarnessInfo,
   type HealthResponse,
+  type HumanGateChatResponse,
+  type HumanGateReviewResponse,
+  type HumanGateSummaryResponse,
   type LangGraphMode,
   type LangGraphRunRequest,
   type LangGraphRunResponse,
@@ -23,6 +27,7 @@ import {
   type RunWorkspaceItem,
   type SafeLangGraphBenchmarkRequest,
   type SourceUploadResponse,
+  type WorkspaceActivityResponse,
   type WorkspaceItem,
   type WorkspaceSummary,
 } from "./api";
@@ -59,6 +64,14 @@ export const useControlStore = defineStore("control", () => {
   const harnesses = ref<HarnessInfo[]>([]);
   const preparedRun = ref<PrepareHarnessResponse | null>(null);
   const uploadResult = ref<SourceUploadResponse | null>(null);
+  const activity = ref<WorkspaceActivityResponse | null>(null);
+  const activityMessages = computed<ActivityMessage[]>(() => activity.value?.messages ?? []);
+  const humanGateSummary = ref<HumanGateSummaryResponse | null>(null);
+  const humanGateChat = ref<HumanGateChatResponse | null>(null);
+  const humanGateQuestion = ref("");
+  const humanGateDecision = ref<"approved" | "needs_revision" | "rejected">("needs_revision");
+  const humanGateReviewNotes = ref("");
+  const humanGateReviewResult = ref<HumanGateReviewResponse | null>(null);
   const loading = ref(false);
   const error = ref<string>("");
 
@@ -70,6 +83,14 @@ export const useControlStore = defineStore("control", () => {
   const selectedLangGraphPhase = ref(1);
   const selectedProvider = ref("none");
   const selectedModel = ref("");
+
+  watch(selectedProvider, (provider) => {
+    if (provider === "deepseek" && !selectedModel.value) {
+      selectedModel.value = "deepseek-chat";
+    } else if (provider === "openai-compatible" && !selectedModel.value) {
+      selectedModel.value = "";
+    }
+  });
   const langGraphCopyWorkspace = ref(true);
   const langGraphRunName = ref("");
   const langGraphTemperature = ref(0.2);
@@ -91,6 +112,61 @@ export const useControlStore = defineStore("control", () => {
   const runArtifactQuery = ref("");
   const safeBenchmarkRunning = ref(false);
   const safeBenchmarkResult = ref<LangGraphRunResponse | null>(null);
+
+  // ---- Onboarding & Human Gate state ----
+  const onboardingStep = ref<"welcome" | "api_config" | "ready" | "done">(
+    localStorage.getItem("mathmodel_onboarding_done") === "true" ? "done" : "welcome",
+  );
+  const showHumanGateDialog = ref(false);
+  const humanGateContent = ref("");
+
+  const humanGateTemplate = computed(() => {
+    const run = langGraphRun.value;
+    if (!run) return "";
+    const phaseResults = run.phase_results ?? [];
+    const p1Result = phaseResults.find((r: Record<string, unknown>) => r.phase === 1);
+    const p1Status = p1Result?.status ?? "UNKNOWN";
+    return [
+      "# Human Model Review",
+      "",
+      "## Review Context",
+      `- Run status: ${run.status ?? "N/A"}`,
+      `- Phase 1 plan status: ${p1Status}`,
+      "",
+      "## Selected Model Route",
+      "[ ] Review the AI-generated model candidates in reports/MODEL_CANDIDATES.md",
+      "[ ] Review the AI model review in reports/MODEL_REVIEW_AI.md",
+      "",
+      "## Decision",
+      "approved",
+      "",
+      "## Rationale",
+      "(Write your review rationale here...)",
+    ].join("\n");
+  });
+
+  const humanGateNeeded = computed(() => {
+    const run = langGraphRun.value;
+    if (!run) return false;
+    return !!(run.needs_human || run.human_gate_required);
+  });
+
+  function dismissOnboarding() {
+    onboardingStep.value = "done";
+  }
+
+  function setOnboardingProvider(provider: string) {
+    selectedProvider.value = provider;
+  }
+
+  function openHumanGateDialog() {
+    humanGateContent.value = humanGateTemplate.value;
+    showHumanGateDialog.value = true;
+  }
+
+  function closeHumanGateDialog() {
+    showHumanGateDialog.value = false;
+  }
 
   const selectedWorkspace = computed(() =>
     workspaces.value.find((item) => item.id === selectedWorkspaceId.value) ?? null,
@@ -132,14 +208,16 @@ export const useControlStore = defineStore("control", () => {
   async function refreshWorkspace() {
     if (!selectedWorkspaceId.value) return;
     const id = selectedWorkspaceId.value;
-    const [summaryResult, artifactsResult, historyResult] = await Promise.all([
+    const [summaryResult, artifactsResult, historyResult, activityResult] = await Promise.all([
       api.summary(id),
       api.artifacts(id),
       api.history(id),
+      api.activity(id),
     ]);
     summary.value = summaryResult;
     artifacts.value = artifactsResult;
     history.value = historyResult;
+    activity.value = activityResult;
     if (!selectedArtifact.value && artifactsResult.length > 0) {
       await openArtifact(artifactsResult[0].path);
     }
@@ -179,6 +257,82 @@ export const useControlStore = defineStore("control", () => {
     if (!selectedWorkspaceId.value) return;
     uploadResult.value = await run(() => api.uploadSource(selectedWorkspaceId.value, files));
     await refreshWorkspace();
+  }
+
+  async function refreshActivity() {
+    if (!selectedWorkspaceId.value) return;
+    activity.value = await run(() => api.activity(selectedWorkspaceId.value));
+  }
+
+  async function archiveSelectedWorkspace() {
+    if (!selectedWorkspaceId.value) return null;
+    const result = await run(() => api.archiveWorkspace(selectedWorkspaceId.value));
+    workspaces.value = await api.workspaces();
+    if (workspaces.value.length > 0) {
+      const firstSource = workspaces.value.find((item) => !item.archived && !isRunWorkspacePath(item.path));
+      selectedWorkspaceId.value = firstSource?.id ?? workspaces.value[0].id;
+      await refreshWorkspace();
+    }
+    return result;
+  }
+
+  async function restoreWorkspace(id: string) {
+    const result = await run(() => api.restoreWorkspace(id));
+    workspaces.value = await api.workspaces();
+    if (result?.workspace?.id) {
+      selectedWorkspaceId.value = result.workspace.id;
+      await refreshWorkspace();
+    }
+    return result;
+  }
+
+  async function deleteRunWorkspace(runId: string, permanent = false, confirmName?: string | null) {
+    if (!selectedWorkspaceId.value) return null;
+    const result = await run(() => api.deleteRun(selectedWorkspaceId.value, runId, permanent, confirmName));
+    await loadRunWorkspaces();
+    await refreshWorkspace();
+    return result;
+  }
+
+  async function loadHumanGateSummary() {
+    if (!selectedWorkspaceId.value) return null;
+    humanGateSummary.value = await run(() => api.humanGateSummary(selectedWorkspaceId.value));
+    if (humanGateSummary.value && !humanGateReviewNotes.value) {
+      humanGateReviewNotes.value = [
+        "我已阅读候选模型、AI 审查和图表计划。",
+        "请在这里写明：采用哪条路线、拒绝哪些路线、哪些风险必须在 Phase 2 验证。",
+      ].join("\n");
+    }
+    return humanGateSummary.value;
+  }
+
+  async function askHumanGate(question?: string) {
+    if (!selectedWorkspaceId.value) return null;
+    const q = (question ?? humanGateQuestion.value).trim();
+    if (!q) {
+      error.value = "请输入要讨论的问题。";
+      return null;
+    }
+    humanGateChat.value = await run(() => api.humanGateChat(selectedWorkspaceId.value, q, humanGateSummary.value?.summary ?? null));
+    if (humanGateChat.value?.suggested_review_note && !humanGateReviewNotes.value.includes(humanGateChat.value.suggested_review_note)) {
+      humanGateReviewNotes.value = `${humanGateReviewNotes.value}\n\n${humanGateChat.value.suggested_review_note}`.trim();
+    }
+    return humanGateChat.value;
+  }
+
+  async function submitHumanGateReview() {
+    if (!selectedWorkspaceId.value) return null;
+    humanGateReviewResult.value = await run(() =>
+      api.writeHumanGateReview(
+        selectedWorkspaceId.value,
+        humanGateDecision.value,
+        humanGateReviewNotes.value,
+        humanGateChat.value?.suggested_review_note ?? null,
+      ),
+    );
+    await loadHumanGateSummary();
+    await refreshWorkspace();
+    return humanGateReviewResult.value;
   }
 
   async function generateRevisionTasks() {
@@ -270,8 +424,6 @@ export const useControlStore = defineStore("control", () => {
   async function runRecommendedGraph() {
     selectedLangGraphMode.value = "contest_graph_v3";
     selectedLangGraphPhase.value = 1;
-    selectedProvider.value = "none";
-    selectedModel.value = "";
     langGraphCopyWorkspace.value = true;
     langGraphRunName.value = "ui-recommended-contest-graph-v3";
     langGraphTemperature.value = 0.2;
@@ -279,8 +431,8 @@ export const useControlStore = defineStore("control", () => {
     return runLangGraphPayload({
       phase: 1,
       mode: "contest_graph_v3",
-      provider: "none",
-      model: null,
+      provider: selectedProvider.value,
+      model: selectedModel.value.trim() || null,
       copy_workspace: true,
       run_name: "ui-recommended-contest-graph-v3",
       temperature: 0.2,
@@ -295,8 +447,6 @@ export const useControlStore = defineStore("control", () => {
     }
     selectedLangGraphMode.value = "phase_execute";
     selectedLangGraphPhase.value = phase;
-    selectedProvider.value = "none";
-    selectedModel.value = "";
     langGraphCopyWorkspace.value = true;
     langGraphRunName.value = `ui-phase-${phase}`;
     langGraphTemperature.value = 0.2;
@@ -304,8 +454,8 @@ export const useControlStore = defineStore("control", () => {
     return runLangGraphPayload({
       phase,
       mode: "phase_execute",
-      provider: "none",
-      model: null,
+      provider: selectedProvider.value,
+      model: selectedModel.value.trim() || null,
       copy_workspace: true,
       run_name: `ui-phase-${phase}`,
       temperature: 0.2,
@@ -440,6 +590,14 @@ export const useControlStore = defineStore("control", () => {
     harnesses,
     preparedRun,
     uploadResult,
+    activity,
+    activityMessages,
+    humanGateSummary,
+    humanGateChat,
+    humanGateQuestion,
+    humanGateDecision,
+    humanGateReviewNotes,
+    humanGateReviewResult,
     loading,
     error,
     initialize,
@@ -449,6 +607,13 @@ export const useControlStore = defineStore("control", () => {
     runAudit,
     createWorkspace,
     uploadSource,
+    refreshActivity,
+    archiveSelectedWorkspace,
+    restoreWorkspace,
+    deleteRunWorkspace,
+    loadHumanGateSummary,
+    askHumanGate,
+    submitHumanGateReview,
     generateRevisionTasks,
     loadBenchmark,
     generatePrompt,
@@ -493,5 +658,15 @@ export const useControlStore = defineStore("control", () => {
     loadRunArtifacts,
     openRunArtifact,
     runSafeLangGraphBenchmark,
+    // Onboarding & Human Gate
+    onboardingStep,
+    showHumanGateDialog,
+    humanGateContent,
+    humanGateTemplate,
+    humanGateNeeded,
+    dismissOnboarding,
+    setOnboardingProvider,
+    openHumanGateDialog,
+    closeHumanGateDialog,
   };
 });

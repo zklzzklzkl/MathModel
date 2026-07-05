@@ -67,8 +67,12 @@ examples/**/runs/
 **/control-center-history.jsonl
 app/backend/.env
 app/backend/.venv/
+app/backend/.local/
 app/frontend/node_modules/
 app/frontend/dist/
+app/frontend-studio/node_modules/
+app/frontend-studio/.next/
+template_packs/
 
 # Local RAG knowledge data and indexes (keep config/samples tracked)
 knowledge/raw/

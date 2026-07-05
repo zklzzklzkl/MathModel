@@ -1,5 +1,7 @@
 # MathModel Control Center v2
 
+> Current UI note: Control Center v3 is now the recommended frontend. It uses a simplified chat-style workflow console and moves Prompt/Harness developer tools into advanced diagnostics. See `docs/control-center-v3.md`.
+
 **Version**: V2.7-alpha
 **Frontend version**: 0.2.0
 **LangGraph Runtime**: v1.0-alpha

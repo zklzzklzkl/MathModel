@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class RagQuerySpec(BaseModel):
@@ -63,6 +64,17 @@ class PhasePlan(BaseModel):
     next_action: str
     file_writes: list[FileWriteSpec] = Field(default_factory=list)
     commands: list[CommandSpec] = Field(default_factory=list)
+
+    @field_validator("phase", mode="before")
+    @classmethod
+    def parse_phase(cls, v: Any) -> int:
+        if isinstance(v, int):
+            return v
+        if isinstance(v, str):
+            m = re.search(r"\d+", str(v))
+            if m:
+                return int(m.group(0))
+        raise ValueError(f"Cannot parse phase from: {v}")
 
     def to_dict(self) -> dict[str, Any]:
         if hasattr(self, "model_dump"):

@@ -11,6 +11,7 @@ from typing import Any, Callable
 from pydantic import ValidationError
 
 from .config import Settings
+from .json_preprocessor import loads_sanitized_json, sanitize_llm_json
 from .langgraph_state import MathModelGraphState
 from .model_adapters import ModelAdapterError, get_model_adapter
 from .phase_plan import PhasePlan
@@ -58,6 +59,7 @@ LANGGRAPH_INFRA_PATHS = {
     "reports/LANGGRAPH_PHASE_PLAN.json",
     "reports/LANGGRAPH_PHASE_PLAN.md",
     "reports/LANGGRAPH_RAW_MODEL_OUTPUT.md",
+    "reports/LANGGRAPH_JSON_PREPROCESS_REPORT.md",
     "reports/LANGGRAPH_APPLY_DIFF.md",
     "reports/LANGGRAPH_CONTEST_GRAPH_REPORT.md",
     "reports/AGENT_RUNS.md",
@@ -1325,6 +1327,16 @@ def _write_langgraph_file(state: MathModelGraphState, relative: str, text: str) 
     return path
 
 
+def _write_json_preprocess_report(state: MathModelGraphState) -> Path | None:
+    report = state.get("json_preprocess_report")
+    if not report:
+        return None
+    content = json.dumps(report, ensure_ascii=False, indent=2)
+    path = _write_langgraph_file(state, "reports/LANGGRAPH_JSON_PREPROCESS_REPORT.md", f"# JSON Preprocess Report\n\n```json\n{content}\n```\n")
+    state["json_preprocess_report_path"] = str(path)
+    return path
+
+
 def pre_audit_node(settings: Settings) -> Callable[[MathModelGraphState], MathModelGraphState]:
     def node(state: MathModelGraphState) -> MathModelGraphState:
         assert_run_workspace_allowed(state)
@@ -1398,11 +1410,17 @@ def validate_plan_node() -> Callable[[MathModelGraphState], MathModelGraphState]
             return state
         raw = state.get("raw_model_output") or ""
         try:
-            data = json.loads(_extract_json(raw))
+            data, preprocess_report = loads_sanitized_json(raw)
+            state["json_preprocess_report"] = preprocess_report
             plan = _validate_phase_plan(data)
             if plan.phase != state["phase"]:
                 raise ValueError(f"Plan phase {plan.phase} does not match requested phase {state['phase']}.")
         except (json.JSONDecodeError, ValidationError, ValueError) as exc:
+            if "json_preprocess_report" not in state:
+                _sanitized, preprocess_report = sanitize_llm_json(raw)
+                preprocess_report["success"] = False
+                preprocess_report["error"] = str(exc)
+                state["json_preprocess_report"] = preprocess_report
             state["phase_plan"] = None
             state["provider_error"] = f"PLAN_PARSE_FAILED: {exc}"
             state["status"] = "PLAN_PARSE_FAILED"
@@ -1434,6 +1452,7 @@ def write_plan_node() -> Callable[[MathModelGraphState], MathModelGraphState]:
                 f"# LangGraph Raw Model Output\n\n```text\n{raw}\n```\n",
             )
             state["raw_output_path"] = str(raw_path)
+            _write_json_preprocess_report(state)
             return state
         plan_json = json.dumps(state["phase_plan"], ensure_ascii=False, indent=2)
         plan_path = _write_langgraph_file(state, "reports/LANGGRAPH_PHASE_PLAN.json", plan_json + "\n")
@@ -1445,6 +1464,7 @@ def write_plan_node() -> Callable[[MathModelGraphState], MathModelGraphState]:
         state["plan_path"] = str(plan_path)
         state["plan_markdown_path"] = str(plan_markdown_path)
         state["raw_output_path"] = None
+        _write_json_preprocess_report(state)
         return state
 
     return node
@@ -1739,9 +1759,32 @@ def _extract_json(raw: str) -> str:
 
 
 def _validate_phase_plan(data: dict[str, Any]) -> PhasePlan:
+    data = _normalize_plan_json(data)
     if hasattr(PhasePlan, "model_validate"):
         return PhasePlan.model_validate(data)
     return PhasePlan.parse_obj(data)
+
+
+def _normalize_plan_json(data: dict[str, Any]) -> dict[str, Any]:
+    """Fix common LLM JSON formatting issues: dicts that should be lists of strings."""
+    list_string_fields = (
+        "required_inputs", "required_outputs", "source_quality_requirements",
+        "expected_artifacts", "do_not_do",
+    )
+    result: dict[str, Any] = {}
+    for key, value in data.items():
+        if key in list_string_fields and isinstance(value, dict):
+            result[key] = [f"{k}: {v}" for k, v in value.items()]
+        elif key == "risk_register" and isinstance(value, dict):
+            result[key] = [
+                {"severity": k, "risk": v, "mitigation": ""}
+                if isinstance(v, str)
+                else {"severity": k, **({} if isinstance(v, str) else v)}
+                for k, v in value.items()
+            ]
+        else:
+            result[key] = value
+    return result
 
 
 def _phase_plan_markdown(plan: dict[str, Any]) -> str:
@@ -2004,6 +2047,8 @@ def _initial_state(
         "plan_path": None,
         "plan_markdown_path": None,
         "raw_output_path": None,
+        "json_preprocess_report": None,
+        "json_preprocess_report_path": None,
         "apply_diff_path": None,
         "files_planned": [],
         "files_written": [],

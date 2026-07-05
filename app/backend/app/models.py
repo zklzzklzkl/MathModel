@@ -26,6 +26,7 @@ class WorkspaceItem(BaseModel):
     source: Literal["workspace_root", "examples", "other"]
     updated_at: str | None = None
     has_v2_shape: bool = False
+    archived: bool = False
 
 
 class CreateWorkspaceRequest(BaseModel):
@@ -137,6 +138,30 @@ class CopyRunResponse(BaseModel):
     workspace: WorkspaceItem
 
 
+class WorkspaceActionResponse(BaseModel):
+    ok: bool
+    action: str
+    source: str
+    destination: str | None = None
+    workspace: WorkspaceItem | None = None
+    message: str
+
+
+class RunDeleteRequest(BaseModel):
+    permanent: bool = False
+    confirm_name: str | None = None
+
+
+class RunDeleteResponse(BaseModel):
+    ok: bool
+    action: str
+    run_id: str
+    run_name: str
+    source: str
+    destination: str | None = None
+    message: str
+
+
 class RunHistoryEntry(BaseModel):
     timestamp: str
     event: str
@@ -168,6 +193,67 @@ class RevisionTasksResponse(BaseModel):
 class SourceUploadResponse(BaseModel):
     saved: list[str]
     skipped: list[str]
+
+
+class ActivityMessage(BaseModel):
+    id: str
+    kind: str
+    title: str
+    body: str
+    severity: str = "INFO"
+    phase: int | None = None
+    status: str | None = None
+    artifacts: list[str] = Field(default_factory=list)
+    actions: list[dict[str, Any]] = Field(default_factory=list)
+    timestamp: str | None = None
+
+
+class WorkspaceActivityResponse(BaseModel):
+    workspace: WorkspaceItem
+    summary_status: str
+    worst_severity: str
+    primary_blocker: dict[str, Any] | None = None
+    recommended_action: dict[str, Any]
+    messages: list[ActivityMessage]
+
+
+class HumanGateSummaryResponse(BaseModel):
+    workspace: WorkspaceItem
+    gate_file: str
+    exists: bool
+    approved: bool
+    approval_signal: str | None = None
+    summary: str
+    model_candidates_excerpt: str = ""
+    model_review_excerpt: str = ""
+    figure_plan_excerpt: str = ""
+    risks: list[str] = Field(default_factory=list)
+    suggested_questions: list[str] = Field(default_factory=list)
+
+
+class HumanGateChatRequest(BaseModel):
+    question: str
+    context: str | None = None
+
+
+class HumanGateChatResponse(BaseModel):
+    answer: str
+    suggested_review_note: str
+    follow_up_questions: list[str] = Field(default_factory=list)
+
+
+class HumanGateReviewRequest(BaseModel):
+    decision: Literal["approved", "needs_revision", "rejected"]
+    human_notes: str
+    ai_notes: str | None = None
+
+
+class HumanGateReviewResponse(BaseModel):
+    ok: bool
+    decision: str
+    written_path: str
+    approved: bool
+    history: dict[str, Any]
 
 
 class HarnessInfo(BaseModel):
@@ -244,6 +330,7 @@ class LangGraphRunResponse(BaseModel):
     plan_path: str | None = None
     plan_markdown_path: str | None = None
     raw_output_path: str | None = None
+    json_preprocess_report_path: str | None = None
     apply_diff_path: str | None = None
     files_planned: list[str] = Field(default_factory=list)
     files_written: list[str] = Field(default_factory=list)

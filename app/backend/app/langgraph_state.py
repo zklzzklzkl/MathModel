@@ -29,6 +29,8 @@ class MathModelGraphState(TypedDict):
     plan_path: str | None
     plan_markdown_path: str | None
     raw_output_path: str | None
+    json_preprocess_report: NotRequired[dict | None]
+    json_preprocess_report_path: NotRequired[str | None]
     apply_diff_path: str | None
     files_planned: list[str]
     files_written: list[str]
