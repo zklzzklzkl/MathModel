@@ -1229,6 +1229,69 @@ def dev_diagnostics() -> dict[str, Any]:
     return info
 
 
+@router.post("/api/chat")
+async def studio_chat(payload: dict[str, Any]) -> StreamingResponse:
+    """General AI chat with workspace context, returns SSE stream."""
+    message = str(payload.get("message") or "")
+    ctx = payload.get("context") or {}
+
+    if not message.strip():
+        raise HTTPException(status_code=400, detail="Message is required.")
+
+    # Build system prompt from context
+    system_parts = ["你是一位数学建模、统计分析和科研写作的 AI 助手。"]
+    if ctx.get("projectName"):
+        system_parts.append(f"当前项目: {ctx['projectName']}")
+    if ctx.get("domain"):
+        system_parts.append(f"领域: {ctx['domain']}")
+    if ctx.get("runStage"):
+        system_parts.append(f"当前阶段: {ctx['runStage']}")
+    system_prompt = "\n".join(system_parts)
+
+    # Read model config
+    with connect() as conn:
+        config = load_model_config(conn)
+    strategy_stage = next((s for s in config["stages"] if s["stage"] == "model_strategy"), None)
+    provider = strategy_stage["provider"] if strategy_stage else "none"
+    model = strategy_stage.get("model", "") if strategy_stage else ""
+    temperature = strategy_stage.get("temperature", 0.5) if strategy_stage else 0.5
+    max_tokens = strategy_stage.get("max_tokens", 4096) if strategy_stage else 4096
+
+    if provider == "none":
+        async def no_provider_stream():
+            yield f"data: {json.dumps({'content': '[安全预演模式] Provider 为 none，无法发送聊天请求。请在模型设置中配置 provider。', 'done': True}, ensure_ascii=False)}\n\n"
+        return StreamingResponse(no_provider_stream(), media_type="text/event-stream")
+
+    api_key = os.environ.get("MATHMODEL_LLM_API_KEY")
+    if not api_key:
+        async def no_key_stream():
+            yield f"data: {json.dumps({'content': 'MATHMODEL_LLM_API_KEY 未设置。', 'done': True}, ensure_ascii=False)}\n\n"
+        return StreamingResponse(no_key_stream(), media_type="text/event-stream")
+
+    async def chat_stream():
+        try:
+            from .model_adapters import get_model_adapter
+            adapter = get_model_adapter(provider)
+            full_prompt = f"{system_prompt}\n\n用户: {message}\n\n助手:"
+            accumulated = ""
+            async for chunk in adapter.stream_chat(
+                model=model or None,
+                prompt=full_prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                api_key=api_key,
+            ):
+                accumulated += chunk
+                yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'done': True}, ensure_ascii=False)}\n\n"
+        except ImportError:
+            yield f"data: {json.dumps({'content': 'model_adapters 未安装或 provider 不支持流式聊天。', 'done': True}, ensure_ascii=False)}\n\n"
+        except Exception as exc:
+            yield f"data: {json.dumps({'content': f'聊天出错: {exc}', 'done': True}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(chat_stream(), media_type="text/event-stream")
+
+
 def safe_zip_members(archive: zipfile.ZipFile) -> list[str]:
     names = []
     for info in archive.infolist():
