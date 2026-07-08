@@ -1,6 +1,6 @@
 # MathModelAgent V2.7-alpha
 
-面向全国大学生数学建模竞赛、MCM/ICM 等建模赛事的 AI Agent 工作流系统。
+面向全国大学生数学建模竞赛、MCM/ICM 等建模赛事的 AI Agent 工作流系统。（目前强烈建议使用Skills版本，LangGraph Runtime等功能还在持续开发中）
 
 MathModelAgent 不是一个传统软件项目，而是一套以 **Skill 工作流、LangGraph Runtime、本地 RAG 能力层、证据追踪、沙箱执行、论文评审门禁** 为核心的数学建模竞赛生产线。目标不是让 AI 直接“写一篇看起来像论文的文本”，而是把赛题理解、模型选择、代码实验、图表生成、论文写作、评审修订和最终验收拆成可审计、可复盘、可人工把关的阶段。
 
